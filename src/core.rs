@@ -19,17 +19,6 @@ impl bevy::prelude::Plugin for CorePlugin {
 			.add_state::<ScreenState>()
 			.init_resource::<SavedHostingInfo>()
 			// todo: find out why this causes the bug?
-			.replicate::<SpawnChildStructure>()
-			// .add_systems(
-			// 	PreUpdate,
-			// 	(
-			// 		hydrate_structure,
-			// 		|structures: Query<&SpawnChildStructure>| {
-			// 			// info!("Structures len: {}", structures.iter().len());
-			// 		},
-			// 	)
-			// 		.after(ClientSet::Receive),
-			// );
-			;
+			.replicate::<SpawnChildStructure>();
 	}
 }

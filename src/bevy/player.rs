@@ -4,7 +4,7 @@ use self::weapons::{handle_firing, should_fire_this_frame, toggle_fire, update_b
 
 use super::{
 	camera::handle_camera_movement,
-	renet::{AuthoritativeUpdate, ClientUpdate},
+	netcode::{AuthoritativeUpdate, ClientUpdate},
 };
 use crate::utils::*;
 use bevy::ecs::system::SystemParam;

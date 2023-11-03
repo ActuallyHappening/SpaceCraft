@@ -53,18 +53,12 @@ impl Plugin for ServerPlugin {
 // }
 
 fn add_server(
-	commands: Commands,
+	mut commands: Commands,
 	network_channels: Res<NetworkChannels>,
 	config: Res<SavedHostingInfo>,
 
 	mut setup_already: Local<bool>,
 ) {
-	// info!(
-	// 	"Setting up server resources: server: {:?}; client: {:?}",
-	// 	network_channels.get_server_configs(),
-	// 	network_channels.get_client_configs()
-	// );
-
 	use std::net::*;
 	use std::time::*;
 

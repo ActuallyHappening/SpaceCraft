@@ -2,9 +2,6 @@ use ::bevy::{log::LogPlugin, prelude::*, window::WindowMode};
 use bevy_replicon::prelude::*;
 use bevy_replicon::ReplicationPlugins;
 use creativity_game::*;
-use serde::Serialize;
-use std::net::*;
-use std::time::*;
 
 use creativity_game::utils::*;
 fn main() {
@@ -26,7 +23,7 @@ fn main() {
 				})
 				.set(LogPlugin {
 					level: bevy::log::Level::WARN,
-					filter: "creativity_game=trace,bevy_ecs=info,bevy_replicon=debug".into(),
+					filter: "creativity_game=trace,bevy_ecs=info,bevy_replicon=debug,renet=debug".into(),
 				})
 				.build(),
 		)
