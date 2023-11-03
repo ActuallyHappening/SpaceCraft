@@ -1,0 +1,12 @@
+/*
+!.cargo
+!assets
+!src/
+!.gitignore
+!.rustfmt.toml
+!Cargo.lock
+!Cargo.toml
+!CreativityGame.code-workspace
+!README.md
+!rust-toolchain.toml
+!Trunk.toml
