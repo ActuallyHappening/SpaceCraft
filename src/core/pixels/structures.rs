@@ -36,7 +36,7 @@ impl From<RawPixel> for StandardMaterial {
 	}
 }
 
-#[derive(Component, Constructor, Deref, Serialize, Deserialize)]
+#[derive(Component, Constructor, Deref, Serialize, Deserialize, Debug)]
 pub struct SpawnChildStructure {
 	pub structure: Structure,
 }
@@ -51,12 +51,11 @@ pub fn hydrate_structure(
 			&SpawnChildStructure,
 			Option<&ComputedVisibility>,
 			Option<&GlobalTransform>,
-			Option<&Replication>,
 		),
-		Added<SpawnChildStructure>,
+		(Added<SpawnChildStructure>, With<Replication>),
 	>,
 ) {
-	for (entity, structure, computed_visibility, global_transform, rep) in skeleton_players.iter() {
+	for (entity, structure, computed_visibility, global_transform) in skeleton_players.iter() {
 		info!("Hydrating structure");
 
 		let mut parent = commands.entity(entity);
@@ -66,12 +65,6 @@ pub fn hydrate_structure(
 		}
 		if global_transform.is_none() {
 			parent.insert(GlobalTransform::default());
-		}
-
-		if rep.is_none() {
-			info!("Replication does not exist on hydrating structure!");
-		} else {
-			info!("Replicating with replication");
 		}
 
 		// spawn structure

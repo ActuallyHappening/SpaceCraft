@@ -2012,6 +2012,7 @@ dependencies = [
  "bevy_replicon",
  "bevy_screen_diagnostics",
  "bevycheck",
+ "bincode",
  "clap",
  "console_error_panic_hook",
  "derive_builder",

@@ -64,6 +64,21 @@ pub fn spawn_initial_world(mut commands: Commands) {
 
 		let collider = structure.compute_collider();
 
+		let spawn_child_structure = SpawnChildStructure::new(structure);
+
+		#[cfg(feature = "debugging")]
+		{
+			let serialized = bincode::serialize(&spawn_child_structure).unwrap();
+			let len = serialized.len();
+
+			debug!("Length of serialized structure: {}", len); 
+
+			if len > 40_000 {
+				debug!("Debug repr: {:#?}", spawn_child_structure);
+			}
+		}
+
+
 		commands.spawn(
 			(
 				collider,
@@ -77,7 +92,7 @@ pub fn spawn_initial_world(mut commands: Commands) {
 					..default()
 				},
 				Replication,
-				SpawnChildStructure::new(structure),
+				spawn_child_structure,
 			)
 				.physics_dynamic().named("WorldGen Asteroid Structure"),
 		);
