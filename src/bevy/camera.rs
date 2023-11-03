@@ -153,7 +153,7 @@ pub fn handle_camera_movement(
 			}
 		}
 	} else {
-		// warn!("No player found for camera to follow!");
+		warn!("No player found for camera to follow! Current ID: {:?}", client_id.id());
 	}
 
 	mouse_movements.clear();

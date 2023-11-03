@@ -31,8 +31,8 @@ impl Plugin for PlayerPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.init_resource::<PlayerInventory>()
+.register_type::<ControllablePlayer>()
 			.replicate::<ControllablePlayer>()
-			.replicate::<Transform>()
 			// .add_systems(Startup, (initial_spawn_player,))
 			// .add_systems(Update, (update_bullets,).in_set(AuthoritativeUpdate))
 			.add_systems(
@@ -57,7 +57,7 @@ impl Plugin for PlayerPlugin {
 }
 
 /// Denotes the main, controllable player
-#[derive(Component, Default, Deserialize, Serialize)]
+#[derive(Component, Default, Deserialize, Serialize, Reflect)]
 pub struct ControllablePlayer {
 	pub network_id: u64,
 	// /// Current relative strength, used for UI

@@ -45,11 +45,12 @@ pub fn hydrate_structure(
 			&SpawnChildStructure,
 			Option<&ComputedVisibility>,
 			Option<&GlobalTransform>,
+			Option<&Visibility>,
 		),
 		Added<SpawnChildStructure>,
 	>,
 ) {
-	for (entity, structure, computed_visibility, global_transform) in skeleton_players.iter() {
+	for (entity, structure, computed_visibility, global_transform, visibility) in skeleton_players.iter() {
 		debug!("Hydrating structure");
 
 		let mut parent = commands.entity(entity);
@@ -60,6 +61,10 @@ pub fn hydrate_structure(
 		if global_transform.is_none() {
 			parent.insert(GlobalTransform::default());
 		}
+		if visibility.is_none() {
+			parent.insert(Visibility::Inherited);
+		}
+
 
 		// spawn structure
 		parent.with_children(|parent| {
