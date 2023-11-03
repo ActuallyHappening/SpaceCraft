@@ -1,7 +1,10 @@
 use crate::utils::*;
 use std::{f32::consts::PI, time::Duration};
 
-use bevy::{prelude::{shape::Icosphere, *}, ecs::system::SystemParam};
+use bevy::{
+	ecs::system::SystemParam,
+	prelude::{shape::Icosphere, *},
+};
 use bevy_rapier3d::prelude::*;
 // use bevy_renet::renet::{ChannelConfig, ClientId, ConnectionConfig, SendType};
 use bevy_replicon::ReplicationPlugins;
@@ -26,6 +29,8 @@ impl Plugin for RenetPlugin {
 		app
 			.add_plugins(ReplicationPlugins)
 			.add_plugins((client::ClientPlugin, server::ServerPlugin))
+			.replicate::<Transform>()
+			// .replicate::<Name>()
 			.configure_set(Update, AuthoritativeUpdate.run_if(has_authority()))
 			.configure_set(Update, ClientUpdate.run_if(in_state(ScreenState::InGame)));
 	}

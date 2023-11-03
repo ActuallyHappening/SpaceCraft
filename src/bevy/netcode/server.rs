@@ -32,7 +32,7 @@ pub struct ServerPlugin;
 impl Plugin for ServerPlugin {
 	fn build(&self, app: &mut App) {
 		app
-			.add_systems(OnEnter(ServerConnections::Hosting), (add_server, spawn_initial_world, authoritative_spawn_initial_player))
+			.add_systems(OnEnter(ServerConnections::Hosting), (add_server, spawn_authoritative_initial_world, authoritative_spawn_initial_player))
 			.add_systems(OnExit(ServerConnections::Hosting), disconnect_server)
 			.add_systems(Update, server_event_system.run_if(has_authority()))
 			// .add_systems(

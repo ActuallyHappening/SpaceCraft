@@ -30,12 +30,6 @@ pub use direction::Direction;
 mod relative_pixel_point;
 pub use relative_pixel_point::RelativePixelPoint;
 
-impl From<RawPixel> for StandardMaterial {
-	fn from(px: RawPixel) -> Self {
-		px.colour.into()
-	}
-}
-
 #[derive(Component, Constructor, Deref, Serialize, Deserialize, Debug)]
 pub struct SpawnChildStructure {
 	pub structure: Structure,
@@ -52,11 +46,11 @@ pub fn hydrate_structure(
 			Option<&ComputedVisibility>,
 			Option<&GlobalTransform>,
 		),
-		(Added<SpawnChildStructure>, With<Replication>),
+		Added<SpawnChildStructure>,
 	>,
 ) {
 	for (entity, structure, computed_visibility, global_transform) in skeleton_players.iter() {
-		info!("Hydrating structure");
+		debug!("Hydrating structure");
 
 		let mut parent = commands.entity(entity);
 

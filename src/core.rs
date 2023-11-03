@@ -19,6 +19,11 @@ impl bevy::prelude::Plugin for CorePlugin {
 			.add_state::<ScreenState>()
 			.init_resource::<SavedHostingInfo>()
 			.replicate::<SpawnChildStructure>()
-			.add_systems(PreUpdate, (hydrate_structure,).after(ClientSet::Receive));
+			.add_systems(
+				PreUpdate,
+				(hydrate_spawn_world_object, hydrate_structure)
+					.chain()
+					.after(ClientSet::Receive),
+			);
 	}
 }

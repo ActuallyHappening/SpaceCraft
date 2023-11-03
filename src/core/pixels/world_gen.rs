@@ -1,19 +1,17 @@
 use crate::utils::*;
 use num_integer::Roots;
 
-#[derive(Debug, Component, EnumIs, EnumDiscriminants)]
+#[derive(Debug, EnumIs, EnumDiscriminants, Serialize, Deserialize, Clone, Copy)]
 #[strum_discriminants(derive(EnumIter))]
 #[strum_discriminants(name(WorldObjectTypes))]
 pub enum WorldObjectType {
 	Asteroid { approx_radius: NonZeroU8 },
 }
 
-// #[extension(trait Vec3Ext)]
-// impl Vec3 {
-// 	fn in_circle(self, circle_radius: f32) -> bool {
-// 		(self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt() <= circle_radius
-// 	}
-// }
+#[derive(Debug, Component, Serialize, Deserialize, Constructor)]
+pub struct SpawnWorldObject {
+	obj_type: WorldObjectType,
+}
 
 impl RelativePixelPoint {
 	fn in_circle(&self, radius: &NonZeroU8) -> bool {
@@ -31,9 +29,9 @@ fn points_in_circle(radius: &NonZeroU8) -> impl Iterator<Item = RelativePixelPoi
 }
 
 impl WorldObjectType {
-	pub fn generate_structure(self) -> Structure {
+	pub fn generate_structure(&self) -> Structure {
 		match self {
-			Self::Asteroid { approx_radius } => Structure::new(points_in_circle(&approx_radius).map(
+			Self::Asteroid { approx_radius } => Structure::new(points_in_circle(approx_radius).map(
 				|p| StructurePart::Pixel {
 					px: Pixel::default_from_variant(PixelVariant::Copper),
 					relative_location: p,
@@ -43,10 +41,10 @@ impl WorldObjectType {
 	}
 }
 
-pub fn spawn_initial_world(mut commands: Commands) {
+pub fn spawn_authoritative_initial_world(mut commands: Commands) {
 	let mut rng = rand::thread_rng();
 
-	for _ in 0..10 {
+	for _ in 0..25 {
 		let pos = random_pos(SpaceRegions::VisibleNotInsidePlayer);
 		let rot = Quat::from_euler(
 			EulerRot::XYZ,
@@ -57,31 +55,11 @@ pub fn spawn_initial_world(mut commands: Commands) {
 		let velocity = random_velocity(VelocityRanges::Slow);
 
 		let object_type = WorldObjectType::Asteroid {
-			approx_radius: NonZeroU8::new(rng.gen_range(1..=10)).unwrap(),
+			approx_radius: NonZeroU8::new(rng.gen_range(1..=4)).unwrap(),
 		};
-
-		let structure = object_type.generate_structure();
-
-		let collider = structure.compute_collider();
-
-		let spawn_child_structure = SpawnChildStructure::new(structure);
-
-		#[cfg(feature = "debugging")]
-		{
-			let serialized = bincode::serialize(&spawn_child_structure).unwrap();
-			let len = serialized.len();
-
-			debug!("Length of serialized structure: {}", len); 
-
-			if len > 40_000 {
-				debug!("Debug repr: {:#?}", spawn_child_structure);
-			}
-		}
-
 
 		commands.spawn(
 			(
-				collider,
 				velocity,
 				PbrBundle {
 					transform: Transform {
@@ -92,14 +70,26 @@ pub fn spawn_initial_world(mut commands: Commands) {
 					..default()
 				},
 				Replication,
-				spawn_child_structure,
+				SpawnWorldObject::new(object_type),
 			)
-				.physics_dynamic().named("WorldGen Asteroid Structure"),
+				.physics_dynamic()
+				.named("WorldGen Asteroid Structure"),
 		);
-		// .with_children(|parent| {
-		// 	bundles
-		// 		.into_iter()
-		// 		.for_each(|b| b.default_spawn_to_parent(parent));
-		// });
+	}
+}
+
+pub fn hydrate_spawn_world_object(
+	mut commands: Commands,
+	world_objects: Query<(Entity, &SpawnWorldObject), Added<SpawnWorldObject>>,
+) {
+	for (entity, spawn_world_object) in world_objects.iter() {
+		debug!("Hydrating world object");
+
+		let structure = spawn_world_object.obj_type.generate_structure();
+		let collider = structure.compute_collider();
+
+		let mut entity = commands.entity(entity);
+		entity.insert(collider);
+		entity.insert(SpawnChildStructure::new(structure));
 	}
 }
