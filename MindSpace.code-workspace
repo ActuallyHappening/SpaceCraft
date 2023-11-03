@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "src"
+		},
+	],
+	"settings": {
+		"cSpell.words": [
+			"angvel",
+			"linvel",
+			"pickable",
+			"Pickable",
+			"Raycast",
+			"reparented"
+		]
+	}
+}
