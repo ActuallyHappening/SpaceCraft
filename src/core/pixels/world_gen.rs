@@ -35,7 +35,7 @@ impl WorldObjectType {
 		match self {
 			Self::Asteroid { approx_radius } => Structure::new(points_in_circle(&approx_radius).map(
 				|p| StructurePart::Pixel {
-					px: PixelVariant::Copper.get_default_pixel(),
+					px: Pixel::default_from_variant(PixelVariant::Copper),
 					relative_location: p,
 				},
 			)),

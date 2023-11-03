@@ -1,4 +1,4 @@
-use super::Pixel;
+use super::RawPixel;
 use crate::utils::*;
 
 mod structure;
@@ -30,8 +30,8 @@ pub use direction::Direction;
 mod relative_pixel_point;
 pub use relative_pixel_point::RelativePixelPoint;
 
-impl From<Pixel> for StandardMaterial {
-	fn from(px: Pixel) -> Self {
+impl From<RawPixel> for StandardMaterial {
+	fn from(px: RawPixel) -> Self {
 		px.colour.into()
 	}
 }

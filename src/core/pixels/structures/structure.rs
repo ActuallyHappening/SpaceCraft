@@ -79,7 +79,7 @@ impl Structure {
 					relative_location,
 				} => StructureBundle::Pixel {
 					visual: PbrBundle {
-						material: mma.mats.add(px.clone().into()),
+						material: mma.mats.add(px.get_colour().into()),
 						transform: Transform::from_translation(relative_location.into_world_vector()),
 						mesh: mma.meshs.add(shape::Cube::new(PIXEL_SIZE).into()),
 						..default()

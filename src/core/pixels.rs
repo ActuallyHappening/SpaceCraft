@@ -7,23 +7,39 @@ use macros::*;
 mod world_gen;
 pub use world_gen::*;
 
-/// Data about a class of pixels
+mod pixel_impls;
+
+/// Data about a class of pixels or a special specific pixel
 /// Does not implement [PartialEq] because the identity of a pixel is only in its variant,
 /// spawning default pixels does not imply that all default pixels are the same,
 /// even though all of the information contained within this struct would imply that
 /// [PartialEq] they are equal.
-#[derive(Component, Debug, Clone, Serialize, Deserialize)]
-pub struct Pixel {
-	pub name: Cow<'static, str>,
-	pub description: Cow<'static, str>,
-	pub colour: Color,
-	pub variant: PixelVariant,
+/// 
+/// Fields on this struct (ignoring the variant field) are *specific to a specific pixel* and
+/// can change at runtime.
+/// Other properties are properties of that type (or class) of pixels, such as 
+/// natural generation properties, or collect-ability.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RawPixel {
+	name: Cow<'static, str>,
+	description: Cow<'static, str>,
+	colour: Color,
+	variant: PixelVariant,
+}
+
+/// The actual data stored in the world and serialized between client / server
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Pixel {
+	Default {
+		variant: PixelVariant,
+	},
+	Special(RawPixel),
 }
 
 #[derive(Debug, Clone)]
 pub struct Natural {
 	/// Higher the number, greater chance of spawning
-	pub frequency: u16,
+	frequency: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -51,7 +67,7 @@ pub struct PixelVariantInfo {
 
 impl PixelVariant {
 	// todo: maybe put this info in a lazy_static and reference it instead of re-constructing it everywhere?
-	fn default_hardcoded(self) -> (Pixel, PixelVariantInfo) {
+	fn default_hardcoded(self) -> (RawPixel, PixelVariantInfo) {
 		type PV = PixelVariant;
 		match self {
 			PV::Dirt => pixel_type! {self,
@@ -99,8 +115,8 @@ impl PixelVariant {
 	}
 
 	/// From/Into also implemented, but prefer explicit methods
-	pub fn get_default_pixel(self) -> Pixel {
-		impl From<PixelVariant> for Pixel {
+	fn get_default_pixel(self) -> RawPixel {
+		impl From<PixelVariant> for RawPixel {
 			fn from(variant: PixelVariant) -> Self {
 				variant.get_default_pixel()
 			}
@@ -110,7 +126,7 @@ impl PixelVariant {
 	}
 
 	/// From/Into also implemented, but prefer explicit methods
-	pub fn get_variant_info(self) -> PixelVariantInfo {
+	fn get_variant_info(self) -> PixelVariantInfo {
 		impl From<PixelVariant> for PixelVariantInfo {
 			fn from(variant: PixelVariant) -> Self {
 				variant.get_variant_info()
