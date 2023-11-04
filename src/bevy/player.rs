@@ -53,23 +53,7 @@ impl Plugin for PlayerPlugin {
 					// trigger_player_thruster_particles.after(PlayerMove),
 				),
 			);
-			
-			debug!("Before client configs: {:#?}", app.world.resource::<NetworkChannels>().get_client_configs());
-			app.add_client_event::<DummyEvent>(EventType::Ordered);
-			debug!("After client configs: {:#?}", app.world.resource::<NetworkChannels>().get_client_configs());
-
-    app.add_systems(Update, (event_sending_system, event_receiving_system));
 	}
-}
-
-fn event_sending_system(mut dummy_events: EventWriter<DummyEvent>, renet_client: Option<Res<RenetClient>>) {
-    dummy_events.send_default();
-}
-
-fn event_receiving_system(mut dummy_events: EventReader<FromClient<DummyEvent>>) {
-    for FromClient { client_id, event } in &mut dummy_events {
-        info!("received event {event:?} from client {client_id}");
-    }
 }
 
 #[derive(Debug, Default, Deserialize, Event, Serialize)]

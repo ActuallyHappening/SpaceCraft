@@ -63,9 +63,6 @@ fn add_server(
 	let server_channels_config = network_channels.get_server_configs();
 	let client_channels_config = network_channels.get_client_configs();
 
-	debug!("Server channels config: {:?}", server_channels_config);
-	debug!("Client channels config: {:?}", client_channels_config);
-
 	let server = RenetServer::new(ConnectionConfig {
 		server_channels_config,
 		client_channels_config,

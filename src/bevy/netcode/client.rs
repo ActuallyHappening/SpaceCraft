@@ -58,16 +58,11 @@ fn add_client(
 	let server_channels_config = network_channels.get_server_configs();
 	let client_channels_config = network_channels.get_client_configs();
 
-	debug!("Server channels config: {:#?}", server_channels_config);
-	debug!("Client channels config: {:#?}", client_channels_config);
-
 	let client = RenetClient::new(ConnectionConfig {
 		server_channels_config,
 		client_channels_config,
 		..Default::default()
 	});
-
-	debug!("Client: {:#?}", client);
 
 	let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
 	let client_id = current_time.as_millis() as u64;

@@ -26,13 +26,5 @@ impl Plugin for MainPlugin {
 			CameraPlugin,
 			UiPlugins.build(),
 		));
-
-		debug!(
-			"At the end of MainPlugin: client configs {:#?}",
-			app
-				.world
-				.resource::<bevy_replicon::replicon_core::NetworkChannels>()
-				.get_client_configs()
-		);
 	}
 }
