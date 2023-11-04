@@ -4,7 +4,7 @@ use self::weapons::{handle_firing, should_fire_this_frame, toggle_fire, update_b
 
 use super::{
 	camera::handle_camera_movement,
-	netcode::{AuthoritativeUpdate, ClientUpdate},
+	netcode::{RollbackUpdate, NonRollbackUpdate},
 	ClientID,
 };
 use crate::utils::*;
@@ -38,7 +38,7 @@ impl Plugin for PlayerPlugin {
 			.add_systems(
 				Update,
 				(
-					(handle_camera_movement, gather_input_flags.pipe(send_event)).in_set(ClientUpdate),
+					(handle_camera_movement, gather_input_flags.pipe(send_event)).in_set(NonRollbackUpdate),
 					// should_fire_this_frame.pipe(toggle_fire).pipe(handle_firing),
 					authoritative_player_movement.in_set(PlayerMove),
 					trigger_player_thruster_particles.after(PlayerMove),

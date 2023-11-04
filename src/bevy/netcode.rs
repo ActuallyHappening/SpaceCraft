@@ -14,25 +14,41 @@ use serde::{Deserialize, Serialize};
 mod client;
 pub mod server;
 
-/// Steps physics, done by server
+/// Computes things like physics step, used as authority on server
+/// but as rollback on client
+///
+/// Runs on [FixedUpdate]
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AuthoritativeUpdate;
+pub struct RollbackUpdate;
 
-/// Handles effects, renders graphics, done by client
+/// Handles effects, renders graphics, done by clients and doesn't affect rollback
 /// Semantic only, might change if 'headless' servers are needed
+///
+/// Runs on [FixedUpdate]
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ClientUpdate;
+pub struct NonRollbackUpdate;
 
 pub struct RenetPlugin;
 impl Plugin for RenetPlugin {
 	fn build(&self, app: &mut App) {
+		let tw_config = TimewarpConfig::new(RollbackUpdate, RollbackUpdate);
+
 		app
 			.add_plugins(ReplicationPlugins)
+			.add_plugins(TimewarpPlugin::new(tw_config))
 			.add_plugins((client::ClientPlugin, server::ServerPlugin))
 			.replicate::<Transform>()
 			// .replicate::<Name>()
-			.configure_set(Update, AuthoritativeUpdate.run_if(has_authority()))
-			.configure_set(Update, ClientUpdate.run_if(in_state(ScreenState::InGame)));
+			.configure_set(
+				FixedUpdate,
+				RollbackUpdate
+					.run_if(in_state(ScreenState::InGame))
+					.run_if(resource_exists::<Rollback>()),
+			)
+			.configure_set(
+				FixedUpdate,
+				NonRollbackUpdate.run_if(in_state(ScreenState::InGame)),
+			);
 	}
 }
 

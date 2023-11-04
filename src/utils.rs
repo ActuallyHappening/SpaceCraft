@@ -49,6 +49,7 @@ pub use bevy_replicon::{
 		ConnectionConfig, ServerEvent,
 	},
 };
+pub use bevy_timewarp::prelude::*;
 
 #[cfg(feature = "hanabi_particles")]
 mod particles;
