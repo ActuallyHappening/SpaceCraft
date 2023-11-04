@@ -7,24 +7,24 @@ use super::ControllablePlayer;
 
 const RADIUS: f32 = PIXEL_SIZE / 10.;
 const LENGTH: f32 = PIXEL_SIZE * 0.8;
-const BULLET_SPEED: f32 = 100.;
+const BULLET_SPEED: f32 = 1000.;
 
 pub struct PlayerWeaponsPlugin;
 impl Plugin for PlayerWeaponsPlugin {
 	fn build(&self, app: &mut App) {
 		app
+    .replicate::<SpawnBullet>()
 			.add_systems(
 				FixedUpdate,
 				(
 					(
 						authoritative_spawn_bullets,
-						authoritative_hydrate_bullets,
 						authoritative_tick_weapons,
 						authoritative_tick_bullets,
 					)
 						.chain()
 						.in_set(AuthoritativeUpdate),
-					(send_player_fire_request,).in_set(ClientUpdate),
+					(send_player_fire_request, hydrate_bullets).in_set(ClientUpdate),
 				),
 			)
 			.add_client_event::<PlayerFireInput>(EventType::Ordered);
@@ -250,7 +250,7 @@ fn authoritative_spawn_bullets(
 	}
 }
 
-fn authoritative_hydrate_bullets(
+fn hydrate_bullets(
 	new_bullets: Query<(Entity, &SpawnBullet), Added<SpawnBullet>>,
 	mut commands: Commands,
 	mut mma: MMA,
