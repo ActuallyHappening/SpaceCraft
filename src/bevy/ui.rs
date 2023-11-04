@@ -20,7 +20,6 @@ impl Plugin for CameraUiPlugin {
 				Startup,
 				(
 					setup_camera::<BottomLeft>.in_set(BottomLeft),
-					setup_bottom_left_cam.after(BottomLeft),
 					setup_camera::<TopLeft>.in_set(TopLeft),
 					setup_top_left_cam.after(TopLeft),
 					setup_camera::<TopRight>.in_set(TopRight),
@@ -33,12 +32,16 @@ impl Plugin for CameraUiPlugin {
 				Update,
 				(
 					update_camera::<BottomLeft>.in_set(BottomLeft),
-					update_bottom_left_camera.after(PlayerMove),
+					update_bottom_left_camera
+						.after(PlayerMove)
+						.run_if(in_state(ScreenState::InGame)),
 					update_camera::<TopLeft>,
 					update_camera::<TopRight>,
 					update_camera::<BottomRight>,
 				),
-			);
+			)
+			.add_systems(OnEnter(ScreenState::InGame), setup_bottom_left_cam)
+			.add_systems(OnExit(ScreenState::InGame), cleanup_bottom_left_cam);
 	}
 }
 

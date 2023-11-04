@@ -17,6 +17,9 @@ const BRAKING_ENABLED_COL: Color = Color::RED;
 const ARTIFICIAL_FRICTION_ENABLED_COL: Color = Color::YELLOW;
 
 #[derive(Component, Debug)]
+pub struct BottomLeftComponent;
+
+#[derive(Component, Debug)]
 pub struct NeedleVelocity(ThrustType);
 
 #[derive(Component, Debug)]
@@ -341,6 +344,12 @@ pub fn update_bottom_left_camera(
 		}
 	} else {
 		warn!("No player found to update ui with!");
+	}
+}
+
+pub fn cleanup_bottom_left_cam(mut commands: Commands, query: Query<Entity, With<BottomLeft>>) {
+	for entity in query.iter() {
+		commands.entity(entity).despawn_recursive();
 	}
 }
 

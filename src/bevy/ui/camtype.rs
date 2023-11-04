@@ -3,7 +3,7 @@ use crate::utils::*;
 #[derive(Component, Debug, Default)]
 pub struct UiCamera<S: CamType>(PhantomData<S>);
 
-#[allow(private_bounds)]
+// #[allow(private_bounds)]
 pub trait CamType: Component + std::fmt::Debug + Send + Sync + Default + Sealed + Into<RenderLayers> {
 	/// Implement this without the offset
 	fn get_cam_transform(half_width: f32, half_height: f32) -> UVec2;
