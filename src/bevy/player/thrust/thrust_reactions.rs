@@ -2,14 +2,14 @@ use super::*;
 
 /// Takes into account braking and artificial friction
 pub fn process_inputs(
-	raw_inputs: &PlayerInputs,
+	raw_inputs: &PlayerMoveInput,
 	artificial_friction_flags: &Thrust<ArtificialFrictionFlags>,
 
 	current_velocity: Thrust<RelativeVelocityMagnitudes>,
 ) -> (Thrust<ThrustReactionsStage>, Thrust<ForceFactors>) {
 	match raw_inputs {
-		PlayerInputs::Braking => braking(current_velocity),
-		PlayerInputs::Thrust(raw_inputs) => {
+		PlayerMoveInput::Braking => braking(current_velocity),
+		PlayerMoveInput::Thrust(raw_inputs) => {
 			let mut processed_inputs = Thrust::<ThrustReactionsStage>::default();
 			let mut force_factors = force_factors();
 

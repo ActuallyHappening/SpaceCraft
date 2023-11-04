@@ -2,7 +2,6 @@
 
 #![allow(dead_code)]
 
-use bevy::ecs::event;
 use ::bevy::{ecs::system::SystemParam, asset::AssetPath};
 
 pub use crate::bevy::types::*;
@@ -13,6 +12,7 @@ pub use ::bevy::sprite::MaterialMesh2dBundle;
 pub use ::bevy::{
 	core_pipeline::clear_color::ClearColorConfig, render::camera::Viewport, window::WindowResized,
 };
+pub use bevy::app::PluginGroupBuilder;
 pub use bevy_dolly::prelude::*;
 pub use bevy_mod_picking::prelude::*;
 pub use bevy_rapier3d::prelude::*;

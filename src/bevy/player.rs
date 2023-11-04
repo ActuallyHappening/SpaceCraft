@@ -1,10 +1,6 @@
-use crate::core::PlayerInventory;
-
-use self::weapons::{handle_firing, should_fire_this_frame, toggle_fire, update_bullets};
-
 use super::{
 	camera::handle_camera_movement,
-	netcode::{NonRollbackUpdate, RollbackUpdate},
+	netcode::AuthoritativeUpdate,
 	ClientID,
 };
 use crate::utils::*;
@@ -14,41 +10,46 @@ use lazy_static::lazy_static;
 mod thrust;
 use thrust::*;
 pub use thrust::{
-	calculate_relative_velocity_magnitudes, get_base_normal_vectors, types, PlayerInputs,
+	calculate_relative_velocity_magnitudes, get_base_normal_vectors, types, PlayerMoveInput,
 	RelativeStrength, RelativeVelocityMagnitudes, Thrust, ThrustReactions, ThrustReactionsStage,
 };
 
 mod weapons;
-pub use weapons::WeaponFlags;
+pub use weapons::WeaponInfo;
 
 pub struct PlayerPlugin;
 
+impl PluginGroup for PlayerPlugin {
+	fn build(self) -> bevy::app::PluginGroupBuilder {
+		PluginGroupBuilder::start::<Self>()
+			.add(PlayerMovementPlugin)
+			.add(self::weapons::PlayerWeaponsPlugin)
+	}
+}
+
 /// After player thrusts and movement have been handled
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone)]
-pub struct PlayerMove;
+pub struct PlayerMovementPlugin;
 
-impl Plugin for PlayerPlugin {
+impl Plugin for PlayerMovementPlugin {
 	fn build(&self, app: &mut App) {
 		app
-			.init_resource::<PlayerInventory>()
 			.register_type::<ControllablePlayer>()
 			.replicate::<ControllablePlayer>()
-			.add_client_event::<PlayerInputs>(EventType::Ordered)
+			.add_client_event::<PlayerMoveInput>(EventType::Ordered)
 			// .add_systems(Update, (update_bullets,).in_set(AuthoritativeUpdate))
 			.add_systems(
 				FixedUpdate,
 				(
 					(
-						handle_camera_movement,
 						gather_input_flags.pipe(send_event),
-						trigger_player_thruster_particles.after(PlayerMove),
-						authoritative_player_movement,
+						handle_camera_movement,
+						trigger_player_thruster_particles.after(PlayerMovementPlugin),
+					),
+					(
+						authoritative_player_movement.in_set(PlayerMovementPlugin),
 					)
-						.in_set(NonRollbackUpdate),
-					// should_fire_this_frame.pipe(toggle_fire).pipe(handle_firing),
-					authoritative_player_movement
-						.in_set(PlayerMove)
-						.in_set(RollbackUpdate)
+						.in_set(AuthoritativeUpdate),
 				),
 			);
 	}
@@ -135,7 +136,7 @@ lazy_static! {
 		(Thruster::new(Direction::Backward, ThrusterFlags::builder().forward_back(true).build().unwrap()), (-1, 0, 2)),
 		(Thruster::new(Direction::Forward, ThrusterFlags::builder().forward_back(false).build().unwrap()), (-1, 0, -1)),
 	]).with([
-		(Weapon::new(Direction::Forward), (-2, 0, -2)), // left 2, front 2
+		(Weapon::new(Direction::Forward, WeaponInfo::sensible_default()), (-2, 0, -2)), // left 2, front 2
 	])
 	.reflect_horizontally()
 	.reflect_vertically();

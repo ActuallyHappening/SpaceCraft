@@ -1,21 +1,21 @@
-use crate::bevy::WeaponFlags;
+use crate::bevy::WeaponInfo;
 
 use super::*;
 
-#[derive(Debug, Clone, Component, Serialize, Deserialize)]
+#[derive(Debug, Clone, Component, Serialize, Deserialize, Constructor)]
 pub struct Weapon {
 	pub facing: Direction,
-	pub flags: WeaponFlags,
+	pub info: WeaponInfo,
 }
 
-impl Weapon {
-	pub fn new(facing: Direction) -> Self {
-		Self {
-			facing,
-			flags: WeaponFlags::default(),
-		}
-	}
-}
+// impl Weapon {
+// 	pub fn new(facing: Direction, info: WeaponInfo) -> Self {
+// 		Self {
+// 			facing,
+// 			info,
+// 		}
+// 	}
+// }
 
 impl Reflection for Weapon {
 	fn reflect_horizontally(mut self) -> Self {

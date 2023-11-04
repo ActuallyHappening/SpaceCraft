@@ -36,16 +36,16 @@ impl ThrustType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Event)]
-pub enum PlayerInputs {
+pub enum PlayerMoveInput {
 	Braking,
 	Thrust(Thrust<GenericInputFlags>),
 }
 
-pub fn gather_input_flags(keyboard_input: Res<Input<KeyCode>>) -> PlayerInputs {
+pub fn gather_input_flags(keyboard_input: Res<Input<KeyCode>>) -> PlayerMoveInput {
 	if keyboard_input.pressed(KeyCode::ShiftLeft) {
-		PlayerInputs::Braking
+		PlayerMoveInput::Braking
 	} else {
-		PlayerInputs::Thrust(ThrustType::gather_flags(&keyboard_input))
+		PlayerMoveInput::Thrust(ThrustType::gather_flags(&keyboard_input))
 	}
 }
 

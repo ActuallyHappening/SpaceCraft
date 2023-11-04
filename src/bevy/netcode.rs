@@ -15,23 +15,23 @@ mod client;
 pub mod server;
 
 /// Computes things like physics step, used as authority on server
-/// but as rollback on client
+/// (but as rollback on client, todo)
 ///
 /// Runs on [FixedUpdate]
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RollbackUpdate;
+pub struct AuthoritativeUpdate;
 
 /// Handles effects, renders graphics, done by clients and doesn't affect rollback
 /// Semantic only, might change if 'headless' servers are needed
 ///
 /// Runs on [FixedUpdate]
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct NonRollbackUpdate;
+pub struct ClientUpdate;
 
 pub struct RenetPlugin;
 impl Plugin for RenetPlugin {
 	fn build(&self, app: &mut App) {
-		let tw_config = TimewarpConfig::new(RollbackUpdate, RollbackUpdate);
+		let tw_config = TimewarpConfig::new(AuthoritativeUpdate, AuthoritativeUpdate);
 
 		app
 			.add_plugins(ReplicationPlugins)
@@ -42,13 +42,14 @@ impl Plugin for RenetPlugin {
 			// .replicate::<Name>()
 			.configure_set(
 				FixedUpdate,
-				RollbackUpdate
+				AuthoritativeUpdate
 					.run_if(in_state(ScreenState::InGame))
-					.run_if(resource_exists::<Rollback>()),
+					// .run_if(resource_exists::<Rollback>()),
+					.run_if(has_authority()),
 			)
 			.configure_set(
 				FixedUpdate,
-				NonRollbackUpdate.run_if(in_state(ScreenState::InGame)),
+				ClientUpdate.run_if(in_state(ScreenState::InGame)),
 			);
 	}
 }

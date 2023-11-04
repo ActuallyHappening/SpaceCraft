@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{utils::*, bevy::player::PlayerInputs};
+use crate::{utils::*, bevy::player::PlayerMoveInput};
 use bevy::{
 	diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
 	prelude::{shape::Icosphere, *},

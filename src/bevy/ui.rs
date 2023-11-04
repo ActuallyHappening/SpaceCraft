@@ -33,7 +33,7 @@ impl Plugin for CameraUiPlugin {
 				(
 					update_camera::<BottomLeft>.in_set(BottomLeft),
 					update_bottom_left_camera
-						.after(PlayerMove)
+						.after(PlayerMovementPlugin)
 						.run_if(in_state(ScreenState::InGame)),
 					update_camera::<TopLeft>,
 					update_camera::<TopRight>,
@@ -53,7 +53,7 @@ mod startscreen;
 
 use self::startscreen::StartScreenPlugin;
 
-use super::player::PlayerMove;
+use super::player::PlayerMovementPlugin;
 
 fn setup_camera<T: CamType>(mut commands: Commands) {
 	commands.spawn(UiCamera::<T>::get_camera_bundle().insert(T::default()));

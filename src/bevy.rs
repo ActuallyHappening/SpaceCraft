@@ -11,7 +11,7 @@ mod setup;
 mod ui;
 
 pub use player::types;
-pub use player::WeaponFlags;
+pub use player::WeaponInfo;
 
 pub use netcode::ClientID;
 

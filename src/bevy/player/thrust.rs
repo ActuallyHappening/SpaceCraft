@@ -106,7 +106,7 @@ pub struct PlayerMovementQuery<'w> {
 
 pub fn authoritative_player_movement(
 	mut player_bundle: Query<PlayerMovementQuery>,
-	mut player_inputs: EventReader<FromClient<PlayerInputs>>,
+	mut player_inputs: EventReader<FromClient<PlayerMoveInput>>,
 	time: Res<Time>,
 ) {
 	let mut player_inputs = player_inputs.iter().collect::<Vec<_>>();
