@@ -5,8 +5,8 @@ use crate::core::CorePlugin;
 use self::{camera::CameraPlugin, player::PlayerPlugin, setup::SetupPlugin, ui::UiPlugins};
 
 mod camera;
-mod player;
 mod netcode;
+mod player;
 mod setup;
 mod ui;
 
@@ -26,5 +26,13 @@ impl Plugin for MainPlugin {
 			CameraPlugin,
 			UiPlugins.build(),
 		));
+
+		debug!(
+			"At the end of MainPlugin: client configs {:#?}",
+			app
+				.world
+				.resource::<bevy_replicon::replicon_core::NetworkChannels>()
+				.get_client_configs()
+		);
 	}
 }

@@ -34,18 +34,46 @@ impl Plugin for PlayerPlugin {
 			.init_resource::<PlayerInventory>()
 			.register_type::<ControllablePlayer>()
 			.replicate::<ControllablePlayer>()
+			// .add_client_event::<PlayerInputs>(EventType::Ordered)
 			// .add_systems(Update, (update_bullets,).in_set(AuthoritativeUpdate))
 			.add_systems(
 				Update,
 				(
-					(handle_camera_movement, gather_input_flags.pipe(send_event)).in_set(ClientUpdate),
+					(
+						handle_camera_movement,
+						// gather_input_flags.pipe(
+						// 	|e: In<PlayerInputs>, mut event_writer: EventWriter<PlayerInputs>| {
+						// 		trace!("Sending event");
+						// 		event_writer.send(e.0)},
+						// ),
+					)
+						.in_set(ClientUpdate),
 					// should_fire_this_frame.pipe(toggle_fire).pipe(handle_firing),
-					authoritative_player_movement.in_set(PlayerMove),
+					// authoritative_player_movement.in_set(PlayerMove),
 					// trigger_player_thruster_particles.after(PlayerMove),
 				),
 			);
+			
+			debug!("Before client configs: {:#?}", app.world.resource::<NetworkChannels>().get_client_configs());
+			app.add_client_event::<DummyEvent>(EventType::Ordered);
+			debug!("After client configs: {:#?}", app.world.resource::<NetworkChannels>().get_client_configs());
+
+    app.add_systems(Update, (event_sending_system, event_receiving_system));
 	}
 }
+
+fn event_sending_system(mut dummy_events: EventWriter<DummyEvent>, renet_client: Option<Res<RenetClient>>) {
+    dummy_events.send_default();
+}
+
+fn event_receiving_system(mut dummy_events: EventReader<FromClient<DummyEvent>>) {
+    for FromClient { client_id, event } in &mut dummy_events {
+        info!("received event {event:?} from client {client_id}");
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Event, Serialize)]
+struct DummyEvent;
 
 /// Denotes the main, controllable player
 #[derive(Component, Default, Deserialize, Serialize, Reflect)]

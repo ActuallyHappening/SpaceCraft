@@ -21,7 +21,7 @@ use super::PROTOCOL_ID;
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(OnEnter(ServerConnections::Client), add_client).add_client_event::<PlayerInputs>(EventType::Ordered);
+		app.add_systems(OnEnter(ServerConnections::Client), add_client);
 		// app
 		// 	.add_plugins((
 		// 		bevy_renet::RenetClientPlugin,
@@ -55,17 +55,19 @@ fn add_client(
 		*setup_already = true;
 	}
 
-	let server_channels_config = network_channels.get_client_configs();
-	let client_channels_config = network_channels.get_server_configs();
+	let server_channels_config = network_channels.get_server_configs();
+	let client_channels_config = network_channels.get_client_configs();
 
-	debug!("Server channels config: {:?}", server_channels_config);
-	debug!("Client channels config: {:?}", client_channels_config);
+	debug!("Server channels config: {:#?}", server_channels_config);
+	debug!("Client channels config: {:#?}", client_channels_config);
 
 	let client = RenetClient::new(ConnectionConfig {
 		server_channels_config,
 		client_channels_config,
 		..Default::default()
 	});
+
+	debug!("Client: {:#?}", client);
 
 	let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
 	let client_id = current_time.as_millis() as u64;
