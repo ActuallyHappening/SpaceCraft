@@ -26,7 +26,7 @@ pub use thrust_reactions::*;
 
 pub mod types;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Thrust<S: ThrustStage> {
 	/// Positive is forward obviously
 	pub forward: <S as self::ThrustStage>::DimensionType,

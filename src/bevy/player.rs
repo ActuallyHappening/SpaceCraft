@@ -5,6 +5,7 @@ use self::weapons::{handle_firing, should_fire_this_frame, toggle_fire, update_b
 use super::{
 	camera::handle_camera_movement,
 	netcode::{AuthoritativeUpdate, ClientUpdate},
+	ClientID,
 };
 use crate::utils::*;
 use bevy::ecs::system::SystemParam;
@@ -31,9 +32,8 @@ impl Plugin for PlayerPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.init_resource::<PlayerInventory>()
-.register_type::<ControllablePlayer>()
+			.register_type::<ControllablePlayer>()
 			.replicate::<ControllablePlayer>()
-			// .add_systems(Startup, (initial_spawn_player,))
 			// .add_systems(Update, (update_bullets,).in_set(AuthoritativeUpdate))
 			.add_systems(
 				Update,
@@ -51,8 +51,7 @@ impl Plugin for PlayerPlugin {
 					// .in_set(PlayerMove),
 					// trigger_player_thruster_particles.after(PlayerMove),
 				),
-			)
-			;
+			);
 	}
 }
 
@@ -60,12 +59,39 @@ impl Plugin for PlayerPlugin {
 #[derive(Component, Default, Deserialize, Serialize, Reflect)]
 pub struct ControllablePlayer {
 	pub network_id: u64,
-	// /// Current relative strength, used for UI
-	// pub relative_strength: Thrust<RelativeStrength>,
-	// /// Current inputs including braking info, used for UI
-	// pub thrust_responses: Thrust<ThrustReactionsStage>,
-	// /// Optional artificial friction flags, starts all enabled
-	// pub artificial_friction_flags: Thrust<ArtificialFrictionFlags>,
+
+	/// Current relative strength, used for UI
+	#[reflect(ignore)]
+	relative_strength: Thrust<RelativeStrength>,
+
+	/// Current inputs including braking info, used for UI
+	#[reflect(ignore)]
+	thrust_responses: Thrust<ThrustReactionsStage>,
+
+	/// Optional artificial friction flags, starts all enabled
+	#[reflect(ignore)]
+	artificial_friction_flags: Thrust<ArtificialFrictionFlags>,
+}
+
+impl ControllablePlayer {
+	pub fn new(network_id: u64) -> Self {
+		ControllablePlayer {
+			network_id,
+			..Default::default()
+		}
+	}
+}
+
+#[derive(SystemParam)]
+pub struct ThisControllablePlayer<'w, 's> {
+	id: ClientID<'w>,
+	players: Query<'w, 's, &'static ControllablePlayer>,
+}
+
+impl<'world, 'state> ThisControllablePlayer<'world, 'state> {
+	pub fn get(&self) -> Option<&ControllablePlayer> {
+		self.players.iter().find(|p| p.network_id == self.id.id())
+	}
 }
 
 lazy_static! {
@@ -90,8 +116,6 @@ lazy_static! {
 	.reflect_horizontally()
 	.reflect_vertically();
 }
-
-
 
 #[derive(Bundle)]
 pub struct AuthorityPlayerBundle {
@@ -156,17 +180,10 @@ impl PhysicsBundle {
 	}
 }
 
-
-
 /// Spawns the initial player
 pub fn authoritative_spawn_initial_player(mut commands: Commands) {
 	commands.spawn(AuthorityPlayerBundle::new(
-		ControllablePlayer {
-			network_id: SERVER_ID,
-			// relative_strength: Thrust::default(),
-			// thrust_responses: Thrust::default(),
-			// artificial_friction_flags: Thrust::default(),
-		},
+		ControllablePlayer::new(SERVER_ID),
 		PLAYER_STRUCTURE.clone(),
 		Transform::from_translation(Vec3::new(0., 0., 0.)),
 	));

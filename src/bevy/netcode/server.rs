@@ -100,9 +100,7 @@ fn server_event_system(mut server_event: EventReader<ServerEvent>, mut commands:
 				info!("player: {client_id} Connected");
 				
 				commands.spawn(AuthorityPlayerBundle::new(
-					ControllablePlayer {
-						network_id: *client_id,
-					},
+					ControllablePlayer::new(*client_id),
 					PLAYER_STRUCTURE.clone(),
 					Transform::from_xyz(0., 100., 0.),
 				));
