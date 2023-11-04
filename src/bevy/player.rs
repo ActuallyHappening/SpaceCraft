@@ -1,6 +1,6 @@
 use super::{
 	camera::handle_camera_movement,
-	netcode::AuthoritativeUpdate,
+	netcode::{AuthoritativeUpdate, ClientUpdate},
 	ClientID,
 };
 use crate::utils::*;
@@ -45,7 +45,7 @@ impl Plugin for PlayerMovementPlugin {
 						gather_input_flags.pipe(send_event),
 						handle_camera_movement,
 						trigger_player_thruster_particles.after(PlayerMovementPlugin),
-					),
+					).in_set(ClientUpdate),
 					(
 						authoritative_player_movement.in_set(PlayerMovementPlugin),
 					)
