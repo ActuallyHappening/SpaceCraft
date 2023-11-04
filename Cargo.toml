@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [workspace]
-# members = ["xtask", "bevy_timewarp"]
+members = ["xtask", "bevy_timewarp"]
 # exclude = ["bevy_timewarp"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

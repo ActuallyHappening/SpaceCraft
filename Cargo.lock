@@ -1377,6 +1377,15 @@ dependencies = [
 [[package]]
 name = "bevy_timewarp"
 version = "0.1.0"
+dependencies = [
+ "bevy",
+ "itertools",
+ "thiserror",
+]
+
+[[package]]
+name = "bevy_timewarp"
+version = "0.1.0"
 source = "git+https://github.com/RJ/bevy_timewarp.git#22b0ccd5f888bb44804bc9e715c718dddcb0f945"
 dependencies = [
  "bevy",
@@ -2021,7 +2030,7 @@ dependencies = [
  "bevy_rapier3d",
  "bevy_replicon",
  "bevy_screen_diagnostics",
- "bevy_timewarp",
+ "bevy_timewarp 0.1.0 (git+https://github.com/RJ/bevy_timewarp.git)",
  "bevycheck",
  "bincode",
  "clap",
@@ -5845,6 +5854,13 @@ name = "xml-rs"
 version = "0.8.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fcb9cbac069e033553e8bb871be2fbdffcab578eb25bd0f7c508cedc6dcd75a"
+
+[[package]]
+name = "xtask"
+version = "0.0.0"
+dependencies = [
+ "clap",
+]
 
 [[package]]
 name = "zerocopy"

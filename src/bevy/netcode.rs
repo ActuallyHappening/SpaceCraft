@@ -38,6 +38,7 @@ impl Plugin for RenetPlugin {
 			.add_plugins(TimewarpPlugin::new(tw_config))
 			.add_plugins((client::ClientPlugin, server::ServerPlugin))
 			.replicate::<Transform>()
+			// .insert_resource(FixedTime::new(Duration::from_secs(1) / 30))
 			// .replicate::<Name>()
 			.configure_set(
 				FixedUpdate,

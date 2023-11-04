@@ -4,7 +4,7 @@ use self::weapons::{handle_firing, should_fire_this_frame, toggle_fire, update_b
 
 use super::{
 	camera::handle_camera_movement,
-	netcode::{RollbackUpdate, NonRollbackUpdate},
+	netcode::{NonRollbackUpdate, RollbackUpdate},
 	ClientID,
 };
 use crate::utils::*;
@@ -36,20 +36,23 @@ impl Plugin for PlayerPlugin {
 			.add_client_event::<PlayerInputs>(EventType::Ordered)
 			// .add_systems(Update, (update_bullets,).in_set(AuthoritativeUpdate))
 			.add_systems(
-				Update,
+				FixedUpdate,
 				(
-					(handle_camera_movement, gather_input_flags.pipe(send_event)).in_set(NonRollbackUpdate),
+					(
+						handle_camera_movement,
+						gather_input_flags.pipe(send_event),
+						trigger_player_thruster_particles.after(PlayerMove),
+						authoritative_player_movement,
+					)
+						.in_set(NonRollbackUpdate),
 					// should_fire_this_frame.pipe(toggle_fire).pipe(handle_firing),
-					authoritative_player_movement.in_set(PlayerMove),
-					trigger_player_thruster_particles.after(PlayerMove),
-
+					authoritative_player_movement
+						.in_set(PlayerMove)
+						.in_set(RollbackUpdate)
 				),
 			);
 	}
 }
-
-#[derive(Debug, Default, Deserialize, Event, Serialize)]
-struct DummyEvent;
 
 /// Denotes the main, controllable player
 #[derive(Component, Default, Deserialize, Serialize, Reflect)]
