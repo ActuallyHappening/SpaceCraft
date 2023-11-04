@@ -2,6 +2,7 @@
 
 #![allow(dead_code)]
 
+use bevy::ecs::event;
 use ::bevy::{ecs::system::SystemParam, asset::AssetPath};
 
 pub use crate::bevy::types::*;
@@ -221,6 +222,10 @@ impl Style {
 		self.height = Val::Vw(vh.into());
 		self
 	}
+}
+
+pub fn send_event<T: Event>(In(event): In<T>, mut event_writer: EventWriter<T>) {
+	event_writer.send(event);
 }
 
 pub fn join2<A, B, AMarker, BMarker>(

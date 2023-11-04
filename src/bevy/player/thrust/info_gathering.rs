@@ -35,22 +35,23 @@ impl ThrustType {
 	}
 }
 
-/// [Option::None] when braking
-pub(super) fn gather_input_flags(
-	keyboard_input: Res<Input<KeyCode>>,
-) -> Option<Thrust<GenericInputFlags>> {
+#[derive(Debug, Serialize, Deserialize, Event)]
+pub enum PlayerInputs {
+	Braking,
+	Thrust(Thrust<GenericInputFlags>),
+}
+
+pub fn gather_input_flags(keyboard_input: Res<Input<KeyCode>>) -> PlayerInputs {
 	if keyboard_input.pressed(KeyCode::ShiftLeft) {
-		None
+		PlayerInputs::Braking
 	} else {
-		Some(ThrustType::gather_flags(&keyboard_input))
+		PlayerInputs::Thrust(ThrustType::gather_flags(&keyboard_input))
 	}
 }
 
 pub fn get_base_normal_vectors(
-	player_transform: Query<&Transform, With<ControllablePlayer>>,
+	player: &Transform
 ) -> Thrust<BasePositionNormalVectors> {
-	let player = player_transform.single();
-
 	let forward = player.forward();
 	let up = player.up();
 

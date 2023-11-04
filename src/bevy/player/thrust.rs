@@ -9,10 +9,14 @@ use crate::utils::*;
 use super::ControllablePlayer;
 
 mod helpers;
+use bevy::{
+	ecs::{query::WorldQuery, system::SystemParam},
+	utils::HashSet,
+};
 use helpers::*;
 
 mod stages;
-use serde::{Serialize, Deserialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 pub use stages::*;
 
 mod info_gathering;
@@ -73,7 +77,7 @@ where
 /// and saves the necessary information to various places including in the [MainPlayer] component
 #[allow(clippy::type_complexity)]
 pub fn save_thrust_stages(
-	In((relative_strength, normal_vectors, max, thrust_responses,)): In<(
+	In((relative_strength, normal_vectors, max, thrust_responses)): In<(
 		Thrust<RelativeStrength>,
 		Thrust<BasePositionNormalVectors>,
 		Thrust<ForceFactors>,
@@ -92,39 +96,77 @@ pub fn save_thrust_stages(
 	final_vectors
 }
 
-pub fn manually_threading_player_movement(
-	In((current_velocity, artificial_friction_flags)): In<(
-		Thrust<RelativeVelocityMagnitudes>,
-		Thrust<ArtificialFrictionFlags>,
-	)>,
-	keyboard_input: Res<Input<KeyCode>>,
-	player_transform: Query<&Transform, With<ControllablePlayer>>,
-	player_velocity: Query<&Velocity, With<ControllablePlayer>>,
-	player_data: Query<&mut ControllablePlayer, With<ControllablePlayer>>,
+#[derive(WorldQuery)]
+#[world_query(mutable)]
+pub struct PlayerMovementQuery<'w> {
+	player: &'w mut ControllablePlayer,
+	external_force: &'w mut ExternalForce,
+	transform: &'w Transform,
+	velocity: &'w Velocity,
+}
+
+pub fn authoritative_player_movement(
+	player_bundle: Query<PlayerMovementQuery>,
+	mut player_inputs: EventReader<FromClient<PlayerInputs>>,
 	time: Res<Time>,
-	player_physics: Query<&mut ExternalForce, With<ControllablePlayer>>,
 ) {
-	let base_normal = get_base_normal_vectors(player_transform);
+	let mut player_inputs = player_inputs.iter().collect::<Vec<_>>();
+	player_inputs.reverse();
+	// keep only the latest event per .client_id
+	let mut seen_ids = HashSet::new();
+	let mut to_delete = Vec::new();
+	for (i, e) in player_inputs.iter().enumerate() {
+		if seen_ids.contains(&e.client_id) {
+			to_delete.push(i);
+			continue;
+		}
+		seen_ids.insert(e.client_id);
+	}
+	// delete in reverse order so indices don't get messed up
+	for i in to_delete.into_iter().rev() {
+		player_inputs.remove(i);
+	}
 
-	let raw_inputs = gather_input_flags(keyboard_input);
-	let (input_flags, force_factors) = process_inputs(raw_inputs, artificial_friction_flags, current_velocity);
+	for FromClient {
+		client_id,
+		event: move_request,
+	} in player_inputs
+	{
+		let player = player_bundle
+			.iter()
+			.find(|player| player.player.network_id == *client_id);
 
-	let flagged_inputs = input_flags.clone().into_generic_flags() * base_normal.clone();
-	let relative_strengths = get_relative_strengths(
-		In((flagged_inputs, max_velocity_magnitudes())),
-		player_velocity,
-	);
-	let final_vectors = save_thrust_stages(
-		In((
-			relative_strengths,
-			base_normal,
-			force_factors,
-			input_flags,
-		)),
-		player_data,
-	);
+		if let Some(player) = player {
+			let base_normal = get_base_normal_vectors(player.transform);
 
-	apply_thrust(In(final_vectors), player_physics, time);
+			debug!("Handling move request: {:?}", move_request);
+		} else {
+			warn!("No player found in the world with id: {}", client_id);
+		}
+	}
+
+	// let base_normal = get_base_normal_vectors(player_transform.single());
+
+	// let raw_inputs = gather_input_flags(keyboard_input);
+
+	// let (input_flags, force_factors) = process_inputs(raw_inputs, artificial_friction_flags, current_velocity);
+
+	// let flagged_inputs = input_flags.clone().into_generic_flags() * base_normal.clone();
+	// let relative_strengths = get_relative_strengths(
+	// 	In((flagged_inputs, max_velocity_magnitudes())),
+	// 	player_velocity,
+	// );
+	// let final_vectors = save_thrust_stages(
+	// 	In((
+	// 		relative_strengths,
+	// 		base_normal,
+	// 		force_factors,
+	// 		input_flags,
+	// 	)),
+	// 	player_data,
+	// );
+
+	// apply_thrust(In(final_vectors), player_physics, time);
 }
 
 // #[bevycheck::system]

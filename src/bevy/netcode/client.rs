@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::utils::*;
+use crate::{utils::*, bevy::player::PlayerInputs};
 use bevy::{
 	diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
 	prelude::{shape::Icosphere, *},
@@ -21,7 +21,7 @@ use super::PROTOCOL_ID;
 pub struct ClientPlugin;
 impl Plugin for ClientPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(OnEnter(ServerConnections::Client), add_client);
+		app.add_systems(OnEnter(ServerConnections::Client), add_client).add_client_event::<PlayerInputs>(EventType::Ordered);
 		// app
 		// 	.add_plugins((
 		// 		bevy_renet::RenetClientPlugin,

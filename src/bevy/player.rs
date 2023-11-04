@@ -15,8 +15,8 @@ mod thrust;
 use renet::transport::NetcodeClientTransport;
 use thrust::*;
 pub use thrust::{
-	calculate_relative_velocity_magnitudes, get_base_normal_vectors, types, RelativeStrength,
-	RelativeVelocityMagnitudes, Thrust, ThrustReactions, ThrustReactionsStage,
+	calculate_relative_velocity_magnitudes, get_base_normal_vectors, types, PlayerInputs,
+	RelativeStrength, RelativeVelocityMagnitudes, Thrust, ThrustReactions, ThrustReactionsStage,
 };
 
 mod weapons;
@@ -38,17 +38,9 @@ impl Plugin for PlayerPlugin {
 			.add_systems(
 				Update,
 				(
-					handle_camera_movement.in_set(ClientUpdate),
+					(handle_camera_movement, gather_input_flags.pipe(send_event)).in_set(ClientUpdate),
 					// should_fire_this_frame.pipe(toggle_fire).pipe(handle_firing),
-					// join2(
-					// 	sequence(
-					// 		get_base_normal_vectors,
-					// 		calculate_relative_velocity_magnitudes,
-					// 	),
-					// 	get_current_af_flags,
-					// )
-					// .pipe(manually_threading_player_movement)
-					// .in_set(PlayerMove),
+					authoritative_player_movement.in_set(PlayerMove),
 					// trigger_player_thruster_particles.after(PlayerMove),
 				),
 			);
