@@ -29,41 +29,45 @@ pub fn trigger_player_thruster_particles(
 	player: Query<&ControllablePlayer>,
 	mut particles: Query<(&mut EffectSpawner, &Thruster)>,
 ) {
-	// let ControllablePlayer {
-	// 	thrust_responses: thrust,
-	// 	..
-	// } = player.single();
+	for ControllablePlayer {
+		thrust_responses: thrust,
+		..
+	} in player.iter()
+	{
+		impl ThrusterFlags {
+			/// If flags match, add relative strength, else add nothing
+			fn degree_of_match(&self, actual: &Thrust<ThrustReactionsStage>) -> f32 {
+				let flags = self;
+				let mut counter = 0.;
 
-	// impl ThrusterFlags {
-	// 	/// If flags match, add relative strength, else add nothing
-	// 	fn degree_of_match(&self, actual: &Thrust<ThrustReactionsStage>) -> f32 {
-	// 		let flags = self;
-	// 		let mut counter = 0.;
+				actual.for_each(|reaction, thrust_type| match reaction {
+					ThrustReactions::Normal {
+						input: Some(actual),
+					}
+					| ThrustReactions::Braking {
+						braking_direction: Some(actual),
+					} => {
+						if flags[thrust_type].is_some_and(|f| f == *actual) {
+							counter += 1.;
+						}
+					}
+					_ => {}
+				});
 
-	// 		actual.for_each(|reaction, thrust_type| {
-	// 			match reaction {
-	// 				ThrustReactions::Normal { input: Some(actual) } | ThrustReactions::Braking { braking_direction: Some(actual) } => {
-	// 					if flags[thrust_type].is_some_and(|f| f == *actual) {
-	// 						counter += 1.;
-	// 					}
-	// 				}
-	// 				_ => {}
-	// 			}
-	// 		});
+				counter
+			}
+		}
 
-	// 		counter
-	// 	}
-	// }
+		for (mut spawner, Thruster { flags, .. }) in particles.iter_mut() {
+			// todo: show gradient of particles, change acceleration / lifetime?
 
-	// for (mut spawner, Thruster { flags, .. }) in particles.iter_mut() {
-	// 	// todo: show gradient of particles, change acceleration / lifetime?
+			let degree = flags.degree_of_match(thrust);
 
-	// 	let degree = flags.degree_of_match(thrust);
-
-	// 	if degree > 0. {
-	// 		spawner.set_active(true);
-	// 	} else {
-	// 		spawner.set_active(false);
-	// 	}
-	// }
+			if degree > 0. {
+				spawner.set_active(true);
+			} else {
+				spawner.set_active(false);
+			}
+		}
+	}
 }
