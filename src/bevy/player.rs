@@ -34,22 +34,14 @@ impl Plugin for PlayerPlugin {
 			.init_resource::<PlayerInventory>()
 			.register_type::<ControllablePlayer>()
 			.replicate::<ControllablePlayer>()
-			// .add_client_event::<PlayerInputs>(EventType::Ordered)
+			.add_client_event::<PlayerInputs>(EventType::Ordered)
 			// .add_systems(Update, (update_bullets,).in_set(AuthoritativeUpdate))
 			.add_systems(
 				Update,
 				(
-					(
-						handle_camera_movement,
-						// gather_input_flags.pipe(
-						// 	|e: In<PlayerInputs>, mut event_writer: EventWriter<PlayerInputs>| {
-						// 		trace!("Sending event");
-						// 		event_writer.send(e.0)},
-						// ),
-					)
-						.in_set(ClientUpdate),
+					(handle_camera_movement, gather_input_flags.pipe(send_event)).in_set(ClientUpdate),
 					// should_fire_this_frame.pipe(toggle_fire).pipe(handle_firing),
-					// authoritative_player_movement.in_set(PlayerMove),
+					authoritative_player_movement.in_set(PlayerMove),
 					// trigger_player_thruster_particles.after(PlayerMove),
 				),
 			);
