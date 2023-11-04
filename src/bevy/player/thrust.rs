@@ -139,7 +139,9 @@ pub fn authoritative_player_movement(
 		if let Some(player) = player {
 			let base_normal = get_base_normal_vectors(player.transform);
 
+			if *client_id != SERVER_ID {
 			debug!("Handling move request: {:?}", move_request);
+			}
 		} else {
 			warn!("No player found in the world with id: {}", client_id);
 		}

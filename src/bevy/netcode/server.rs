@@ -56,14 +56,15 @@ fn add_server(
 	mut commands: Commands,
 	network_channels: Res<NetworkChannels>,
 	config: Res<SavedHostingInfo>,
-
-	mut setup_already: Local<bool>,
 ) {
 	use std::net::*;
 	use std::time::*;
 
 	let server_channels_config = network_channels.get_server_configs();
 	let client_channels_config = network_channels.get_client_configs();
+
+	debug!("Server channels config: {:?}", server_channels_config);
+	debug!("Client channels config: {:?}", client_channels_config);
 
 	let server = RenetServer::new(ConnectionConfig {
 		server_channels_config,
@@ -74,13 +75,13 @@ fn add_server(
 	let current_time = SystemTime::now()
 		.duration_since(SystemTime::UNIX_EPOCH)
 		.unwrap();
-	let public_addr = SocketAddr::new(Ipv4Addr::LOCALHOST.into(), 5069);
+	let public_addr = SocketAddr::new(config.host_ip, config.host_port);
 
 	let socket = UdpSocket::bind(public_addr).expect("Couldn't bind to UdpSocket");
 
 	let server_config = ServerConfig {
 		max_clients: 10,
-		protocol_id: 0,
+		protocol_id: PROTOCOL_ID,
 		public_addr,
 		authentication: ServerAuthentication::Unsecure,
 	};
