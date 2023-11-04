@@ -236,8 +236,8 @@ fn authoritative_spawn_bullets(
 							*client_id,
 						));
 					} else {
-						#[cfg(feature = "debugging")]
-						warn!("Trying to shoot while still on cooldown");
+						// #[cfg(feature = "debugging")]
+						// warn!("Trying to shoot while still on cooldown");
 					}
 				}
 			}
@@ -258,7 +258,7 @@ fn hydrate_bullets(
 	for (new_bullet, spawn_info) in new_bullets.iter() {
 		let mut new_bullet = commands.entity(new_bullet);
 
-		debug!("Hydrating bullet spawned by {:?}", spawn_info.spawned_by);
+		// debug!("Hydrating bullet spawned by {:?}", spawn_info.spawned_by);
 
 		// prep / hydration of standard components
 		new_bullet.insert(ClientBulletBundle::new(
@@ -291,5 +291,12 @@ fn authoritative_tick_bullets(
 		if bullet.ttl == Duration::ZERO {
 			commands.entity(bullet_entity).despawn_recursive();
 		}
+	}
+}
+
+fn authoritative_bullet_collide(mut collision_events: EventReader<CollisionEvent>, players: Query<&ControllablePlayer>, bullets: Query<&Bullet>) {
+	for event in collision_events.iter() {
+		debug!("Collision event: {:#?}", event);
+		// todo compute collisions between bullets and players
 	}
 }
