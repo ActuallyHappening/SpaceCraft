@@ -174,7 +174,7 @@ impl AuthorityPlayerBundle {
 }
 
 #[derive(Bundle)]
-pub struct PhysicsBundle {
+struct PhysicsBundle {
 	collider: Collider,
 	rigid_body: RigidBody,
 	velocity: Velocity,

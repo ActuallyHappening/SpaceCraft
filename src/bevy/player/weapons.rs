@@ -3,22 +3,27 @@ use crate::{
 	utils::*,
 };
 
+use super::ControllablePlayer;
+
 pub struct PlayerWeaponsPlugin;
 impl Plugin for PlayerWeaponsPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(
-			FixedUpdate,
-			(
+		app
+			.add_systems(
+				FixedUpdate,
 				(
-					// authoritative_handle_firing,
-					authoritative_hydrate_bullets,
-					// authoritative_update_bullets,
-				)
-					.chain()
-					.in_set(AuthoritativeUpdate),
-				(send_player_fire_request,).in_set(ClientUpdate),
-			),
-		);
+					(
+						// authoritative_handle_firing,
+						authoritative_spawn_bullets,
+						authoritative_hydrate_bullets,
+						// authoritative_update_bullets,
+					)
+						.chain()
+						.in_set(AuthoritativeUpdate),
+					(send_player_fire_request,).in_set(ClientUpdate),
+				),
+			)
+			.add_client_event::<PlayerFireInput>(EventType::Ordered);
 	}
 }
 
@@ -77,74 +82,110 @@ fn send_player_fire_request(
 #[derive(Bundle)]
 struct AuthoritativeBulletBundle {
 	pbr: PbrBundle,
+	physics: PhysicsBundle,
+
 	name: Name,
 	replication: Replication,
 }
 
-fn authoritative_hydrate_bullets() {}
+#[derive(Bundle)]
+struct PhysicsBundle {
+	velocity: Velocity,
+	rigid_body: RigidBody,
+	collider: Collider,
+	sensor: Sensor,
+	active_events: ActiveEvents,
+}
 
-fn authoritative_handle_firing(
-	mut weapons: Query<(&mut Weapon, &GlobalTransform)>,
+impl PhysicsBundle {
+	fn new(direction: Quat) -> Self {
+		PhysicsBundle {
+			velocity: Velocity {
+				linvel: Vec3::ZERO,
+				angvel: Vec3::ZERO,
+			},
+			rigid_body: RigidBody::KinematicVelocityBased,
+			collider: Collider::ball(PIXEL_SIZE / 10.),
+			sensor: Sensor,
+			active_events: ActiveEvents::COLLISION_EVENTS,
+		}
+	}
+}
+
+fn authoritative_spawn_bullets(
+	mut requests: EventReader<FromClient<PlayerFireInput>>,
+	players: Query<(&ControllablePlayer, &Children)>,
+	player_weapons: Query<(&Weapon, &GlobalTransform)>,
 	mut commands: Commands,
-	mut mma: MM,
 ) {
-	// for (mut weapon, transform) in weapons.iter_mut() {
-	// 	if let Some(try_fire) = weapon.flags.try_fire_this_frame {
-	// 		weapon.flags.try_fire_this_frame = None;
-	// 		if try_fire {
-	// 			let transform = transform.reparented_to(&GlobalTransform::IDENTITY);
-
-	// 			// info!("Firing weapon at: {:?}", transform);
-
-	// 			commands
-	// 				.spawn(
-	// 					PbrBundle {
-	// 						transform,
-	// 						..default()
-	// 					}
-	// 					.insert(BulletTimeout::default()),
-	// 				)
-	// 				.with_children(|parent| {
-	// 					parent.spawn(PbrBundle {
-	// 						transform: Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.)),
-	// 						material: mma.mats.add(StandardMaterial {
-	// 							base_color: Color::RED,
-	// 							emissive: Color::RED,
-	// 							alpha_mode: AlphaMode::Add,
-	// 							unlit: true,
-	// 							perceptual_roughness: 0.,
-	// 							..default()
-	// 						}),
-	// 						mesh: mma.meshs.add(
-	// 							shape::Capsule {
-	// 								radius: PIXEL_SIZE / 10.,
-	// 								depth: PIXEL_SIZE * 0.9,
-	// 								rings: 4,
-	// 								..default()
-	// 							}
-	// 							.into(),
-	// 						),
-	// 						..default()
-	// 					});
-	// 				});
-	// 		}
-	// 	}
-	// }
+	for FromClient {
+		client_id,
+		event: _,
+	} in requests.iter()
+	{
+		if let Some((_, children)) = players.iter().find(|(p, _)| p.network_id == *client_id) {
+			// children of the right player
+			for child in children {
+				if let Ok((Weapon { info: weapon_info, .. }, global_transform)) = player_weapons.get(*child) {
+					info!("Player {:?} is firing his weapon at {:?} with info {:?}", client_id, global_transform, weapon_info);
+				}
+			}
+		} else {
+			warn!(
+				"Trying to shoot bullet for player {:?} but no player by that ID exists!",
+				client_id
+			);
+		}
+	}
 }
 
-fn authoritative_update_bullets(
-	// mut bullets: Query<(Entity, &mut Transform, &mut BulletTimeout)>,
-	// time: Res<Time>,
-	// mut commands: Commands,
-) {
-	// for (entity, mut transform, mut bullet) in bullets.iter_mut() {
-	// 	let translation = transform.translation;
-	// 	let forward = transform.forward();
+// fn authoritative_handle_firing(
+// 	mut weapons: Query<(&mut Weapon, &GlobalTransform)>,
+// 	mut commands: Commands,
+// 	mut mma: MM,
+// ) {
+// for (mut weapon, transform) in weapons.iter_mut() {
+// 	if let Some(try_fire) = weapon.flags.try_fire_this_frame {
+// 		weapon.flags.try_fire_this_frame = None;
+// 		if try_fire {
+// 			let transform = transform.reparented_to(&GlobalTransform::IDENTITY);
 
-	// 	transform.translation = translation + forward * 10.;
-	// 	bullet.timer.tick(time.delta());
-	// 	if bullet.timer.finished() {
-	// 		commands.entity(entity).despawn_recursive();
-	// 	}
-	// }
-}
+// 			// info!("Firing weapon at: {:?}", transform);
+
+// 			commands
+// 				.spawn(
+// 					PbrBundle {
+// 						transform,
+// 						..default()
+// 					}
+// 					.insert(BulletTimeout::default()),
+// 				)
+// 				.with_children(|parent| {
+// 					parent.spawn(PbrBundle {
+// 						transform: Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.)),
+// 						material: mma.mats.add(StandardMaterial {
+// 							base_color: Color::RED,
+// 							emissive: Color::RED,
+// 							alpha_mode: AlphaMode::Add,
+// 							unlit: true,
+// 							perceptual_roughness: 0.,
+// 							..default()
+// 						}),
+// 						mesh: mma.meshs.add(
+// 							shape::Capsule {
+// 								radius: PIXEL_SIZE / 10.,
+// 								depth: PIXEL_SIZE * 0.9,
+// 								rings: 4,
+// 								..default()
+// 							}
+// 							.into(),
+// 						),
+// 						..default()
+// 					});
+// 				});
+// 		}
+// 	}
+// }
+// }
+
+fn authoritative_hydrate_bullets() {}
