@@ -5,9 +5,9 @@ use crate::{
 
 use super::ControllablePlayer;
 
-const RADIUS: f32 = PIXEL_SIZE / 6.;
-const LENGTH: f32 = PIXEL_SIZE;
-const BULLET_SPEED: f32 = 50.;
+const RADIUS: f32 = PIXEL_SIZE / 10.;
+const LENGTH: f32 = PIXEL_SIZE * 0.8;
+const BULLET_SPEED: f32 = 100.;
 
 pub struct PlayerWeaponsPlugin;
 impl Plugin for PlayerWeaponsPlugin {
@@ -17,10 +17,10 @@ impl Plugin for PlayerWeaponsPlugin {
 				FixedUpdate,
 				(
 					(
-						// authoritative_handle_firing,
 						authoritative_spawn_bullets,
 						authoritative_hydrate_bullets,
-						// authoritative_update_bullets,
+						authoritative_tick_weapons,
+						authoritative_tick_bullets,
 					)
 						.chain()
 						.in_set(AuthoritativeUpdate),
@@ -151,11 +151,21 @@ impl ClientBulletBundle {
 }
 
 impl AuthoritativeBulletBundle {
-	fn new(transform: Transform, info: BulletInfo, spawned_by: u64) -> Self {
+	/// takes the global transform of the weapon
+	fn new(
+		origin_transform: GlobalTransform,
+		player_global_transform: GlobalTransform,
+		info: BulletInfo,
+		spawned_by: u64,
+	) -> Self {
+		let global_transform = origin_transform.reparented_to(&GlobalTransform::IDENTITY);
 		AuthoritativeBulletBundle {
-			physics: PhysicsBundle::new(&transform),
+			physics: PhysicsBundle::new(
+				global_transform,
+				origin_transform.reparented_to(&player_global_transform),
+			),
 			to_spawn: SpawnBullet {
-				transform,
+				transform: global_transform,
 				info,
 				spawned_by,
 			},
@@ -175,15 +185,15 @@ struct PhysicsBundle {
 }
 
 impl PhysicsBundle {
-	fn new(transform: &Transform) -> Self {
+	fn new(global_transform: Transform, player_relative_transform: Transform) -> Self {
 		let base = -Vec3::Z * (LENGTH / 2.);
-		let start = transform.rotation.mul_vec3(base);
-		let end = transform.rotation.mul_vec3(-base);
+		let start = player_relative_transform.rotation.mul_vec3(base);
+		let end = player_relative_transform.rotation.mul_vec3(-base);
 
 		PhysicsBundle {
 			velocity: Velocity {
-				// linvel: transform.forward().normalize() * BULLET_SPEED,
-				linvel: Vec3::ZERO,
+				linvel: global_transform.forward().normalize() * BULLET_SPEED,
+				// linvel: Vec3::ZERO,
 				angvel: Vec3::ZERO,
 			},
 			rigid_body: RigidBody::KinematicVelocityBased,
@@ -196,7 +206,7 @@ impl PhysicsBundle {
 
 fn authoritative_spawn_bullets(
 	mut requests: EventReader<FromClient<PlayerFireInput>>,
-	players: Query<(&ControllablePlayer, &Children)>,
+	players: Query<(&ControllablePlayer, &Children, &GlobalTransform)>,
 	mut player_weapons: Query<(&mut Weapon, &GlobalTransform)>,
 	mut commands: Commands,
 ) {
@@ -205,7 +215,9 @@ fn authoritative_spawn_bullets(
 		event: _,
 	} in requests.iter()
 	{
-		if let Some((_, children)) = players.iter().find(|(p, _)| p.network_id == *client_id) {
+		if let Some((_, children, player_global_transform)) =
+			players.iter().find(|(p, _, _)| p.network_id == *client_id)
+		{
 			// children of the right player
 			for child in children {
 				if let Ok((weapon, global_transform)) = player_weapons.get_mut(*child) {
@@ -218,10 +230,14 @@ fn authoritative_spawn_bullets(
 
 						// spawn authoritative bullet for physics sim
 						commands.spawn(AuthoritativeBulletBundle::new(
-							global_transform.reparented_to(&GlobalTransform::IDENTITY),
+							*global_transform,
+							*player_global_transform,
 							weapon_info.bullets_info.clone(),
 							*client_id,
 						));
+					} else {
+						#[cfg(feature = "debugging")]
+						warn!("Trying to shoot while still on cooldown");
 					}
 				}
 			}
@@ -242,10 +258,9 @@ fn authoritative_hydrate_bullets(
 	for (new_bullet, spawn_info) in new_bullets.iter() {
 		let mut new_bullet = commands.entity(new_bullet);
 
-		debug!("Spawning a bullet at {:#?}", spawn_info.transform);
+		debug!("Hydrating bullet spawned by {:?}", spawn_info.spawned_by);
 
 		// prep / hydration of standard components
-		new_bullet.remove::<SpawnBullet>();
 		new_bullet.insert(ClientBulletBundle::new(
 			Bullet {
 				ttl: spawn_info.info.lifetime,
@@ -259,51 +274,22 @@ fn authoritative_hydrate_bullets(
 	}
 }
 
-// fn authoritative_handle_firing(
-// 	mut weapons: Query<(&mut Weapon, &GlobalTransform)>,
-// 	mut commands: Commands,
-// 	mut mma: MM,
-// ) {
-// for (mut weapon, transform) in weapons.iter_mut() {
-// 	if let Some(try_fire) = weapon.flags.try_fire_this_frame {
-// 		weapon.flags.try_fire_this_frame = None;
-// 		if try_fire {
-// 			let transform = transform.reparented_to(&GlobalTransform::IDENTITY);
+fn authoritative_tick_weapons(mut weapons: Query<&mut Weapon>, time: Res<FixedTime>) {
+	for mut weapon in weapons.iter_mut() {
+		weapon.info.cooldown = weapon.info.cooldown.saturating_sub(time.period);
+	}
+}
 
-// 			// info!("Firing weapon at: {:?}", transform);
-
-// 			commands
-// 				.spawn(
-// 					PbrBundle {
-// 						transform,
-// 						..default()
-// 					}
-// 					.insert(BulletTimeout::default()),
-// 				)
-// 				.with_children(|parent| {
-// 					parent.spawn(PbrBundle {
-// 						transform: Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.)),
-// 						material: mma.mats.add(StandardMaterial {
-// 							base_color: Color::RED,
-// 							emissive: Color::RED,
-// 							alpha_mode: AlphaMode::Add,
-// 							unlit: true,
-// 							perceptual_roughness: 0.,
-// 							..default()
-// 						}),
-// 						mesh: mma.meshs.add(
-// 							shape::Capsule {
-// 								radius: PIXEL_SIZE / 10.,
-// 								depth: PIXEL_SIZE * 0.9,
-// 								rings: 4,
-// 								..default()
-// 							}
-// 							.into(),
-// 						),
-// 						..default()
-// 					});
-// 				});
-// 		}
-// 	}
-// }
-// }
+/// ticks bullets ttl and de-spawns them if they are out of time
+fn authoritative_tick_bullets(
+	mut bullets: Query<(Entity, &mut Bullet)>,
+	time: Res<FixedTime>,
+	mut commands: Commands,
+) {
+	for (bullet_entity, mut bullet) in bullets.iter_mut() {
+		bullet.ttl = bullet.ttl.saturating_sub(time.period);
+		if bullet.ttl == Duration::ZERO {
+			commands.entity(bullet_entity).despawn_recursive();
+		}
+	}
+}
