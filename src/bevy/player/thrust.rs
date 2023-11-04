@@ -78,16 +78,19 @@ where
 #[allow(clippy::type_complexity)]
 pub fn save_thrust_stages(
 	relative_strength: Thrust<RelativeStrength>,
-	normal_vectors: Thrust<BasePositionNormalVectors>,
+	relative_velocity_magnitudes: Thrust<RelativeVelocityMagnitudes>,
+
+	base_normals: Thrust<BasePositionNormalVectors>,
 	max: Thrust<ForceFactors>,
 	thrust_responses: Thrust<ThrustReactionsStage>,
 
 	mut player: &mut ControllablePlayer,
 ) -> Thrust<FinalVectors> {
-	let final_vectors = normal_vectors * relative_strength.clone() * max;
+	let final_vectors = base_normals * relative_strength.clone() * max;
 
 	player.relative_strength = relative_strength;
 	player.thrust_responses = thrust_responses;
+	player.relative_velocity_magnitudes = relative_velocity_magnitudes;
 
 	final_vectors
 }
@@ -133,6 +136,8 @@ pub fn authoritative_player_movement(
 			.find(|player| player.player.network_id == *client_id);
 
 		if let Some(player) = player {
+			// actually calculate thrust for specific player given specific movements
+
 			let base_normals = get_base_normal_vectors(player.transform);
 
 			let relative_velocity_magnitudes =
@@ -141,7 +146,7 @@ pub fn authoritative_player_movement(
 			let (thrust_reactions, force_factors) = process_inputs(
 				move_request,
 				&player.player.artificial_friction_flags,
-				relative_velocity_magnitudes,
+				relative_velocity_magnitudes.clone(),
 			);
 
 			let relative_strength = get_relative_strengths(
@@ -150,8 +155,11 @@ pub fn authoritative_player_movement(
 				player.velocity,
 			);
 
+			// have all information at this point
+
 			let final_thrust = save_thrust_stages(
 				relative_strength,
+				relative_velocity_magnitudes,
 				base_normals,
 				force_factors,
 				thrust_reactions,

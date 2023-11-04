@@ -53,6 +53,7 @@ pub fn get_relative_strengths(
 	}
 }
 
+/// Calculates the amount of velocity currently in each of the 6 orthogonal base normal vectors
 pub fn calculate_relative_velocity_magnitudes(
 	base_normals: &Thrust<BasePositionNormalVectors>,
 	velocity: &Velocity,

@@ -19,8 +19,8 @@ impl Plugin for CameraUiPlugin {
 			.add_systems(
 				Startup,
 				(
-					setup_camera::<BottomLeft>, //.in_set(BottomLeft),
-					// setup_bottom_left_cam,      //.after(BottomLeft),
+					setup_camera::<BottomLeft>.in_set(BottomLeft),
+					setup_bottom_left_cam.after(BottomLeft),
 					setup_camera::<TopLeft>.in_set(TopLeft),
 					setup_top_left_cam.after(TopLeft),
 					setup_camera::<TopRight>.in_set(TopRight),
@@ -33,15 +33,7 @@ impl Plugin for CameraUiPlugin {
 				Update,
 				(
 					update_camera::<BottomLeft>.in_set(BottomLeft),
-					// join2(
-					// 	sequence(
-					// 		get_base_normal_vectors,
-					// 		calculate_relative_velocity_magnitudes,
-					// 	),
-					// 	get_current_relative_strengths,
-					// )
-					// .pipe(update_bottom_left_camera)
-					// .after(PlayerMove),
+					update_bottom_left_camera.after(PlayerMove),
 					update_camera::<TopLeft>,
 					update_camera::<TopRight>,
 					update_camera::<BottomRight>,
@@ -52,19 +44,16 @@ impl Plugin for CameraUiPlugin {
 
 mod camtype;
 pub use camtype::*;
-// mod bottom_left;
-// use bottom_left::*;
+mod bottom_left;
+use bottom_left::*;
 mod startscreen;
 
 use self::startscreen::StartScreenPlugin;
 
-use super::player::{calculate_relative_velocity_magnitudes, get_base_normal_vectors, PlayerMove};
+use super::player::PlayerMove;
 
 fn setup_camera<T: CamType>(mut commands: Commands) {
-	commands.spawn(
-		UiCamera::<T>::get_camera_bundle()
-			.insert(T::default()),
-	);
+	commands.spawn(UiCamera::<T>::get_camera_bundle().insert(T::default()));
 }
 
 fn update_camera<T: CamType>(

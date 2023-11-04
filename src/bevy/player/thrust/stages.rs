@@ -96,6 +96,7 @@ thrust_stage!(
 	///
 	/// Represents the factor of current velocity, broken up into separate
 	/// **linearly independent** dimensions.
+	#[derive(Default)]
 	pub struct RelativeVelocityMagnitudes; type = f32
 );
 

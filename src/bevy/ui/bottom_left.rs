@@ -1,6 +1,7 @@
 use super::*;
 use crate::bevy::player::{
-	ControllablePlayer, RelativeStrength, RelativeVelocityMagnitudes, Thrust, ThrustReactions,
+	ControllablePlayer, RelativeStrength, RelativeVelocityMagnitudes, ThisControllablePlayer, Thrust,
+	ThrustReactions,
 };
 
 const FULL_CIRCLE_RADIUS: f32 = 40.;
@@ -59,9 +60,11 @@ fn init_ah_circle(parent: &mut Commands, thrust_type: ThrustType, mma: &mut MM2)
 	let mut layer_counter: f32 = 0.;
 	let circle_center = Vec3::new(
 		FULL_CIRCLE_RADIUS
-			+ (FULL_CIRCLE_RADIUS * 2. + MARGIN) * thrust_type.get_trust_offset().0 as f32 + MARGIN,
+			+ (FULL_CIRCLE_RADIUS * 2. + MARGIN) * thrust_type.get_trust_offset().0 as f32
+			+ MARGIN,
 		FULL_CIRCLE_RADIUS
-			+ (FULL_CIRCLE_RADIUS * 2. + MARGIN) * thrust_type.get_trust_offset().1 as f32 + MARGIN,
+			+ (FULL_CIRCLE_RADIUS * 2. + MARGIN) * thrust_type.get_trust_offset().1 as f32
+			+ MARGIN,
 		layer_counter,
 	);
 	// larger circle
@@ -76,8 +79,9 @@ fn init_ah_circle(parent: &mut Commands, thrust_type: ThrustType, mma: &mut MM2)
 		.pickable()
 		.insert(On::<Pointer<Down>>::run(
 			|event: Res<ListenerInput<Pointer<Down>>>,
-			 mut player: Query<&mut ControllablePlayer>,
-			 this: Query<&BorderHitbox>, expexted_cam: Query<Entity, With<BottomLeft>>| {
+			player: ThisControllablePlayer,
+			 this: Query<&BorderHitbox>,
+			 expexted_cam: Query<Entity, With<BottomLeft>>| {
 				let cam = expexted_cam.single();
 				let actual_cam = event.event.hit.camera;
 				if cam != actual_cam {
@@ -85,12 +89,15 @@ fn init_ah_circle(parent: &mut Commands, thrust_type: ThrustType, mma: &mut MM2)
 					return;
 				}
 
-				let mut player = player.single_mut();
-				let this = this.get(event.target).unwrap();
+				if let Some(player) = player.get() {
+					let this = this.get(event.target).unwrap();
 
-				let current = *player.artificial_friction_flags.get_from_type(this.0);
-				player.artificial_friction_flags
-					.set_from_type(this.0, !current);
+					let current = *player.get_artificial_friction_flags().get_from_type(this.0);
+					// player
+					// 	.get_mut_artificial_friction_flags()
+					// 	.set_from_type(this.0, !current);
+					// TODO: Send event to server to change Artificial friction flags
+				}
 			},
 		))
 		.insert(BorderHitbox(thrust_type))
@@ -144,7 +151,6 @@ fn init_ah_circle(parent: &mut Commands, thrust_type: ThrustType, mma: &mut MM2)
 			.render_layer(BottomLeft),
 	);
 	layer_counter += 1.;
-	
 
 	// Input flags
 	let mesh = mma.meshs.add(shape::Circle::new(TINY_CIRCLE_RADIUS).into());
@@ -184,23 +190,35 @@ fn init_ah_circle(parent: &mut Commands, thrust_type: ThrustType, mma: &mut MM2)
 	// keycode text
 	let (positive, negative) = thrust_type.keybinds();
 	parent.spawn(
-		crate::utils::Text2dBundle::new(positive.into_str(), Font::Medium, KEYCODE_TEXT_SIZE, Color::BLUE, mma)
-			.translate(circle_center)
-			.translate_z(layer_counter)
-			.translate_x(INNER_RADIUS_OFFSET)
-			.not_pickable()
-			.named("AHC Text")
-			.render_layer(BottomLeft),
+		crate::utils::Text2dBundle::new(
+			positive.into_str(),
+			Font::Medium,
+			KEYCODE_TEXT_SIZE,
+			Color::BLUE,
+			mma,
+		)
+		.translate(circle_center)
+		.translate_z(layer_counter)
+		.translate_x(INNER_RADIUS_OFFSET)
+		.not_pickable()
+		.named("AHC Text")
+		.render_layer(BottomLeft),
 	);
 	layer_counter += 1.;
 	parent.spawn(
-		crate::utils::Text2dBundle::new(negative.into_str(), Font::Medium, KEYCODE_TEXT_SIZE, Color::BLUE, mma)
-			.translate(circle_center)
-			.translate_z(layer_counter)
-			.translate_x(-INNER_RADIUS_OFFSET)
-			.not_pickable()
-			.named("AHC Text")
-			.render_layer(BottomLeft),
+		crate::utils::Text2dBundle::new(
+			negative.into_str(),
+			Font::Medium,
+			KEYCODE_TEXT_SIZE,
+			Color::BLUE,
+			mma,
+		)
+		.translate(circle_center)
+		.translate_z(layer_counter)
+		.translate_x(-INNER_RADIUS_OFFSET)
+		.not_pickable()
+		.named("AHC Text")
+		.render_layer(BottomLeft),
 	);
 	layer_counter += 1.;
 
@@ -244,10 +262,6 @@ fn init_ah_circle(parent: &mut Commands, thrust_type: ThrustType, mma: &mut MM2)
 
 #[allow(clippy::type_complexity)]
 pub fn update_bottom_left_camera(
-	In((velocity, relative_strength)): In<(
-		Thrust<RelativeVelocityMagnitudes>,
-		Thrust<RelativeStrength>,
-	)>,
 	mut set: ParamSet<(
 		Query<(&NeedleVelocity, &mut Transform)>,
 		Query<(&NeedleStrength, &mut Transform)>,
@@ -255,73 +269,78 @@ pub fn update_bottom_left_camera(
 		Query<(&BorderCircle, &mut Handle<ColorMaterial>)>,
 	)>,
 
-	player: Query<&ControllablePlayer>,
+	player: ThisControllablePlayer,
 
 	mut mma: MM2,
 ) {
-	let player = player.single();
-	let thrust_responses = &player.thrust_responses;
-	let artificial_friction_flags = &player.artificial_friction_flags;
+	if let Some(player) = player.get() {
+		let thrust_responses = &player.get_thrust_responses();
+		let artificial_friction_flags = &player.get_artificial_friction_flags();
+		let relative_strength = &player.get_relative_strength();
+		let velocity = &player.get_relative_velocity_magnitudes();
 
-	let mut needle_velocity = set.p0();
+		let mut needle_velocity = set.p0();
 
-	fn update(transform: &mut Transform, data: f32) {
-		let angle = data * PI;
-		transform.rotation = Quat::from_rotation_z(angle);
-	}
+		fn update(transform: &mut Transform, data: f32) {
+			let angle = data * PI;
+			transform.rotation = Quat::from_rotation_z(angle);
+		}
 
-	for (NeedleVelocity(thrust_type), mut transform) in needle_velocity.iter_mut() {
-		update(
-			&mut transform,
-			velocity.get_from_type(*thrust_type).neg().clamp(-1.1, 1.1),
-		);
-	}
+		for (NeedleVelocity(thrust_type), mut transform) in needle_velocity.iter_mut() {
+			update(
+				&mut transform,
+				velocity.get_from_type(*thrust_type).neg().clamp(-1.1, 1.1),
+			);
+		}
 
-	let mut needle_force = set.p1();
+		let mut needle_force = set.p1();
 
-	for (NeedleStrength(thrust_type), mut transform) in needle_force.iter_mut() {
-		update(
-			&mut transform,
-			relative_strength
-				.get_from_type(*thrust_type)
-				.neg()
-				.clamp(-0.9, 0.9),
-		);
-	}
-
-	let mut input_flags = set.p2();
-
-	for (
-		InputFlag {
-			is_right,
-			thrust_type,
-		},
-		mut material,
-	) in input_flags.iter_mut()
-	{
-		*material = mma.mats.add(
-			{
-				thrust_responses
+		for (NeedleStrength(thrust_type), mut transform) in needle_force.iter_mut() {
+			update(
+				&mut transform,
+				relative_strength
 					.get_from_type(*thrust_type)
-					.get_colour(*is_right)
-			}
-			.into(),
-		);
-	}
+					.neg()
+					.clamp(-0.9, 0.9),
+			);
+		}
 
-	let mut braking_borders = set.p3();
+		let mut input_flags = set.p2();
 
-	for (BorderCircle(thrust_type), mut material) in braking_borders.iter_mut() {
-		*material = mma.mats.add(
-			{
-				if *artificial_friction_flags.get_from_type(*thrust_type) {
-					ARTIFICIAL_FRICTION_ENABLED_COL
-				} else {
-					Color::BLACK
+		for (
+			InputFlag {
+				is_right,
+				thrust_type,
+			},
+			mut material,
+		) in input_flags.iter_mut()
+		{
+			*material = mma.mats.add(
+				{
+					thrust_responses
+						.get_from_type(*thrust_type)
+						.get_colour(*is_right)
 				}
-			}
-			.into(),
-		);
+				.into(),
+			);
+		}
+
+		let mut braking_borders = set.p3();
+
+		for (BorderCircle(thrust_type), mut material) in braking_borders.iter_mut() {
+			*material = mma.mats.add(
+				{
+					if *artificial_friction_flags.get_from_type(*thrust_type) {
+						ARTIFICIAL_FRICTION_ENABLED_COL
+					} else {
+						Color::BLACK
+					}
+				}
+				.into(),
+			);
+		}
+	} else {
+		warn!("No player found to update ui with!");
 	}
 }
 

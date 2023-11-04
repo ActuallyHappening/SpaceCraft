@@ -72,6 +72,10 @@ pub struct ControllablePlayer {
 	#[reflect(ignore)]
 	relative_strength: Thrust<RelativeStrength>,
 
+	/// Used for UI
+	#[reflect(ignore)]
+	relative_velocity_magnitudes: Thrust<RelativeVelocityMagnitudes>,
+
 	/// Current inputs including braking info, used for UI
 	#[reflect(ignore)]
 	thrust_responses: Thrust<ThrustReactionsStage>,
@@ -87,6 +91,27 @@ impl ControllablePlayer {
 			network_id,
 			..Default::default()
 		}
+	}
+
+	pub fn get_relative_strength(&self) -> &Thrust<RelativeStrength> {
+		&self.relative_strength
+	}
+
+	pub fn get_relative_velocity_magnitudes(&self) -> &Thrust<RelativeVelocityMagnitudes> {
+		&self.relative_velocity_magnitudes
+	}
+
+	pub fn get_thrust_responses(&self) -> &Thrust<ThrustReactionsStage> {
+		&self.thrust_responses
+	}
+
+	pub fn get_artificial_friction_flags(&self) -> &Thrust<ArtificialFrictionFlags> {
+		&self.artificial_friction_flags
+	}
+
+	/// TODO: remove this, and get UI to send update to server
+	pub fn get_mut_artificial_friction_flags(&mut self) -> &mut Thrust<ArtificialFrictionFlags> {
+		&mut self.artificial_friction_flags
 	}
 }
 
