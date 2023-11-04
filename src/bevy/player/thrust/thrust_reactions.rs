@@ -2,8 +2,8 @@ use super::*;
 
 /// Takes into account braking and artificial friction
 pub fn process_inputs(
-	raw_inputs: PlayerInputs,
-	artificial_friction_flags: Thrust<ArtificialFrictionFlags>,
+	raw_inputs: &PlayerInputs,
+	artificial_friction_flags: &Thrust<ArtificialFrictionFlags>,
 
 	current_velocity: Thrust<RelativeVelocityMagnitudes>,
 ) -> (Thrust<ThrustReactionsStage>, Thrust<ForceFactors>) {

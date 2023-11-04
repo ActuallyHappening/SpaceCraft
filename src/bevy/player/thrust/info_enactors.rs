@@ -1,11 +1,10 @@
 use super::*;
 
 pub fn apply_thrust(
-	In(thrust): In<Thrust<FinalVectors>>,
-	mut player_physics: Query<&mut ExternalForce, With<ControllablePlayer>>,
-	time: Res<Time>,
+	thrust: Thrust<FinalVectors>,
+	player: &mut ExternalForce,
+	time: &Res<Time>,
 ) -> Thrust<FinalVectors> {
-	let mut player = player_physics.single_mut();
 	let delta = time.delta_seconds_f64() as f32;
 
 	impl ControllablePlayer {

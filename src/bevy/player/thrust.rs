@@ -77,21 +77,17 @@ where
 /// and saves the necessary information to various places including in the [MainPlayer] component
 #[allow(clippy::type_complexity)]
 pub fn save_thrust_stages(
-	In((relative_strength, normal_vectors, max, thrust_responses)): In<(
-		Thrust<RelativeStrength>,
-		Thrust<BasePositionNormalVectors>,
-		Thrust<ForceFactors>,
-		Thrust<ThrustReactionsStage>,
-	)>,
-	mut player_data: Query<&mut ControllablePlayer, With<ControllablePlayer>>,
+	relative_strength: Thrust<RelativeStrength>,
+	normal_vectors: Thrust<BasePositionNormalVectors>,
+	max: Thrust<ForceFactors>,
+	thrust_responses: Thrust<ThrustReactionsStage>,
+
+	mut player: &mut ControllablePlayer,
 ) -> Thrust<FinalVectors> {
 	let final_vectors = normal_vectors * relative_strength.clone() * max;
 
-	let mut player = player_data.single_mut();
-
-	// todo! Save thrust stages here!
-	// player.relative_strength = relative_strength;
-	// player.thrust_responses = thrust_responses;
+	player.relative_strength = relative_strength;
+	player.thrust_responses = thrust_responses;
 
 	final_vectors
 }
@@ -106,7 +102,7 @@ pub struct PlayerMovementQuery<'w> {
 }
 
 pub fn authoritative_player_movement(
-	player_bundle: Query<PlayerMovementQuery>,
+	mut player_bundle: Query<PlayerMovementQuery>,
 	mut player_inputs: EventReader<FromClient<PlayerInputs>>,
 	time: Res<Time>,
 ) {
@@ -133,13 +129,36 @@ pub fn authoritative_player_movement(
 	} in player_inputs
 	{
 		let player = player_bundle
-			.iter()
+			.iter_mut()
 			.find(|player| player.player.network_id == *client_id);
 
 		if let Some(player) = player {
-			let base_normal = get_base_normal_vectors(player.transform);
+			let base_normals = get_base_normal_vectors(player.transform);
 
-			
+			let relative_velocity_magnitudes =
+				calculate_relative_velocity_magnitudes(&base_normals, player.velocity);
+
+			let (thrust_reactions, force_factors) = process_inputs(
+				move_request,
+				&player.player.artificial_friction_flags,
+				relative_velocity_magnitudes,
+			);
+
+			let relative_strength = get_relative_strengths(
+				thrust_reactions.clone().into_generic_flags() * base_normals.clone(),
+				max_velocity_magnitudes(),
+				player.velocity,
+			);
+
+			let final_thrust = save_thrust_stages(
+				relative_strength,
+				base_normals,
+				force_factors,
+				thrust_reactions,
+				player.player.into_inner(),
+			);
+
+			apply_thrust(final_thrust, player.external_force.into_inner(), &time);
 		} else {
 			warn!("No player found in the world with id: {}", client_id);
 		}

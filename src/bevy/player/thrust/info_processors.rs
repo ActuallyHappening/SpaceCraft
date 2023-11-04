@@ -3,16 +3,14 @@ use crate::utils::*;
 
 /// Takes into account the maximum power of each thruster and the current velocity
 pub fn get_relative_strengths(
-	In((aimed, max)): In<(
-		Thrust<FlaggedPositionNormalVectors>,
-		Thrust<MaxAllowableVelocityMagnitudes>,
-	)>,
-	player_velocity: Query<&Velocity, With<ControllablePlayer>>,
+	aimed: Thrust<FlaggedPositionNormalVectors>,
+	max: Thrust<MaxAllowableVelocityMagnitudes>,
+	player_velocity: &Velocity,
 ) -> Thrust<RelativeStrength> {
 	let Velocity {
 		ref linvel,
 		ref angvel,
-	} = player_velocity.single();
+	} = player_velocity;
 
 	fn factor_allowed_forwards(aimed: Signed<Vec3>, max: f32, current: &Vec3) -> f32 {
 		if aimed.is_zero() {
@@ -56,35 +54,42 @@ pub fn get_relative_strengths(
 }
 
 pub fn calculate_relative_velocity_magnitudes(
-	In(base): In<Thrust<BasePositionNormalVectors>>,
-	velocity: Query<&Velocity, With<ControllablePlayer>>,
+	base_normals: &Thrust<BasePositionNormalVectors>,
+	velocity: &Velocity,
 ) -> Thrust<RelativeVelocityMagnitudes> {
 	let max = max_velocity_magnitudes();
-	let velocity = velocity.single();
 
 	Thrust::<RelativeVelocityMagnitudes> {
 		forward: velocity
 			.linvel
-			.vector_project(&base.forward)
+			.vector_project(&base_normals.forward)
 			.signed_length()
 			/ max.forward,
-		up: velocity.linvel.vector_project(&base.up).signed_length() / max.up,
-		right: velocity.linvel.vector_project(&base.right).signed_length() / max.right,
+		up: velocity
+			.linvel
+			.vector_project(&base_normals.up)
+			.signed_length()
+			/ max.up,
+		right: velocity
+			.linvel
+			.vector_project(&base_normals.right)
+			.signed_length()
+			/ max.right,
 
 		turn_right: velocity
 			.angvel
-			.vector_project(&base.turn_right)
+			.vector_project(&base_normals.turn_right)
 			.signed_length()
 			/ max.turn_right,
 
 		tilt_up: velocity
 			.angvel
-			.vector_project(&base.tilt_up)
+			.vector_project(&base_normals.tilt_up)
 			.signed_length()
 			/ max.tilt_up,
 		roll_right: velocity
 			.angvel
-			.vector_project(&base.roll_right)
+			.vector_project(&base_normals.roll_right)
 			.signed_length()
 			/ max.roll_right,
 
