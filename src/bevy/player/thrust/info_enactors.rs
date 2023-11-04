@@ -26,13 +26,17 @@ pub fn apply_thrust(
 }
 
 pub fn trigger_player_thruster_particles(
-	player: Query<&ControllablePlayer>,
-	mut particles: Query<(&mut EffectSpawner, &Thruster)>,
+	player: Query<(Entity, &ControllablePlayer)>,
+	structure_pixels: Query<(&Parent, &Children)>,
+	mut particles: Query<(&Thruster, &mut EffectSpawner)>,
 ) {
-	for ControllablePlayer {
-		thrust_responses: thrust,
-		..
-	} in player.iter()
+	for (
+		player_entity,
+		ControllablePlayer {
+			thrust_responses: thrust,
+			..
+		},
+	) in player.iter()
 	{
 		impl ThrusterFlags {
 			/// If flags match, add relative strength, else add nothing
@@ -57,17 +61,39 @@ pub fn trigger_player_thruster_particles(
 				counter
 			}
 		}
+		for structure_pixel in structure_pixels.iter() {
+			let (parent, children) = structure_pixel;
 
-		for (mut spawner, Thruster { flags, .. }) in particles.iter_mut() {
-			// todo: show gradient of particles, change acceleration / lifetime?
+			if parent.get() == player_entity {
+				// this structure_pixel is a child of the player we are interested in
 
-			let degree = flags.degree_of_match(thrust);
+				for child in children.iter() {
+					if let Ok((Thruster { flags, .. }, mut spawner)) = particles.get_mut(*child) {
+						let degree = flags.degree_of_match(thrust);
 
-			if degree > 0. {
-				spawner.set_active(true);
-			} else {
-				spawner.set_active(false);
+						if degree > 0. {
+							spawner.set_active(true);
+						} else {
+							spawner.set_active(false);
+						}
+					} else {
+						// this triggers when initially loading? idk why
+						// error!("Entity {:?} is not a particle", child);
+					}
+				}
 			}
 		}
+
+		// for (parent, mut spawner, Thruster { flags, .. }) in particles.iter_mut() {
+		// 	// todo: show gradient of particles, change acceleration / lifetime?
+
+		// 	let degree = flags.degree_of_match(thrust);
+
+		// 	if degree > 0. {
+		// 		spawner.set_active(true);
+		// 	} else {
+		// 		spawner.set_active(false);
+		// 	}
+		// }
 	}
 }
