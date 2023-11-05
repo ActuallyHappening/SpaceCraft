@@ -170,13 +170,18 @@ impl AuthoritativeBulletBundle {
 		spawned_by: u64,
 	) -> Self {
 		let global_transform = origin_transform.reparented_to(&GlobalTransform::IDENTITY);
+		let player_relative_transform = origin_transform.reparented_to(&player_global_transform);
+
+		// moves the bullet to the end of the gun
+		let outside_player = global_transform.translate(global_transform.forward().normalize() * PIXEL_SIZE);
+
 		AuthoritativeBulletBundle {
 			physics: PhysicsBundle::new(
 				global_transform,
-				origin_transform.reparented_to(&player_global_transform),
+				player_relative_transform,
 			),
 			to_spawn: SpawnBullet {
-				transform: global_transform,
+				transform: outside_player,
 				info,
 				spawned_by,
 			},
@@ -191,7 +196,7 @@ struct PhysicsBundle {
 	velocity: Velocity,
 	rigid_body: RigidBody,
 	collider: Collider,
-	sensor: Sensor,
+	// sensor: Sensor,
 	active_events: ActiveEvents,
 }
 
@@ -209,7 +214,7 @@ impl PhysicsBundle {
 			},
 			rigid_body: RigidBody::KinematicVelocityBased,
 			collider: Collider::capsule(start, end, RADIUS),
-			sensor: Sensor,
+			// sensor: Sensor,
 			active_events: ActiveEvents::COLLISION_EVENTS,
 		}
 	}

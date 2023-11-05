@@ -188,6 +188,11 @@ impl Transform {
 		self.translation.z += delta_z;
 		self
 	}
+
+	fn translate(mut self, delta: Vec3) -> Self {
+		self.translation += delta;
+		self
+	}
 }
 
 pub enum Font {
