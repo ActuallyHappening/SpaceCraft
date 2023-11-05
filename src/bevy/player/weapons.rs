@@ -298,7 +298,13 @@ fn authoritative_tick_bullets(
 
 #[derive(Debug, Event, Serialize, Deserialize)]
 enum BulletCollision {
-	BulletWithPlayer { bullet: Entity, player: Entity },
+	/// Bullet collided with a player that didn't shoot the original bullet
+	BulletWithPlayer {
+		bullet_entity: Entity,
+		shooter_id: u64,
+		player_entity: Entity,
+		player_hit_id: u64,
+	},
 }
 
 fn authoritative_bullet_collide(
@@ -308,23 +314,28 @@ fn authoritative_bullet_collide(
 	mut event_writer: EventWriter<BulletCollision>,
 ) {
 	for event in collision_events.iter() {
-		debug!("Collision event: {:#?}", event);
 		if let CollisionEvent::Started(e1, e2, _) = event {
 			let player_entity;
-			if players.get(*e1).is_ok() {
-				player_entity = e1;
-			} else if players.get(*e2).is_ok() {
-				player_entity = e2;
+			let shooter_id;
+			if let Ok(ControllablePlayer { network_id, .. }) = players.get(*e1) {
+				player_entity = *e1;
+				shooter_id = *network_id;
+			} else if let Ok(ControllablePlayer { network_id, .. }) = players.get(*e2) {
+				player_entity = *e2;
+				shooter_id = *network_id;
 			} else {
 				// player is not involved
 				return;
 			}
 
 			let bullet_entity;
-			if bullets.get(*e1).is_ok() {
-				bullet_entity = e1;
-			} else if bullets.get(*e2).is_ok() {
-				bullet_entity = e2;
+			let player_hit_id;
+			if let Ok(bullet) = bullets.get(*e1) {
+				bullet_entity = *e1;
+				player_hit_id = bullet.spawned_by;
+			} else if let Ok(bullet) = bullets.get(*e2) {
+				bullet_entity = *e2;
+				player_hit_id = bullet.spawned_by;
 			} else {
 				// bullet is not involved
 				return;
@@ -334,12 +345,19 @@ fn authoritative_bullet_collide(
 				error!("Player is also a bullet?");
 			}
 
+			if player_hit_id == shooter_id {
+				// player shot themselves, ignore
+				return;
+			}
+
 			let event = BulletCollision::BulletWithPlayer {
-				bullet: *bullet_entity,
-				player: *player_entity,
+				bullet_entity,
+				shooter_id,
+				player_entity,
+				player_hit_id,
 			};
 
-			debug!("Player was hit! {:?}", event);
+			// debug!("Player was hit! {:?}", event);
 
 			event_writer.send(event);
 		}
