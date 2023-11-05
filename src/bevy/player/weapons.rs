@@ -21,8 +21,9 @@ impl Plugin for PlayerWeaponsPlugin {
 					(
 						authoritative_spawn_bullets,
 						authoritative_tick_weapons,
-						authoritative_tick_bullets,
 						authoritative_bullet_collide,
+						authoritative_tick_bullets,
+						authoritative_handle_bullet_collisions,
 					)
 						.chain()
 						.in_set(AuthoritativeUpdate),
@@ -316,26 +317,26 @@ fn authoritative_bullet_collide(
 	for event in collision_events.iter() {
 		if let CollisionEvent::Started(e1, e2, _) = event {
 			let player_entity;
-			let shooter_id;
+			let player_hit_id;
 			if let Ok(ControllablePlayer { network_id, .. }) = players.get(*e1) {
 				player_entity = *e1;
-				shooter_id = *network_id;
+				player_hit_id = *network_id;
 			} else if let Ok(ControllablePlayer { network_id, .. }) = players.get(*e2) {
 				player_entity = *e2;
-				shooter_id = *network_id;
+				player_hit_id = *network_id;
 			} else {
 				// player is not involved
 				return;
 			}
 
 			let bullet_entity;
-			let player_hit_id;
+			let shooter_id;
 			if let Ok(bullet) = bullets.get(*e1) {
 				bullet_entity = *e1;
-				player_hit_id = bullet.spawned_by;
+				shooter_id = bullet.spawned_by;
 			} else if let Ok(bullet) = bullets.get(*e2) {
 				bullet_entity = *e2;
-				player_hit_id = bullet.spawned_by;
+				shooter_id = bullet.spawned_by;
 			} else {
 				// bullet is not involved
 				return;
@@ -343,9 +344,10 @@ fn authoritative_bullet_collide(
 
 			if player_entity == bullet_entity {
 				error!("Player is also a bullet?");
+				return;
 			}
 
-			if player_hit_id == shooter_id {
+			if shooter_id == player_hit_id {
 				// player shot themselves, ignore
 				return;
 			}
@@ -360,6 +362,41 @@ fn authoritative_bullet_collide(
 			// debug!("Player was hit! {:?}", event);
 
 			event_writer.send(event);
+		}
+	}
+}
+
+// technically this event reader is an anti-pattern according to bevy_replicon docs, but it works so ehh
+fn authoritative_handle_bullet_collisions(
+	mut local_event_reader: EventReader<BulletCollision>,
+	bullets: Query<(Entity, &Bullet)>,
+	mut players: Query<&mut ControllablePlayer>,
+	mut commands: Commands,
+) {
+	for event in local_event_reader.iter() {
+		match event {
+			BulletCollision::BulletWithPlayer {
+				bullet_entity,
+				shooter_id,
+				player_entity,
+				player_hit_id,
+			} => {
+				if let Ok((bullet_entity, bullet)) = bullets.get(*bullet_entity) {
+					if bullet.spawned_by != *shooter_id {
+						error!("Wrong shooter? spawned by = {}, shooter_id = {}", bullet.spawned_by, shooter_id);
+					}
+					commands.entity(bullet_entity).despawn_recursive();
+				} else {
+					error!("Bullet entity does not exist!");
+				}
+
+				if let Ok(mut player) = players.get_mut(*player_entity) {
+					if player.network_id != *player_hit_id {
+						error!("Wrong player? network_id = {}, player_hit_id = {}", player.network_id, player_hit_id);
+					}
+					player.health = player.health.saturating_sub(1);
+				}
+			}
 		}
 	}
 }

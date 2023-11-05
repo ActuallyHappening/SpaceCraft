@@ -56,9 +56,11 @@ impl Plugin for PlayerMovementPlugin {
 }
 
 /// Denotes the main, controllable player
-#[derive(Component, Default, Deserialize, Serialize, Reflect)]
+#[derive(Component, Deserialize, Serialize, Reflect)]
 pub struct ControllablePlayer {
 	pub network_id: u64,
+
+	pub health: u8,
 
 	/// Current relative strength, used for UI
 	#[reflect(ignore)]
@@ -81,7 +83,11 @@ impl ControllablePlayer {
 	pub fn new(network_id: u64) -> Self {
 		ControllablePlayer {
 			network_id,
-			..Default::default()
+			health: 5,
+			relative_strength: default(),
+			relative_velocity_magnitudes: default(),
+			thrust_responses: default(),
+			artificial_friction_flags: default(),
 		}
 	}
 

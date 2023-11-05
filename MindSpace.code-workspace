@@ -15,7 +15,8 @@
 			"pickable",
 			"Pickable",
 			"Raycast",
-			"reparented"
+			"reparented",
+			"replicon"
 		]
 	}
 }
