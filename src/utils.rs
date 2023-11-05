@@ -50,6 +50,7 @@ pub use bevy_replicon::{
 	},
 };
 pub use bevy_timewarp::prelude::*;
+pub use bevy_rapier3d::prelude::CollisionEvent;
 
 #[cfg(feature = "hanabi_particles")]
 mod particles;

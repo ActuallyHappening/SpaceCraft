@@ -13,7 +13,8 @@ pub struct PlayerWeaponsPlugin;
 impl Plugin for PlayerWeaponsPlugin {
 	fn build(&self, app: &mut App) {
 		app
-    .replicate::<SpawnBullet>()
+			.replicate::<SpawnBullet>()
+			.add_server_event::<BulletCollision>(EventType::Unordered)
 			.add_systems(
 				FixedUpdate,
 				(
@@ -21,6 +22,7 @@ impl Plugin for PlayerWeaponsPlugin {
 						authoritative_spawn_bullets,
 						authoritative_tick_weapons,
 						authoritative_tick_bullets,
+						authoritative_bullet_collide,
 					)
 						.chain()
 						.in_set(AuthoritativeUpdate),
@@ -294,9 +296,52 @@ fn authoritative_tick_bullets(
 	}
 }
 
-fn authoritative_bullet_collide(mut collision_events: EventReader<CollisionEvent>, players: Query<&ControllablePlayer>, bullets: Query<&Bullet>) {
+#[derive(Debug, Event, Serialize, Deserialize)]
+enum BulletCollision {
+	BulletWithPlayer { bullet: Entity, player: Entity },
+}
+
+fn authoritative_bullet_collide(
+	mut collision_events: EventReader<bevy_rapier3d::prelude::CollisionEvent>,
+	players: Query<&ControllablePlayer>,
+	bullets: Query<&Bullet>,
+	mut event_writer: EventWriter<BulletCollision>,
+) {
 	for event in collision_events.iter() {
 		debug!("Collision event: {:#?}", event);
-		// todo compute collisions between bullets and players
+		if let CollisionEvent::Started(e1, e2, _) = event {
+			let player_entity;
+			if players.get(*e1).is_ok() {
+				player_entity = e1;
+			} else if players.get(*e2).is_ok() {
+				player_entity = e2;
+			} else {
+				// player is not involved
+				return;
+			}
+
+			let bullet_entity;
+			if bullets.get(*e1).is_ok() {
+				bullet_entity = e1;
+			} else if bullets.get(*e2).is_ok() {
+				bullet_entity = e2;
+			} else {
+				// bullet is not involved
+				return;
+			}
+
+			if player_entity == bullet_entity {
+				error!("Player is also a bullet?");
+			}
+
+			let event = BulletCollision::BulletWithPlayer {
+				bullet: *bullet_entity,
+				player: *player_entity,
+			};
+
+			debug!("Player was hit! {:?}", event);
+
+			event_writer.send(event);
+		}
 	}
 }
