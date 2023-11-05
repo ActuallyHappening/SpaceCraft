@@ -7,14 +7,16 @@ use super::ControllablePlayer;
 
 const RADIUS: f32 = PIXEL_SIZE / 10.;
 const LENGTH: f32 = PIXEL_SIZE * 0.8;
-const BULLET_SPEED: f32 = 1000.;
+const BULLET_SPEED: f32 = 200.;
 
 pub struct PlayerWeaponsPlugin;
 impl Plugin for PlayerWeaponsPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.replicate::<SpawnBullet>()
-			.add_server_event::<BulletCollision>(EventType::Unordered)
+			// .add_mapped_server_event::<BulletCollision>(EventType::Unordered)
+			.add_server_event::<ClientBulletCollision>(EventType::Unordered)
+			.add_event::<AuthoritativeBulletCollision>()
 			.add_systems(
 				FixedUpdate,
 				(
@@ -24,10 +26,16 @@ impl Plugin for PlayerWeaponsPlugin {
 						authoritative_bullet_collide,
 						authoritative_tick_bullets,
 						authoritative_handle_bullet_collisions,
+						server_bullet_animations,
 					)
 						.chain()
 						.in_set(AuthoritativeUpdate),
-					(send_player_fire_request, hydrate_bullets).in_set(ClientUpdate),
+					(
+						send_player_fire_request,
+						hydrate_bullets,
+						client_display_bullet_animation,
+					)
+						.in_set(ClientUpdate),
 				),
 			)
 			.add_client_event::<PlayerFireInput>(EventType::Ordered);
@@ -297,8 +305,8 @@ fn authoritative_tick_bullets(
 	}
 }
 
-#[derive(Debug, Event, Serialize, Deserialize)]
-enum BulletCollision {
+#[derive(Debug, Event)]
+enum AuthoritativeBulletCollision {
 	/// Bullet collided with a player that didn't shoot the original bullet
 	BulletWithPlayer {
 		bullet_entity: Entity,
@@ -308,11 +316,17 @@ enum BulletCollision {
 	},
 }
 
+#[derive(Debug, Event, Serialize, Deserialize)]
+enum ClientBulletCollision {
+	BulletWithPlayer { player_id: u64, player_offset: Vec3 },
+}
+
+// sends the event to all clients and to the server itself
 fn authoritative_bullet_collide(
 	mut collision_events: EventReader<bevy_rapier3d::prelude::CollisionEvent>,
 	players: Query<&ControllablePlayer>,
 	bullets: Query<&Bullet>,
-	mut event_writer: EventWriter<BulletCollision>,
+	mut server_event_writer: EventWriter<AuthoritativeBulletCollision>,
 ) {
 	for event in collision_events.iter() {
 		if let CollisionEvent::Started(e1, e2, _) = event {
@@ -352,30 +366,31 @@ fn authoritative_bullet_collide(
 				return;
 			}
 
-			let event = BulletCollision::BulletWithPlayer {
+			let event = AuthoritativeBulletCollision::BulletWithPlayer {
 				bullet_entity,
 				shooter_id,
 				player_entity,
 				player_hit_id,
 			};
 
-			// debug!("Player was hit! {:?}", event);
+			debug!("Player was hit! {:?}", event);
 
-			event_writer.send(event);
+			server_event_writer.send(event);
 		}
 	}
 }
 
 // technically this event reader is an anti-pattern according to bevy_replicon docs, but it works so ehh
+/// Player's take damage from bullets, bullets despawn
 fn authoritative_handle_bullet_collisions(
-	mut local_event_reader: EventReader<BulletCollision>,
+	mut local_event_reader: EventReader<AuthoritativeBulletCollision>,
 	bullets: Query<(Entity, &Bullet)>,
 	mut players: Query<&mut ControllablePlayer>,
 	mut commands: Commands,
 ) {
 	for event in local_event_reader.iter() {
 		match event {
-			BulletCollision::BulletWithPlayer {
+			AuthoritativeBulletCollision::BulletWithPlayer {
 				bullet_entity,
 				shooter_id,
 				player_entity,
@@ -383,20 +398,67 @@ fn authoritative_handle_bullet_collisions(
 			} => {
 				if let Ok((bullet_entity, bullet)) = bullets.get(*bullet_entity) {
 					if bullet.spawned_by != *shooter_id {
-						error!("Wrong shooter? spawned by = {}, shooter_id = {}", bullet.spawned_by, shooter_id);
+						error!(
+							"Wrong shooter? spawned by = {}, shooter_id = {}",
+							bullet.spawned_by, shooter_id
+						);
 					}
-					commands.entity(bullet_entity).despawn_recursive();
+
+					// commands.entity(bullet_entity).despawn_recursive();
 				} else {
 					error!("Bullet entity does not exist!");
 				}
 
 				if let Ok(mut player) = players.get_mut(*player_entity) {
 					if player.network_id != *player_hit_id {
-						error!("Wrong player? network_id = {}, player_hit_id = {}", player.network_id, player_hit_id);
+						error!(
+							"Wrong player? network_id = {}, player_hit_id = {}",
+							player.network_id, player_hit_id
+						);
 					}
+
 					player.health = player.health.saturating_sub(1);
 				}
 			}
 		}
 	}
+}
+
+/// Handles calculating the collision/intersection points for animations
+fn server_bullet_animations(
+	mut local_event_reader: EventReader<AuthoritativeBulletCollision>,
+	mut to_clients: EventWriter<ToClients<ClientBulletCollision>>,
+	rapier_context: Res<RapierContext>,
+	mut commands: Commands,
+) {
+	for event in local_event_reader.iter() {
+		match event {
+			AuthoritativeBulletCollision::BulletWithPlayer {
+				bullet_entity,
+				player_entity,
+				..
+			} => {
+				commands.entity(*bullet_entity).log_components();
+
+				match rapier_context.contact_pair(*bullet_entity, *player_entity) {
+					None => error!("No rapier contact pairs between bullet and player"),
+					Some(contact_pair) => {
+						for manifold in contact_pair.manifolds() {
+							for contact_point in manifold.points() {
+								let player_offset = contact_point.local_p2();
+								debug!("Player offset: {:#?}", player_offset);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+fn client_display_bullet_animation(
+	mut bullet_events: EventReader<ClientBulletCollision>,
+	bullets: Query<(&Bullet, &Transform)>,
+) {
+	for event in bullet_events.iter() {}
 }
