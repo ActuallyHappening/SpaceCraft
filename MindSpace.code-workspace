@@ -6,6 +6,9 @@
 		{
 			"path": "src"
 		},
+		{
+			"path": "../creativity-game-0.11"
+		}
 	],
 	"settings": {
 		"cSpell.words": [

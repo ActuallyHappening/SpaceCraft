@@ -1,9 +1,5 @@
-use ::bevy::{log::LogPlugin, prelude::*, window::WindowMode};
-use bevy_replicon::prelude::*;
-use bevy_replicon::ReplicationPlugins;
-use creativity_game::*;
+use bevy::{prelude::*, window::WindowMode, log::LogPlugin};
 
-use creativity_game::utils::*;
 fn main() {
 	let mut app = App::new();
 
@@ -27,8 +23,6 @@ fn main() {
 				})
 				.build(),
 		)
-		.add_plugins((
-			creativity_game::MainPlugin,
-		))
+		.add_plugins((creativity_game::MainPlugin,))
 		.run();
 }
