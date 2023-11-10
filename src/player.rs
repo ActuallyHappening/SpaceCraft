@@ -1,5 +1,6 @@
 use crate::prelude::*;
 
+/// Plugin Group
 pub struct PlayerPlugins;
 
 impl PluginGroup for PlayerPlugins {
