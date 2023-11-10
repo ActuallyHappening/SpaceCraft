@@ -34,22 +34,29 @@ mod ui_cameras {
 		inner_camera: Camera2dBundle,
 		render_layer: RenderLayers,
 		variant: UiCamera,
+		name: Name,
 
 		vis: VisibilityBundle,
 	}
 
 	impl UiCamerasPlugin {
 		fn spawn_ui_camera(cam: UiCamera, commands: &mut Commands) {
+			use bevy::core_pipeline::clear_color::ClearColorConfig;
+
 			commands.spawn(UiCameraBundle {
 				inner_camera: Camera2dBundle {
 					camera: Camera {
 						order: GlobalCameraOrders::Ui(cam.variant).into(),
 						..default()
 					},
+					camera_2d: Camera2d {
+						clear_color: ClearColorConfig::None,
+					},
 					..default()
 				},
 				render_layer: GlobalRenderLayers::Ui(cam.variant).into(),
 				variant: cam,
+				name: Name::new(format!("UI Camera: {:?}", cam.variant)),
 				vis: Default::default(),
 			});
 		}
@@ -148,6 +155,7 @@ mod start_screen {
 		mesh: Mesh2dHandle,
 		material: Handle<ColorMaterial>,
 		spatial: SpatialBundle,
+		name: Name,
 
 		layer: RenderLayers,
 	}
@@ -161,6 +169,7 @@ mod start_screen {
 					.into(),
 				material: mma.mats.add(Color::WHITE.into()),
 				spatial: Default::default(),
+				name: Name::new("Host Game Button"),
 				layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
 			}
 		}
