@@ -6,3 +6,4 @@ pub use bevy::render::view::RenderLayers;
 pub use bevy::ecs::system::*;
 
 pub use crate::utils::*;
+pub use crate::global::*;

@@ -34,3 +34,7 @@ features = ["3d"]
 [dependencies.bevy_replicon]
 git = "https://github.com/Bendzae/bevy_replicon_fork.git"
 branch = "bevy-0.12"
+
+[dependencies.bevy_editor_pls]
+git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
+features = ["default_windows"]
