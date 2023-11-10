@@ -15,8 +15,12 @@ pub struct MainPlugin;
 
 impl Plugin for MainPlugin {
 	fn build(&self, app: &mut App) {
+		use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
+
 		app.add_plugins((
 			bevy_editor_pls::EditorPlugin::default(),
+			ScreenDiagnosticsPlugin::default(),
+			ScreenFrameDiagnosticsPlugin,
 			PlayerPlugins,
 			UiPlugins,
 		));

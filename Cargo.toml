@@ -8,6 +8,11 @@ publish = false
 [workspace]
 members = ["xtask"]
 
+[features]
+default = ["dev"]
+## Only used while developing the game
+dev = ["bevy/dynamic_linking"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 # Enable a small amount of optimization in debug mode
@@ -22,6 +27,7 @@ opt-level = 3
 # bevy
 bevy = "0.12"
 bevy_mod_picking = "0.17"
+bevy_screen_diagnostics = "0.4.0"
 # generic
 
 # hanabi particles

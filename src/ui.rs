@@ -71,15 +71,26 @@ mod ui_cameras {
 	}
 
 	impl UiCamera {
+		/// Returns the translation each camera would like to have, given the
+		/// current screen size.
+		/// Useful for positioning the camera relative to the screen, e.g. center or
+		/// top left
 		fn get_camera_transform(&self, half_width: f32, half_height: f32) -> UVec2 {
-			match self.variant {
-				UiCameras::TopLeft => UVec2::new(half_width as u32, half_height as u32),
-				UiCameras::Center => UVec2::new(0, 0),
-				_ => panic!(),
-			}
+			let (wf, hf) = match self.variant {
+				UiCameras::Center => (0, 0),
+				UiCameras::TopLeft => (1, -1),
+				UiCameras::TopRight => (-1, -1),
+				UiCameras::BottomLeft => (1, 1),
+				UiCameras::BottomRight => (-1, 1),
+			};
+			UVec2::new(
+				(wf as f32 * half_width) as u32,
+				(hf as f32 * half_height) as u32,
+			)
 		}
 	}
 
+	/// Handles screen resizing events
 	fn update_cameras(
 		windows: Query<&Window>,
 		mut resize_events: EventReader<bevy::window::WindowResized>,
