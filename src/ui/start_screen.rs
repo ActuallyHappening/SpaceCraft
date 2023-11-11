@@ -2,6 +2,7 @@ use bevy::sprite::Mesh2dHandle;
 
 use super::manual_ui::*;
 use super::path_tracing::*;
+use super::ui_cameras::CorrectCamera;
 use super::ui_cameras::UiCamera;
 use crate::prelude::*;
 
@@ -85,31 +86,26 @@ impl HostGameButtonBundle {
 				|event: Listener<Pointer<Move>>,
 				 this: Query<&Children>,
 				 mut particle_spawners: Query<&mut EffectSpawner>,
-				 expected_cam: Query<&UiCamera>,| {
+				 correct_camera: CorrectCamera| {
 					let camera = event.event.hit.camera;
-					if let Ok(UiCamera {
-						variant: UiCameras::Center,
-					}) = expected_cam.get(camera)
-					{
+					if correct_camera.confirm(&camera, UiCameras::Center) {
 						// correct camera
 						if let Ok(this) = this.get(event.target) {
 							// found callback target
 							if let Some(particle_spawner_entity) = this
 								.iter()
-								.find(|child| particle_spawners.get(**child).is_ok()) {
-									// found particle spawner
-									let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
+								.find(|child| particle_spawners.get(**child).is_ok())
+							{
+								// found particle spawner
+								let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
 
-									spawner.set_active(true);
-								}
-								 else {
+								spawner.set_active(true);
+							} else {
 								warn!("Cannot find particle spawner");
-								 }
+							}
 						} else {
 							warn!("Cannot find target callback");
 						}
-					} else {
-						warn!("Event triggered on startscreen ui with wrong camera");
 					}
 				},
 			),
@@ -117,31 +113,26 @@ impl HostGameButtonBundle {
 				|event: Listener<Pointer<Out>>,
 				 this: Query<&Children>,
 				 mut particle_spawners: Query<&mut EffectSpawner>,
-				 expected_cam: Query<&UiCamera>,| {
+				 correct_camera: CorrectCamera| {
 					let camera = event.event.hit.camera;
-					if let Ok(UiCamera {
-						variant: UiCameras::Center,
-					}) = expected_cam.get(camera)
-					{
+					if correct_camera.confirm(&camera, UiCameras::Center) {
 						// correct camera
 						if let Ok(this) = this.get(event.target) {
 							// found callback target
 							if let Some(particle_spawner_entity) = this
 								.iter()
-								.find(|child| particle_spawners.get(**child).is_ok()) {
-									// found particle spawner
-									let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
+								.find(|child| particle_spawners.get(**child).is_ok())
+							{
+								// found particle spawner
+								let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
 
-									spawner.set_active(false);
-								}
-								 else {
+								spawner.set_active(false);
+							} else {
 								warn!("Cannot find particle spawner");
-								 }
+							}
 						} else {
 							warn!("Cannot find target callback");
 						}
-					} else {
-						warn!("Event triggered on startscreen ui with wrong camera");
 					}
 				},
 			),
@@ -194,13 +185,17 @@ impl ButtonParticles {
 		};
 
 		let effect = effects.add(
-			EffectAsset::new(32768, Spawner::rate(1000.0.into()).with_starts_active(false), writer.finish())
-				.with_name("gradient")
-				.init(init_pos)
-				.init(init_vel)
-				.init(init_age)
-				.init(init_lifetime)
-				.render(ColorOverLifetimeModifier { gradient }),
+			EffectAsset::new(
+				32768,
+				Spawner::rate(1000.0.into()).with_starts_active(false),
+				writer.finish(),
+			)
+			.with_name("gradient")
+			.init(init_pos)
+			.init(init_vel)
+			.init(init_age)
+			.init(init_lifetime)
+			.render(ColorOverLifetimeModifier { gradient }),
 		);
 
 		Self {
