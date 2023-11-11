@@ -2,6 +2,7 @@ use bevy::sprite::Mesh2dHandle;
 
 use super::manual_ui::*;
 use super::path_tracing::*;
+use super::ui_cameras::UiCamera;
 use crate::prelude::*;
 
 /// Plugin
@@ -52,9 +53,12 @@ struct HostGameButtonBundle {
 	mesh: Mesh2dHandle,
 	material: Handle<ColorMaterial>,
 	spatial: SpatialBundle,
-	name: Name,
 	path: BevyPath,
 
+	start_listener: On<Pointer<Move>>,
+	end_listener: On<Pointer<Out>>,
+
+	name: Name,
 	layer: RenderLayers,
 }
 
@@ -77,6 +81,70 @@ impl HostGameButtonBundle {
 				manual_node.position.y,
 				1.,
 			)),
+			start_listener: On::<Pointer<Move>>::run(
+				|event: Listener<Pointer<Move>>,
+				 this: Query<&Children>,
+				 mut particle_spawners: Query<&mut EffectSpawner>,
+				 expected_cam: Query<&UiCamera>,| {
+					let camera = event.event.hit.camera;
+					if let Ok(UiCamera {
+						variant: UiCameras::Center,
+					}) = expected_cam.get(camera)
+					{
+						// correct camera
+						if let Ok(this) = this.get(event.target) {
+							// found callback target
+							if let Some(particle_spawner_entity) = this
+								.iter()
+								.find(|child| particle_spawners.get(**child).is_ok()) {
+									// found particle spawner
+									let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
+
+									spawner.set_active(true);
+								}
+								 else {
+								warn!("Cannot find particle spawner");
+								 }
+						} else {
+							warn!("Cannot find target callback");
+						}
+					} else {
+						warn!("Event triggered on startscreen ui with wrong camera");
+					}
+				},
+			),
+			end_listener: On::<Pointer<Out>>::run(
+				|event: Listener<Pointer<Out>>,
+				 this: Query<&Children>,
+				 mut particle_spawners: Query<&mut EffectSpawner>,
+				 expected_cam: Query<&UiCamera>,| {
+					let camera = event.event.hit.camera;
+					if let Ok(UiCamera {
+						variant: UiCameras::Center,
+					}) = expected_cam.get(camera)
+					{
+						// correct camera
+						if let Ok(this) = this.get(event.target) {
+							// found callback target
+							if let Some(particle_spawner_entity) = this
+								.iter()
+								.find(|child| particle_spawners.get(**child).is_ok()) {
+									// found particle spawner
+									let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
+
+									spawner.set_active(false);
+								}
+								 else {
+								warn!("Cannot find particle spawner");
+								 }
+						} else {
+							warn!("Cannot find target callback");
+						}
+					} else {
+						warn!("Event triggered on startscreen ui with wrong camera");
+					}
+				},
+			),
 			name: Name::new("Host Game Button"),
 			path: BevyPath::rectangle_from_bbox(manual_node.bbox),
 			layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),

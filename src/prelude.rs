@@ -14,6 +14,7 @@ pub use bevy::core_pipeline::tonemapping::Tonemapping;
 
 // bevy_* deps
 pub use bevy_hanabi::prelude::*;
+pub use bevy_mod_picking::prelude::*;
 
 pub use crate::utils::*;
 pub use crate::global::*;

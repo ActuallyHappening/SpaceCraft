@@ -74,9 +74,9 @@ mod ui_cameras {
 	}
 
 	/// Component of UiCameras that are 2D
-	#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+	#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Deref)]
 	pub struct UiCamera {
-		variant: UiCameras,
+		pub variant: UiCameras,
 	}
 
 	impl UiCamera {
