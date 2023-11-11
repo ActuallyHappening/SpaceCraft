@@ -1,5 +1,9 @@
 //! Glob exports of dependencies and utils in a convenient path
 
+// std
+pub use std::ops::{Add as _, Div as _, Mul as _};
+pub use std::f32::consts::TAU;
+
 // bevy
 pub use bevy::prelude::*;
 pub use bevy::app::*;
