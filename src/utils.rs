@@ -42,4 +42,12 @@ impl &mut EntityCommands<'_, '_, '_> {
 	fn render_layer(self, layer: impl Into<RenderLayers>) -> Self {
 		self.insert(layer.into())
 	}
+
+	fn not_pickable(self) -> Self {
+		self.insert(bevy_mod_picking::prelude::Pickable::IGNORE)
+	}
+
+	fn pickable(self) -> Self {
+		self.insert(bevy_mod_picking::prelude::PickableBundle::default())
+	}
 }
