@@ -8,6 +8,8 @@ mod world;
 
 use player::PlayerPlugins;
 use ui::UiPlugins;
+#[allow(unused_imports)]
+use bevy_mod_picking::{DefaultPickingPlugins, prelude::{DefaultHighlightingPlugin, DebugPickingPlugin}};
 
 use crate::prelude::*;
 
@@ -18,25 +20,32 @@ impl Plugin for MainPlugin {
 		use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 
 		app.add_systems(Startup, |mut commands: Commands| {
-			commands.spawn(Camera3dBundle {
-				transform: Transform::from_translation(Vec3::new(0., 0., 50.)),
-				camera: Camera {
-					hdr: true,
+			commands
+				.spawn(Camera3dBundle {
+					transform: Transform::from_translation(Vec3::new(0., 0., 50.)),
+					camera: Camera {
+						hdr: true,
+						..default()
+					},
+					camera_3d: Camera3d {
+						clear_color: ClearColorConfig::Custom(Color::BLACK),
+						..default()
+					},
+					tonemapping: Tonemapping::None,
 					..default()
-				},
-				camera_3d: Camera3d {
-					clear_color: ClearColorConfig::Custom(Color::BLACK),
-					..default()
-				},
-				tonemapping: Tonemapping::None,
-				..default()
-			}).named("Main Camera").render_layer(GlobalRenderLayers::InGame);
+				})
+				.named("Main Camera")
+				.render_layer(GlobalRenderLayers::InGame);
 		});
 
 		app.add_plugins((
 			bevy_editor_pls::EditorPlugin::default(),
 			ScreenDiagnosticsPlugin::default(),
 			ScreenFrameDiagnosticsPlugin,
+			DefaultPickingPlugins
+				.build()
+				// .disable::<DebugPickingPlugin>()
+				.disable::<DefaultHighlightingPlugin>(),
 			HanabiPlugin,
 			PlayerPlugins,
 			UiPlugins,

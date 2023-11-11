@@ -43,8 +43,6 @@ mod ui_cameras {
 
 	impl UiCamerasPlugin {
 		fn spawn_ui_camera(cam: UiCamera, commands: &mut Commands) {
-			use bevy::core_pipeline::clear_color::ClearColorConfig;
-
 			commands.spawn(UiCameraBundle {
 				inner_camera: Camera2dBundle {
 					camera: Camera {
