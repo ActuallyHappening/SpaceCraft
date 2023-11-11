@@ -53,7 +53,7 @@ mod ui_cameras {
 						..default()
 					},
 					camera_2d: Camera2d {
-						clear_color: ClearColorConfig::Custom(Color::BLACK),
+						clear_color: ClearColorConfig::None,
 					},
 					tonemapping: Tonemapping::None,
 					..default()

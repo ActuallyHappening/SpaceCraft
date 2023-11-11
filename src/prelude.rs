@@ -9,6 +9,8 @@ pub use bevy::prelude::*;
 pub use bevy::app::*;
 pub use bevy::render::view::RenderLayers;
 pub use bevy::ecs::system::*;
+pub use bevy::core_pipeline::clear_color::ClearColorConfig;
+pub use bevy::core_pipeline::tonemapping::Tonemapping;
 
 // bevy_* deps
 pub use bevy_hanabi::prelude::*;
