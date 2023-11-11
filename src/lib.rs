@@ -30,7 +30,7 @@ impl Plugin for MainPlugin {
 				},
 				tonemapping: Tonemapping::None,
 				..default()
-			});
+			}).named("Main Camera").render_layer(GlobalRenderLayers::InGame);
 		});
 
 		app.add_plugins((

@@ -1,4 +1,8 @@
+use std::borrow::Cow;
+
 use crate::prelude::*;
+
+use extension_traits::extension;
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(SystemParam)]
@@ -27,4 +31,15 @@ pub struct MMA2<'w> {
 pub struct MM2<'w> {
 	pub meshs: ResMut<'w, Assets<Mesh>>,
 	pub mats: ResMut<'w, Assets<ColorMaterial>>,
+}
+
+#[extension(pub trait BundleExt)]
+impl &mut EntityCommands<'_, '_, '_> {
+	fn named(self, name: impl Into<Cow<'static, str>>) -> Self {
+		self.insert(Name::new(name))
+	}
+
+	fn render_layer(self, layer: impl Into<RenderLayers>) -> Self {
+		self.insert(layer.into())
+	}
 }
