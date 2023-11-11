@@ -34,7 +34,7 @@ bevy_screen_diagnostics = "0.4.0"
 [dependencies.bevy_hanabi]
 version = "0.8"
 default-features = false
-features = ["3d"]
+features = ["3d", "2d"]
 
 # bevy_replicon
 [dependencies.bevy_replicon]

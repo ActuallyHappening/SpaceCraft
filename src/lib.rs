@@ -21,6 +21,7 @@ impl Plugin for MainPlugin {
 			bevy_editor_pls::EditorPlugin::default(),
 			ScreenDiagnosticsPlugin::default(),
 			ScreenFrameDiagnosticsPlugin,
+			HanabiPlugin,
 			PlayerPlugins,
 			UiPlugins,
 		));

@@ -116,9 +116,60 @@ mod ui_cameras {
 	}
 }
 
+mod manual_ui {
+	use crate::prelude::*;
+
+	pub struct BBox {
+		pub half_width: f32,
+		pub half_height: f32,
+	}
+
+	/// Minimum information needed to construct a bevy bundle
+	pub struct ManualNode {
+		/// Used to create mesh
+		pub bbox: BBox,
+		pub position: Vec2,
+	}
+
+	pub struct ManualColumn {
+		pub const_x: f32,
+		pub const_width: f32,
+
+		pub item_height: f32,
+		pub margin: f32,
+
+		pub current_y: f32,
+	}
+
+	impl Iterator for ManualColumn {
+		type Item = ManualNode;
+
+		fn next(&mut self) -> Option<Self::Item> {
+			let node = ManualNode {
+				bbox: BBox {
+					half_width: self.const_width / 2.,
+					half_height: self.item_height / 2.,
+				},
+				position: Vec2::new(self.const_x, self.current_y),
+			};
+
+			self.current_y += self.item_height + self.margin;
+
+			Some(node)
+		}
+	}
+
+	impl ManualColumn {
+		pub fn next(&mut self) -> ManualNode {
+			Iterator::next(self).unwrap()
+		}
+	}
+}
+
 mod start_screen {
 	use bevy::sprite::{MaterialMesh2dBundle, Mesh2dHandle};
 
+	use super::manual_ui::*;
 	use crate::prelude::*;
 
 	/// Plugin
@@ -128,7 +179,8 @@ mod start_screen {
 		fn build(&self, app: &mut App) {
 			app
 				.add_state::<StartScreenStates>()
-				.add_systems(OnEnter(StartScreenStates::Initial), Self::spawn_initial);
+				.add_systems(OnEnter(StartScreenStates::Initial), Self::spawn_initial)
+				.add_systems(Update, ButtonParticle::test_move);
 		}
 	}
 
@@ -145,11 +197,24 @@ mod start_screen {
 	}
 
 	impl StartScreen {
-		fn spawn_initial(mut commands: Commands, mut mma: MM2) {
-			commands.spawn(HostGameButtonBundle::new(&mut mma));
+		fn spawn_initial(mut commands: Commands, mut mma: MM2, effects: ResMut<Assets<EffectAsset>>) {
+			let mut column = ManualColumn {
+				const_x: 0.,
+				const_width: 100.,
+				current_y: 0.,
+				item_height: 50.,
+				margin: 10.,
+			};
+
+			commands
+				.spawn(HostGameButtonBundle::new(column.next(), &mut mma))
+				.with_children(|parent| {
+					parent.spawn(ButtonParticles::new(effects));
+				});
 		}
 	}
 
+	// todo: add particle effects
 	#[derive(Bundle)]
 	struct HostGameButtonBundle {
 		mesh: Mesh2dHandle,
@@ -161,16 +226,88 @@ mod start_screen {
 	}
 
 	impl HostGameButtonBundle {
-		fn new(mma: &mut MM2) -> Self {
+		fn new(manual_node: ManualNode, mma: &mut MM2) -> Self {
 			Self {
 				mesh: mma
 					.meshs
-					.add(shape::Quad::new(Vec2::new(100., 50.)).into())
+					.add(
+						shape::Quad::new(Vec2::new(
+							manual_node.bbox.half_width * 2.,
+							manual_node.bbox.half_height * 2.,
+						))
+						.into(),
+					)
 					.into(),
 				material: mma.mats.add(Color::WHITE.into()),
 				spatial: Default::default(),
 				name: Name::new("Host Game Button"),
 				layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
+			}
+		}
+	}
+
+	#[derive(Component)]
+	struct ButtonParticle;
+
+	#[derive(Bundle)]
+	struct ButtonParticles {
+		particles: ParticleEffectBundle,
+		marker: ButtonParticle,
+
+		layer: RenderLayers,
+		name: Name,
+	}
+
+	impl ButtonParticles {
+		fn new(mut effects: ResMut<Assets<EffectAsset>>) -> Self {
+			let mut gradient = Gradient::new();
+			gradient.add_key(0.0, Vec4::new(0.5, 0.5, 0.5, 1.0));
+			gradient.add_key(0.1, Vec4::new(0.5, 0.5, 0.0, 1.0));
+			gradient.add_key(0.4, Vec4::new(0.5, 0.0, 0.0, 1.0));
+			gradient.add_key(1.0, Vec4::splat(0.0));
+
+			let writer = ExprWriter::new();
+
+			let age = writer.lit(0.).expr();
+			let init_age = SetAttributeModifier::new(Attribute::AGE, age);
+
+			let lifetime = writer.lit(5.).expr();
+			let init_lifetime = SetAttributeModifier::new(Attribute::LIFETIME, lifetime);
+
+			let init_pos = SetPositionSphereModifier {
+				center: writer.lit(Vec3::Y * 70.).expr(),
+				radius: writer.lit(5.).expr(),
+				dimension: ShapeDimension::Volume,
+			};
+
+			let init_vel = SetVelocitySphereModifier {
+				center: writer.lit(Vec3::ZERO).expr(),
+				speed: writer.lit(2.).expr(),
+			};
+
+			let effect = effects.add(
+				EffectAsset::new(32768, Spawner::rate(1000.0.into()), writer.finish())
+					.with_name("gradient")
+					.init(init_pos)
+					.init(init_vel)
+					.init(init_age)
+					.init(init_lifetime)
+					.render(ColorOverLifetimeModifier { gradient }),
+			);
+
+			Self {
+				particles: ParticleEffectBundle::new(effect),
+				marker: ButtonParticle,
+				layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
+				name: Name::new("Button Particles"),
+			}
+		}
+	}
+
+	impl ButtonParticle {
+		fn test_move(mut q: Query<&mut Transform, With<Self>>) {
+			for mut t in q.iter_mut() {
+				t.translation.x += 1.;
 			}
 		}
 	}
