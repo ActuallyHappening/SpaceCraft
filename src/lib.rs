@@ -34,6 +34,7 @@ impl Plugin for MainPlugin {
 					tonemapping: Tonemapping::None,
 					..default()
 				})
+				.insert(VisibilityBundle::default())
 				.named("Main Camera")
 				.render_layer(GlobalRenderLayers::InGame);
 		});

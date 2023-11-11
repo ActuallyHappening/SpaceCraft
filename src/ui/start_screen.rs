@@ -194,7 +194,7 @@ impl ButtonParticles {
 		};
 
 		let effect = effects.add(
-			EffectAsset::new(32768, Spawner::rate(1000.0.into()), writer.finish())
+			EffectAsset::new(32768, Spawner::rate(1000.0.into()).with_starts_active(false), writer.finish())
 				.with_name("gradient")
 				.init(init_pos)
 				.init(init_vel)
