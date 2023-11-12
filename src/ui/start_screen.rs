@@ -31,10 +31,10 @@ enum StartScreenStates {
 }
 
 impl StartScreen {
-	fn spawn_initial(mut commands: Commands, mut mma: MM2, effects: ResMut<Assets<EffectAsset>>) {
+	fn spawn_initial(mut commands: Commands, mut mma: MM2, ass: Res<AssetServer>, effects: ResMut<Assets<EffectAsset>>) {
 		let mut column = ManualColumn {
 			const_x: 0.,
-			const_width: 100.,
+			const_width: 200.,
 			current_y: 0.,
 			item_height: 50.,
 			margin: 10.,
@@ -44,11 +44,11 @@ impl StartScreen {
 			.spawn(HostGameButtonBundle::new(column.next(), &mut mma))
 			.with_children(|parent| {
 				parent.spawn(ButtonParticles::new(effects));
+				parent.spawn(ButtonText::new("Host Game", ass));
 			});
 	}
 }
 
-// todo: add particle effects
 #[derive(Bundle)]
 struct HostGameButtonBundle {
 	mesh: Mesh2dHandle,
@@ -143,6 +143,34 @@ impl HostGameButtonBundle {
 	}
 }
 
+#[derive(Bundle)]
+struct ButtonText {
+	text_bundle: Text2dBundle,
+
+	name: Name,
+	render_layer: RenderLayers,
+}
+
+impl ButtonText {
+	fn new(text: impl Into<Cow<'static, str>>, ass: Res<AssetServer>) -> Self {
+		let style = TextStyle {
+			font: ass.load(GlobalFont::Default),
+			font_size: 40.,
+			color: Color::MIDNIGHT_BLUE,
+		};
+
+		ButtonText {
+			text_bundle: Text2dBundle {
+				text: Text::from_section(text.into(), style.clone()).with_alignment(TextAlignment::Center),
+				transform: Transform::from_translation(Vec3::Z),
+				..default()
+			},
+			name: Name::new("Button Text"),
+			render_layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
+		}
+	}
+}
+
 #[derive(Component)]
 struct ButtonParticle;
 
@@ -215,7 +243,8 @@ impl ButtonParticle {
 	) {
 		for (parent, mut transform) in spawner.iter_mut() {
 			if let Ok(path) = parents.get(parent.get()) {
-				let time = time.elapsed_seconds_wrapped().mul(10.) % 1.;
+				const FACTOR: f32 = 250.;
+				let time = time.elapsed().as_millis() as f32 % FACTOR / FACTOR;
 				let pos = path.get_pos_at_time(time);
 				transform.translation.x = pos.x;
 				transform.translation.y = pos.y;

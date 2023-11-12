@@ -87,13 +87,13 @@ mod path_tracing {
 			let half_width = bbox.half_width;
 			let half_height = bbox.half_height;
 
-			let mut path = Vec::new();
-
-			path.push(Segment::Start(Vec2::new(-half_width, -half_height)));
-			path.push(Segment::LineTo(Vec2::new(half_width, -half_height)));
-			path.push(Segment::LineTo(Vec2::new(half_width, half_height)));
-			path.push(Segment::LineTo(Vec2::new(-half_width, half_height)));
-			path.push(Segment::LineTo(Vec2::new(-half_width, -half_height)));
+			let path = vec![
+				Segment::Start(Vec2::new(half_width, half_height)),
+				Segment::LineTo(Vec2::new(half_width, -half_height)),
+				Segment::LineTo(Vec2::new(-half_width, -half_height)),
+				Segment::LineTo(Vec2::new(-half_width, half_height)),
+				Segment::LineTo(Vec2::new(half_width, half_height)),
+			];
 
 			Self {
 				path,
