@@ -35,33 +35,3 @@ pub fn in_state_start_menu(state: Res<State<GlobalGameStates>>) -> bool {
 pub fn in_state_game(state: Res<State<GlobalGameStates>>) -> bool {
 	matches!(state.get(), GlobalGameStates::InGame)
 }
-
-#[derive(Resource, Debug)]
-pub enum NetcodeConfig {
-	Hosting { addr: IpAddr, port: u16 },
-	Client { addr: IpAddr, port: u16 },
-}
-
-impl NetcodeConfig {
-	pub const fn new_hosting_public() -> Self {
-		// TODO: Verify this actually hosts, don't we need 0.0.0.0?
-		NetcodeConfig::Hosting {
-			addr: IpAddr::V4(Ipv4Addr::LOCALHOST),
-			port: DEFAULT_PORT,
-		}
-	}
-
-	pub const fn new_hosting_machine_local() -> Self {
-		NetcodeConfig::Hosting {
-			addr: IpAddr::V4(Ipv4Addr::LOCALHOST),
-			port: DEFAULT_PORT,
-		}
-	}
-
-	pub const fn new_client_machine_local() -> Self {
-		NetcodeConfig::Client {
-			addr: IpAddr::V4(Ipv4Addr::LOCALHOST),
-			port: DEFAULT_PORT,
-		}
-	}
-}

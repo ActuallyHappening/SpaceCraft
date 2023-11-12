@@ -4,6 +4,7 @@ use bevy::text::Text2dBounds;
 use super::manual_ui::*;
 use super::path_tracing::*;
 use super::ui_cameras::CorrectCamera;
+use crate::netcode::NetcodeConfig;
 use crate::prelude::*;
 
 /// Plugin

@@ -8,6 +8,7 @@ use crate::prelude::*;
 pub mod assets;
 
 pub const DEFAULT_PORT: u16 = 5069;
+pub const PROTOCOL_ID: u64 = 0;
 
 /// Naming of all render layers used within the project
 pub enum GlobalRenderLayers {

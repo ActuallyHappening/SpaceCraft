@@ -5,6 +5,7 @@ mod states;
 mod ui;
 mod utils;
 mod world;
+mod netcode;
 
 #[allow(unused_imports)]
 use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
@@ -13,8 +14,10 @@ use bevy_mod_picking::{
 	prelude::{DebugPickingPlugin, DefaultHighlightingPlugin},
 	DefaultPickingPlugins,
 };
-use player::PlayerPlugins;
-use ui::UiPlugins;
+use bevy_replicon::ReplicationPlugins;
+use self::player::PlayerPlugins;
+use self::ui::UiPlugins;
+use self::netcode::NetcodePlugin;
 
 use crate::prelude::*;
 
@@ -23,6 +26,9 @@ pub struct MainPlugin;
 impl Plugin for MainPlugin {
 	fn build(&self, app: &mut App) {
 		use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
+
+		info!("MainPlugin initializing ...");
+		app.add_systems(Startup, || info!("Startup running"));
 
 		// spawn initial Main Camera
 		app.add_systems(Startup, |mut commands: Commands| {
@@ -72,6 +78,8 @@ impl Plugin for MainPlugin {
 			HanabiPlugin,
 			PlayerPlugins,
 			UiPlugins,
+			ReplicationPlugins,
+			NetcodePlugin,
 		));
 	}
 }
