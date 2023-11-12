@@ -9,6 +9,8 @@ use crate::prelude::*;
 /// Plugin
 pub struct StartScreen;
 
+const CAM: UiCameras = UiCameras::TopLeft;
+
 impl Plugin for StartScreen {
 	fn build(&self, app: &mut App) {
 		app
@@ -33,12 +35,13 @@ enum StartScreenStates {
 impl StartScreen {
 	fn spawn_initial(mut commands: Commands, mut mma: MM2, ass: Res<AssetServer>, mut effects: ResMut<Assets<EffectAsset>>) {
 		let mut column = ManualColumn {
+			// const_x: 200.,
 			const_x: 0.,
 			const_width: 200.,
 			current_y: 0.,
 			item_height: 50.,
 			margin: 10.,
-		}.center_with(2);
+		}.center_with(3);
 
 		commands
 			.spawn(GameButtonBundle::new(column.next(), &mut mma))
@@ -102,7 +105,7 @@ impl GameButtonBundle {
 				 mut particle_spawners: Query<&mut EffectSpawner>,
 				 correct_camera: CorrectCamera| {
 					let camera = event.event.hit.camera;
-					if correct_camera.confirm(&camera, UiCameras::Center) {
+					if correct_camera.confirm(&camera, CAM) {
 						// correct camera
 						if let Ok(this) = this.get(event.target) {
 							// found callback target
@@ -129,7 +132,7 @@ impl GameButtonBundle {
 				 mut particle_spawners: Query<&mut EffectSpawner>,
 				 correct_camera: CorrectCamera| {
 					let camera = event.event.hit.camera;
-					if correct_camera.confirm(&camera, UiCameras::Center) {
+					if correct_camera.confirm(&camera, CAM) {
 						// correct camera
 						if let Ok(this) = this.get(event.target) {
 							// found callback target
@@ -152,7 +155,7 @@ impl GameButtonBundle {
 			),
 			name: Name::new("Host Game Button"),
 			path: BevyPath::rectangle_from_bbox(manual_node.bbox),
-			layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
+			layer: GlobalRenderLayers::Ui(CAM).into(),
 		}
 	}
 }
@@ -180,7 +183,7 @@ impl ButtonText {
 				..default()
 			},
 			name: Name::new("Button Text"),
-			render_layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
+			render_layer: GlobalRenderLayers::Ui(CAM).into(),
 		}
 	}
 }
@@ -243,7 +246,7 @@ impl ButtonParticles {
 		Self {
 			particles: ParticleEffectBundle::new(effect),
 			marker: ButtonParticle,
-			layer: GlobalRenderLayers::Ui(UiCameras::Center).into(),
+			layer: GlobalRenderLayers::Ui(CAM).into(),
 			name: Name::new("Button Particles"),
 		}
 	}

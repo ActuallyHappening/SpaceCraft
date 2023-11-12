@@ -18,6 +18,10 @@ pub use bevy::core_pipeline::tonemapping::Tonemapping;
 pub use bevy_hanabi::prelude::*;
 pub use bevy_mod_picking::prelude::*;
 
+// helper deps
+pub use strum::EnumIter;
+pub use strum::IntoEnumIterator as _;
+
 pub use crate::utils::*;
 pub use crate::global::*;
 pub use crate::global::assets::*;

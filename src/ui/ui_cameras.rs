@@ -49,12 +49,9 @@ impl UiCamerasPlugin {
 	}
 
 	fn spawn_ui_cameras(mut commands: Commands) {
-		Self::spawn_ui_camera(
-			UiCamera {
-				variant: UiCameras::Center,
-			},
-			&mut commands,
-		)
+		for variant in UiCameras::iter() {
+			Self::spawn_ui_camera(UiCamera { variant }, &mut commands)
+		}
 	}
 }
 
@@ -92,13 +89,13 @@ fn update_cameras(
 ) {
 	for ev in resize_events.read() {
 		let window = windows.get(ev.window).unwrap();
-		let (mut cam, variant) = cam.single_mut();
+		for (mut cam, variant) in cam.iter_mut() {
+			let width = window.resolution.width();
+			let height = window.resolution.height();
 
-		let width = window.resolution.width();
-		let height = window.resolution.height();
-
-		let cam_translation = variant.get_camera_transform(width / 2., height / 2.);
-		cam.translation = Vec3::new(cam_translation.x as f32, cam_translation.y as f32, 0.);
+			let cam_translation = variant.get_camera_transform(width / 2., height / 2.);
+			cam.translation = Vec3::new(cam_translation.x as f32, cam_translation.y as f32, 0.);
+		}
 	}
 }
 

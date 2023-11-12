@@ -64,6 +64,7 @@ mod manual_ui {
 			Iterator::next(self).unwrap()
 		}
 
+		// todo: Test this works properly
 		/// Will offset the column so that the items are centered when [items]
 		/// number of `.next()` calls are made
 		pub fn center_with(mut self, items: u8) -> Self {

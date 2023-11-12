@@ -1,6 +1,8 @@
 //! Types and functionality that affect the project globally
 //! Like constants
 
+use strum::IntoEnumIterator;
+
 use crate::prelude::*;
 
 pub mod assets;
@@ -41,7 +43,7 @@ pub enum GlobalCameraOrders {
 }
 
 /// Enum of all ui cameras
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
 pub enum UiCameras {
 	TopLeft,
 	TopRight,
@@ -63,5 +65,11 @@ impl From<GlobalCameraOrders> for isize {
 				UiCameras::Center => 5,
 			},
 		}
+	}
+}
+
+impl UiCameras {
+	pub fn iter() -> impl Iterator<Item = Self> {
+		<UiCameras as IntoEnumIterator>::iter()
 	}
 }
