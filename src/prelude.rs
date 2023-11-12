@@ -21,6 +21,7 @@ pub use bevy_mod_picking::prelude::*;
 // helper deps
 pub use strum::EnumIter;
 pub use strum::IntoEnumIterator as _;
+pub use structstruck::strike as nested_structs;
 
 pub use crate::utils::*;
 pub use crate::global::*;

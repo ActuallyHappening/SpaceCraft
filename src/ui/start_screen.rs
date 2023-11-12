@@ -9,7 +9,9 @@ use crate::prelude::*;
 /// Plugin
 pub struct StartScreen;
 
-const CAM: UiCameras = UiCameras::MiddleLeft;
+/// Which CAM this entity belongs to, for start screen only
+#[derive(Component, Deref)]
+struct Cam(UiCameras);
 
 impl Plugin for StartScreen {
 	fn build(&self, app: &mut App) {
@@ -28,40 +30,47 @@ enum StartScreenStates {
 	ConfigureHost,
 
 	ConfigureClient,
-
-	ConfigureSolo,
+	// ConfigureSolo,
 }
 
 impl StartScreen {
-	fn spawn_initial(mut commands: Commands, mut mma: MM2, ass: Res<AssetServer>, mut effects: ResMut<Assets<EffectAsset>>) {
+	fn spawn_initial(
+		mut commands: Commands,
+		mut mma: MM2,
+		ass: Res<AssetServer>,
+		mut effects: ResMut<Assets<EffectAsset>>,
+	) {
+		const INITIAL_CAM: UiCameras = UiCameras::MiddleLeft;
+
 		let mut column = ManualColumn {
 			const_x: 200.,
 			const_width: 200.,
 			current_y: 0.,
 			item_height: 50.,
 			margin: 10.,
-		}.center_with(3);
+		}
+		.center_with(2);
 
 		commands
-			.spawn(GameButtonBundle::new(column.next(), &mut mma))
+			.spawn(GameButtonBundle::new(INITIAL_CAM, column.next(), &mut mma))
 			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(&mut effects));
-				parent.spawn(ButtonText::new("Host Game", &ass));
+				parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
+				parent.spawn(ButtonText::new(INITIAL_CAM, "Host Game", &ass));
 			});
 
 		commands
-			.spawn(GameButtonBundle::new(column.next(), &mut mma))
+			.spawn(GameButtonBundle::new(INITIAL_CAM, column.next(), &mut mma))
 			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(&mut effects));
-				parent.spawn(ButtonText::new("Join Game", &ass));
+				parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
+				parent.spawn(ButtonText::new(INITIAL_CAM, "Join Game", &ass));
 			});
-		
-		commands
-			.spawn(GameButtonBundle::new(column.next(), &mut mma))
-			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(&mut effects));
-				parent.spawn(ButtonText::new("Solo", &ass));
-			});
+
+		// commands
+		// 	.spawn(GameButtonBundle::new(column.next(), &mut mma))
+		// 	.with_children(|parent| {
+		// 		parent.spawn(ButtonParticles::new(&mut effects));
+		// 		parent.spawn(ButtonText::new("Solo", &ass));
+		// 	});
 	}
 }
 
@@ -72,6 +81,7 @@ struct GameButtonBundle {
 	spatial: SpatialBundle,
 	path: BevyPath,
 
+	cam: Cam,
 	start_listener: On<Pointer<Move>>,
 	end_listener: On<Pointer<Out>>,
 
@@ -80,8 +90,9 @@ struct GameButtonBundle {
 }
 
 impl GameButtonBundle {
-	fn new(manual_node: ManualNode, mma: &mut MM2) -> Self {
+	fn new(cam: UiCameras, manual_node: ManualNode, mma: &mut MM2) -> Self {
 		Self {
+			cam: Cam(cam),
 			mesh: mma
 				.meshs
 				.add(
@@ -100,14 +111,15 @@ impl GameButtonBundle {
 			)),
 			start_listener: On::<Pointer<Move>>::run(
 				|event: Listener<Pointer<Move>>,
-				 this: Query<&Children>,
+				 this: Query<(&Cam, &Children)>,
 				 mut particle_spawners: Query<&mut EffectSpawner>,
 				 correct_camera: CorrectCamera| {
-					let camera = event.event.hit.camera;
-					if correct_camera.confirm(&camera, CAM) {
-						// correct camera
-						if let Ok(this) = this.get(event.target) {
-							// found callback target
+					if let Ok((cam, this)) = this.get(event.target) {
+						// found callback target
+						let camera = event.event.hit.camera;
+						if correct_camera.confirm(&camera, **cam) {
+							// correct camera
+
 							if let Some(particle_spawner_entity) = this
 								.iter()
 								.find(|child| particle_spawners.get(**child).is_ok())
@@ -119,22 +131,23 @@ impl GameButtonBundle {
 							} else {
 								warn!("Cannot find particle spawner");
 							}
-						} else {
-							warn!("Cannot find target callback");
 						}
+					} else {
+						warn!("Cannot find target callback");
 					}
 				},
 			),
 			end_listener: On::<Pointer<Out>>::run(
 				|event: Listener<Pointer<Out>>,
-				 this: Query<&Children>,
+				 this: Query<(&Cam, &Children)>,
 				 mut particle_spawners: Query<&mut EffectSpawner>,
 				 correct_camera: CorrectCamera| {
-					let camera = event.event.hit.camera;
-					if correct_camera.confirm(&camera, CAM) {
-						// correct camera
-						if let Ok(this) = this.get(event.target) {
-							// found callback target
+					if let Ok((cam, this)) = this.get(event.target) {
+						// found callback target
+						let camera = event.event.hit.camera;
+						if correct_camera.confirm(&camera, **cam) {
+							// correct camera
+
 							if let Some(particle_spawner_entity) = this
 								.iter()
 								.find(|child| particle_spawners.get(**child).is_ok())
@@ -146,15 +159,15 @@ impl GameButtonBundle {
 							} else {
 								warn!("Cannot find particle spawner");
 							}
-						} else {
-							warn!("Cannot find target callback");
 						}
+					} else {
+						warn!("Cannot find target callback");
 					}
 				},
 			),
 			name: Name::new("Host Game Button"),
 			path: BevyPath::rectangle_from_bbox(manual_node.bbox),
-			layer: GlobalRenderLayers::Ui(CAM).into(),
+			layer: GlobalRenderLayers::Ui(cam).into(),
 		}
 	}
 }
@@ -168,7 +181,7 @@ struct ButtonText {
 }
 
 impl ButtonText {
-	fn new(text: impl Into<Cow<'static, str>>, ass: &AssetServer) -> Self {
+	fn new(cam: UiCameras, text: impl Into<Cow<'static, str>>, ass: &AssetServer) -> Self {
 		let style = TextStyle {
 			font: ass.load(GlobalFont::Default),
 			font_size: 40.,
@@ -182,7 +195,7 @@ impl ButtonText {
 				..default()
 			},
 			name: Name::new("Button Text"),
-			render_layer: GlobalRenderLayers::Ui(CAM).into(),
+			render_layer: GlobalRenderLayers::Ui(cam).into(),
 		}
 	}
 }
@@ -200,7 +213,7 @@ struct ButtonParticles {
 }
 
 impl ButtonParticles {
-	fn new(mut effects: &mut Assets<EffectAsset>) -> Self {
+	fn new(cam: UiCameras, mut effects: &mut Assets<EffectAsset>) -> Self {
 		let mut gradient = Gradient::new();
 		// gradient.add_key(0.0, Vec4::new(0.5, 0.5, 0.5, 1.0));
 		// gradient.add_key(0.1, Vec4::new(0.5, 0.5, 0.0, 1.0));
@@ -245,7 +258,7 @@ impl ButtonParticles {
 		Self {
 			particles: ParticleEffectBundle::new(effect),
 			marker: ButtonParticle,
-			layer: GlobalRenderLayers::Ui(CAM).into(),
+			layer: GlobalRenderLayers::Ui(cam).into(),
 			name: Name::new("Button Particles"),
 		}
 	}
