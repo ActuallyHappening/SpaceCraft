@@ -57,8 +57,8 @@ impl UiCamerasPlugin {
 
 /// Component of UiCameras that are 2D
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Deref)]
-pub struct UiCamera {
-	pub variant: UiCameras,
+struct UiCamera {
+	variant: UiCameras,
 }
 
 impl UiCamera {
