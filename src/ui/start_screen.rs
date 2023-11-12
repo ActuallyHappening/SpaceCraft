@@ -26,10 +26,20 @@ impl Plugin for StartScreen {
 		);
 
 		// initial menu
-		app.add_systems(
-			OnEnter(GlobalGameStates::StartMenu(StartScreenStates::Initial)),
-			Self::spawn_initial,
-		);
+		app
+			.add_systems(
+				OnEnter(GlobalGameStates::StartMenu(StartScreenStates::Initial)),
+				Self::spawn_initial,
+			)
+			// todo: find a cleaner way to do this, and remember to fix this when adding Solo game mode
+			.add_systems(
+				OnEnter(GlobalGameStates::InGame(InGameStates::Client)),
+				Self::despawn_initial,
+			)
+			.add_systems(
+				OnEnter(GlobalGameStates::InGame(InGameStates::Hosting)),
+				Self::despawn_initial,
+			);
 
 		// hosting submenu
 		app
@@ -81,14 +91,14 @@ impl HostGameButtons {
 }
 
 impl StartScreen {
+	const INITIAL_CAM: UiCameras = UiCameras::MiddleLeft;
+
 	fn spawn_initial(
 		mut commands: Commands,
 		mut mma: MM2,
 		ass: Res<AssetServer>,
 		mut effects: ResMut<Assets<EffectAsset>>,
 	) {
-		const INITIAL_CAM: UiCameras = UiCameras::MiddleLeft;
-
 		let mut column = ManualColumn {
 			const_x: 200.,
 			const_width: 200.,
@@ -102,21 +112,16 @@ impl StartScreen {
 			let manual_node = column.next();
 			let wrap_size = manual_node.bbox.dimensions();
 			commands
-				.spawn(GameButtonBundle::new(
-					INITIAL_CAM,
-					btn,
-					manual_node,
-					&mut mma,
-				))
+				.spawn(GameButtonBundle::new(btn, manual_node, &mut mma))
+				.render_layer(GlobalRenderLayers::Ui(Self::INITIAL_CAM))
+				.insert(Cam(Self::INITIAL_CAM))
 				.with_children(|parent| {
-					parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
-					parent.spawn(ButtonText::new(
-						INITIAL_CAM,
-						btn.get_text(),
-						40.,
-						wrap_size,
-						&ass,
-					));
+					parent
+						.spawn(ButtonParticles::new(&mut effects))
+						.render_layer(GlobalRenderLayers::Ui(Self::INITIAL_CAM));
+					parent
+						.spawn(ButtonText::new(btn.get_text(), 40., wrap_size, &ass))
+						.render_layer(GlobalRenderLayers::Ui(Self::INITIAL_CAM));
 				});
 		}
 
@@ -128,14 +133,20 @@ impl StartScreen {
 		// 	});
 	}
 
+	fn despawn_initial(mut commands: Commands, btns: Query<Entity, With<InitialUiButtons>>) {
+		for btn in btns.iter() {
+			commands.entity(btn).despawn_recursive();
+		}
+	}
+
+	const HOST_CAM: UiCameras = UiCameras::MiddleRight;
+
 	fn spawn_configure_host(
 		mut commands: Commands,
 		mut mma: MM2,
 		ass: Res<AssetServer>,
 		mut effects: ResMut<Assets<EffectAsset>>,
 	) {
-		const CONFIG_HOST: UiCameras = UiCameras::MiddleRight;
-
 		let mut column = ManualColumn {
 			const_x: -200.,
 			const_width: 200.,
@@ -149,21 +160,16 @@ impl StartScreen {
 			let manual_node = column.next();
 			let text_wrap = manual_node.bbox.dimensions();
 			commands
-				.spawn(GameButtonBundle::new(
-					CONFIG_HOST,
-					btn,
-					manual_node,
-					&mut mma,
-				))
+				.spawn(GameButtonBundle::new(btn, manual_node, &mut mma))
+				.render_layer(GlobalRenderLayers::Ui(Self::HOST_CAM))
+				.insert(Cam(Self::HOST_CAM))
 				.with_children(|parent| {
-					parent.spawn(ButtonParticles::new(CONFIG_HOST, &mut effects));
-					parent.spawn(ButtonText::new(
-						CONFIG_HOST,
-						btn.get_text(),
-						25.,
-						text_wrap,
-						&ass,
-					));
+					parent
+						.spawn(ButtonParticles::new(&mut effects))
+						.render_layer(GlobalRenderLayers::Ui(Self::HOST_CAM));
+					parent
+						.spawn(ButtonText::new(btn.get_text(), 25., text_wrap, &ass))
+						.render_layer(GlobalRenderLayers::Ui(Self::HOST_CAM));
 				});
 		}
 	}
@@ -285,15 +291,12 @@ struct GameButtonBundle<T: Component + Send + Sync + 'static> {
 
 	btn: T,
 
-	cam: Cam,
 	name: Name,
-	layer: RenderLayers,
 }
 
 impl<T: Component + Send + Sync + 'static> GameButtonBundle<T> {
-	fn new(cam: UiCameras, btn: T, manual_node: ManualNode, mma: &mut MM2) -> Self {
+	fn new(btn: T, manual_node: ManualNode, mma: &mut MM2) -> Self {
 		Self {
-			cam: Cam(cam),
 			btn,
 			mesh: mma
 				.meshs
@@ -313,7 +316,6 @@ impl<T: Component + Send + Sync + 'static> GameButtonBundle<T> {
 			)),
 			name: Name::new("Host Game Button"),
 			path: BevyPath::rectangle_from_bbox(manual_node.bbox),
-			layer: GlobalRenderLayers::Ui(cam).into(),
 		}
 	}
 }
@@ -323,12 +325,12 @@ struct ButtonText {
 	text_bundle: Text2dBundle,
 
 	name: Name,
-	render_layer: RenderLayers,
+	// render_layer: RenderLayers,
 }
 
 impl ButtonText {
 	fn new(
-		cam: UiCameras,
+		// cam: UiCameras,
 		text: impl Into<Cow<'static, str>>,
 		font_size: f32,
 		wrap_size: Vec2,
@@ -348,7 +350,7 @@ impl ButtonText {
 				..default()
 			},
 			name: Name::new("Button Text"),
-			render_layer: GlobalRenderLayers::Ui(cam).into(),
+			// render_layer: GlobalRenderLayers::Ui(cam).into(),
 		}
 	}
 }
@@ -361,12 +363,15 @@ struct ButtonParticles {
 	particles: ParticleEffectBundle,
 	marker: ButtonParticle,
 
-	layer: RenderLayers,
+	// layer: RenderLayers,
 	name: Name,
 }
 
 impl ButtonParticles {
-	fn new(cam: UiCameras, mut effects: &mut Assets<EffectAsset>) -> Self {
+	fn new(
+		// cam: UiCameras,
+		mut effects: &mut Assets<EffectAsset>,
+	) -> Self {
 		let mut gradient = Gradient::new();
 		// gradient.add_key(0.0, Vec4::new(0.5, 0.5, 0.5, 1.0));
 		// gradient.add_key(0.1, Vec4::new(0.5, 0.5, 0.0, 1.0));
@@ -411,7 +416,7 @@ impl ButtonParticles {
 		Self {
 			particles: ParticleEffectBundle::new(effect),
 			marker: ButtonParticle,
-			layer: GlobalRenderLayers::Ui(cam).into(),
+			// layer: GlobalRenderLayers::Ui(cam).into(),
 			name: Name::new("Button Particles"),
 		}
 	}
