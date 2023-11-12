@@ -26,6 +26,7 @@ impl Plugin for StartScreen {
 				(
 					ButtonParticle::follow_parent_bbox,
 					StartScreen::handle_hover_interactions,
+					StartScreen::handle_click_interactions,
 				),
 			);
 	}
@@ -42,9 +43,37 @@ enum StartScreenStates {
 	// ConfigureSolo,
 }
 
-/// List of buttons that can be clicked, with
-/// [UiButtons::Initial] being the 'back' button
-type UiButtons = StartScreenStates;
+/// List of buttons that can be clicked
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
+enum InitialUiButtons {
+	InitialHostGame,
+	InitialJoinGame,
+	// InitialSolo,
+}
+
+impl InitialUiButtons {
+	const fn get_text(self) -> &'static str {
+		match self {
+			InitialUiButtons::InitialHostGame => "Host Game",
+			InitialUiButtons::InitialJoinGame => "Join Game",
+		}
+	}
+}
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
+enum HostGameButtons {
+	HostPublicGame,
+	HostMachineLocalGame,
+}
+
+impl HostGameButtons {
+	const fn get_text(self) -> &'static str {
+		match self {
+			HostGameButtons::HostPublicGame => "Host Public Game",
+			HostGameButtons::HostMachineLocalGame => "Host Machine-Local Game",
+		}
+	}
+}
 
 impl StartScreen {
 	fn spawn_initial(
@@ -64,19 +93,19 @@ impl StartScreen {
 		}
 		.center_with(2);
 
-		commands
-			.spawn(GameButtonBundle::new(INITIAL_CAM, column.next(), &mut mma))
-			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
-				parent.spawn(ButtonText::new(INITIAL_CAM, "Host Game", &ass));
-			});
-
-		commands
-			.spawn(GameButtonBundle::new(INITIAL_CAM, column.next(), &mut mma))
-			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
-				parent.spawn(ButtonText::new(INITIAL_CAM, "Join Game", &ass));
-			});
+		for btn in InitialUiButtons::iter() {
+			commands
+				.spawn(GameButtonBundle::new(
+					INITIAL_CAM,
+					btn,
+					column.next(),
+					&mut mma,
+				))
+				.with_children(|parent| {
+					parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
+					parent.spawn(ButtonText::new(INITIAL_CAM, btn.get_text(), &ass));
+				});
+		}
 
 		// commands
 		// 	.spawn(GameButtonBundle::new(column.next(), &mut mma))
@@ -103,23 +132,19 @@ impl StartScreen {
 		}
 		.center_with(2);
 
-		commands
-			.spawn(GameButtonBundle::new(CONFIG_HOST, column.next(), &mut mma))
-			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(CONFIG_HOST, &mut effects));
-				parent.spawn(ButtonText::new(CONFIG_HOST, "Host Public Game", &ass));
-			});
-
-		commands
-			.spawn(GameButtonBundle::new(CONFIG_HOST, column.next(), &mut mma))
-			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(CONFIG_HOST, &mut effects));
-				parent.spawn(ButtonText::new(
+		for btn in HostGameButtons::iter() {
+			commands
+				.spawn(GameButtonBundle::new(
 					CONFIG_HOST,
-					"Host Machine-Local Game",
-					&ass,
-				));
-			});
+					btn,
+					column.next(),
+					&mut mma,
+				))
+				.with_children(|parent| {
+					parent.spawn(ButtonParticles::new(CONFIG_HOST, &mut effects));
+					parent.spawn(ButtonText::new(CONFIG_HOST, btn.get_text(), &ass));
+				});
+		}
 	}
 
 	fn handle_hover_interactions(
@@ -177,24 +202,29 @@ impl StartScreen {
 			}
 		}
 	}
+
+	fn handle_click_interactions(mut click_events: EventReader<Pointer<Click>>, this: Query<&Cam>) {}
 }
 
 #[derive(Bundle)]
-struct GameButtonBundle {
+struct GameButtonBundle<T: Component + Send + Sync + 'static> {
 	mesh: Mesh2dHandle,
 	material: Handle<ColorMaterial>,
 	spatial: SpatialBundle,
 	path: BevyPath,
+
+	btn: T,
 
 	cam: Cam,
 	name: Name,
 	layer: RenderLayers,
 }
 
-impl GameButtonBundle {
-	fn new(cam: UiCameras, manual_node: ManualNode, mma: &mut MM2) -> Self {
+impl<T: Component + Send + Sync + 'static> GameButtonBundle<T> {
+	fn new(cam: UiCameras, btn: T, manual_node: ManualNode, mma: &mut MM2) -> Self {
 		Self {
 			cam: Cam(cam),
+			btn,
 			mesh: mma
 				.meshs
 				.add(
@@ -211,69 +241,6 @@ impl GameButtonBundle {
 				manual_node.position.y,
 				1.,
 			)),
-			// click_listener: On::send_event::<ClickInteraction>(),
-			// start_listener: On::target_component_mut(|_, interaction: &mut Interaction| {
-			// 	interaction.upgrade_to(Interaction::HoverStart);
-			// }),
-			// end_listener: On::target_component_mut(|_, interaction: &mut Interaction| {
-			// 	interaction.upgrade_to(Interaction::HoverEnd);
-			// }),
-			// start_listener: On::<Pointer<Move>>::run(
-			// 	|event: Listener<Pointer<Move>>,
-			// 	 this: Query<(&Cam, &Children)>,
-			// 	 mut particle_spawners: Query<&mut EffectSpawner>,
-			// 	 correct_camera: CorrectCamera| {
-			// if let Ok((cam, this)) = this.get(event.target) {
-			// 	// found callback target
-			// 	let camera = event.event.hit.camera;
-			// 	if correct_camera.confirm(&camera, **cam) {
-			// 		// correct camera
-
-			// 		if let Some(particle_spawner_entity) = this
-			// 			.iter()
-			// 			.find(|child| particle_spawners.get(**child).is_ok())
-			// 		{
-			// 			// found particle spawner
-			// 			let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
-
-			// 			spawner.set_active(true);
-			// 		} else {
-			// 			warn!("Cannot find particle spawner");
-			// 		}
-			// 	}
-			// } else {
-			// 	warn!("Cannot find target callback");
-			// }
-			// 	},
-			// ),
-			// end_listener: On::<Pointer<Out>>::run(
-			// 	|event: Listener<Pointer<Out>>,
-			// 	 this: Query<(&Cam, &Children)>,
-			// 	 mut particle_spawners: Query<&mut EffectSpawner>,
-			// 	 correct_camera: CorrectCamera| {
-			// 		if let Ok((cam, this)) = this.get(event.target) {
-			// 			// found callback target
-			// 			let camera = event.event.hit.camera;
-			// 			if correct_camera.confirm(&camera, **cam) {
-			// 				// correct camera
-
-			// 				if let Some(particle_spawner_entity) = this
-			// 					.iter()
-			// 					.find(|child| particle_spawners.get(**child).is_ok())
-			// 				{
-			// 					// found particle spawner
-			// 					let mut spawner = particle_spawners.get_mut(*particle_spawner_entity).unwrap();
-
-			// 					spawner.set_active(false);
-			// 				} else {
-			// 					warn!("Cannot find particle spawner");
-			// 				}
-			// 			}
-			// 		} else {
-			// 			warn!("Cannot find target callback");
-			// 		}
-			// 	},
-			// ),
 			name: Name::new("Host Game Button"),
 			path: BevyPath::rectangle_from_bbox(manual_node.bbox),
 			layer: GlobalRenderLayers::Ui(cam).into(),
