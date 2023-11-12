@@ -66,18 +66,19 @@ impl UiCamera {
 	/// current screen size.
 	/// Useful for positioning the camera relative to the screen, e.g. center or
 	/// top left
-	fn get_camera_transform(&self, half_width: f32, half_height: f32) -> UVec2 {
+	fn get_camera_transform(&self, half_width: f32, half_height: f32) -> Vec2 {
 		let (wf, hf) = match self.variant {
-			UiCameras::Center => (0, 0),
-			UiCameras::TopLeft => (1, -1),
-			UiCameras::TopRight => (-1, -1),
-			UiCameras::BottomLeft => (1, 1),
-			UiCameras::BottomRight => (-1, 1),
+			UiCameras::TopLeft => (1, -1), // works
+			UiCameras::TopMiddle => (0, -1), // works
+			UiCameras::TopRight => (-1, -1), // works
+			UiCameras::MiddleLeft => (1, 0), // works
+			UiCameras::Center => (0, 0),   // works
+			UiCameras::MiddleRight => (-1, 0), // works
+			UiCameras::BottomLeft => (1, 1), // works
+			UiCameras::BottomMiddle => (0, 1), //
+			UiCameras::BottomRight => (-1, 1), // works
 		};
-		UVec2::new(
-			(wf as f32 * half_width) as u32,
-			(hf as f32 * half_height) as u32,
-		)
+		Vec2::new(wf as f32 * half_width, hf as f32 * half_height)
 	}
 }
 
@@ -94,7 +95,7 @@ fn update_cameras(
 			let height = window.resolution.height();
 
 			let cam_translation = variant.get_camera_transform(width / 2., height / 2.);
-			cam.translation = Vec3::new(cam_translation.x as f32, cam_translation.y as f32, 0.);
+			cam.translation = Vec3::new(cam_translation.x, cam_translation.y, 0.);
 		}
 	}
 }

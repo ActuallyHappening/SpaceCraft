@@ -22,10 +22,14 @@ impl From<GlobalRenderLayers> for RenderLayers {
 			GlobalRenderLayers::InGame => RenderLayers::default(),
 			GlobalRenderLayers::Ui(cam_order) => RenderLayers::none().with(match cam_order {
 				UiCameras::TopLeft => 1,
-				UiCameras::TopRight => 2,
-				UiCameras::BottomLeft => 3,
-				UiCameras::BottomRight => 4,
+				UiCameras::TopMiddle => 2,
+				UiCameras::TopRight => 3,
+				UiCameras::MiddleLeft => 4,
 				UiCameras::Center => 5,
+				UiCameras::MiddleRight => 6,
+				UiCameras::BottomLeft => 7,
+				UiCameras::BottomMiddle => 8,
+				UiCameras::BottomRight => 9,
 			}),
 		}
 	}
@@ -46,10 +50,14 @@ pub enum GlobalCameraOrders {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
 pub enum UiCameras {
 	TopLeft,
+	TopMiddle,
 	TopRight,
-	BottomLeft,
-	BottomRight,
+	MiddleLeft,
 	Center,
+	MiddleRight,
+	BottomLeft,
+	BottomMiddle,
+	BottomRight,
 }
 
 impl From<GlobalCameraOrders> for isize {
@@ -59,10 +67,14 @@ impl From<GlobalCameraOrders> for isize {
 			GlobalCameraOrders::InGame => 0,
 			GlobalCameraOrders::Ui(ui_cam) => match ui_cam {
 				UiCameras::TopLeft => 1,
-				UiCameras::TopRight => 2,
-				UiCameras::BottomLeft => 3,
-				UiCameras::BottomRight => 4,
+				UiCameras::TopMiddle => 2,
+				UiCameras::TopRight => 3,
+				UiCameras::MiddleLeft => 4,
 				UiCameras::Center => 5,
+				UiCameras::MiddleRight => 6,
+				UiCameras::BottomLeft => 7,
+				UiCameras::BottomMiddle => 8,
+				UiCameras::BottomRight => 9,
 			},
 		}
 	}

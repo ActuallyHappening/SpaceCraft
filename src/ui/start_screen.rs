@@ -9,7 +9,7 @@ use crate::prelude::*;
 /// Plugin
 pub struct StartScreen;
 
-const CAM: UiCameras = UiCameras::TopLeft;
+const CAM: UiCameras = UiCameras::MiddleLeft;
 
 impl Plugin for StartScreen {
 	fn build(&self, app: &mut App) {
@@ -35,8 +35,7 @@ enum StartScreenStates {
 impl StartScreen {
 	fn spawn_initial(mut commands: Commands, mut mma: MM2, ass: Res<AssetServer>, mut effects: ResMut<Assets<EffectAsset>>) {
 		let mut column = ManualColumn {
-			// const_x: 200.,
-			const_x: 0.,
+			const_x: 200.,
 			const_width: 200.,
 			current_y: 0.,
 			item_height: 50.,
