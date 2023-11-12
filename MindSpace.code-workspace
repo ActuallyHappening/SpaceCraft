@@ -11,7 +11,10 @@
 		},
 		{
 			"path": "../bevy_hanabi"
-		}
+		},
+		// {
+		// 	"path": "../bevy_starfield"
+		// }
 	],
 	"settings": {
 		"cSpell.words": [

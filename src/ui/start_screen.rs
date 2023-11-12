@@ -29,15 +29,12 @@ impl Plugin for StartScreen {
 		app
 			.add_systems(
 				OnEnter(GlobalGameStates::StartMenu(StartScreenStates::Initial)),
+				// spawning
 				Self::spawn_initial,
 			)
-			// todo: find a cleaner way to do this, and remember to fix this when adding Solo game mode
 			.add_systems(
-				OnEnter(GlobalGameStates::InGame(InGameStates::Client)),
-				Self::despawn_initial,
-			)
-			.add_systems(
-				OnEnter(GlobalGameStates::InGame(InGameStates::Hosting)),
+				OnEnter(GlobalGameStates::InGame),
+				// cleanup
 				Self::despawn_initial,
 			);
 
@@ -271,10 +268,10 @@ impl StartScreen {
 				if correct_camera.confirm(&camera, **cam) {
 					// correct camera
 
-					next_state.set(GlobalGameStates::InGame(InGameStates::Hosting));
+					next_state.set(GlobalGameStates::InGame);
 					commands.insert_resource(match btn {
-						HostGameButtons::HostPublicGame => HostingConfig::new_public(),
-						HostGameButtons::HostMachineLocalGame => HostingConfig::new_machine_local(),
+						HostGameButtons::HostPublicGame => NetcodeConfig::new_hosting_public(),
+						HostGameButtons::HostMachineLocalGame => NetcodeConfig::new_hosting_machine_local(),
 					});
 				}
 			}
