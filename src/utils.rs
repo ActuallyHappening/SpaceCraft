@@ -4,6 +4,8 @@ use crate::prelude::*;
 
 use extension_traits::extension;
 
+mod text;
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(SystemParam)]
 pub struct MMA<'w> {
@@ -49,5 +51,13 @@ impl &mut EntityCommands<'_, '_, '_> {
 
 	fn pickable(self) -> Self {
 		self.insert(bevy_mod_picking::prelude::PickableBundle::default())
+	}
+}
+
+#[extension(pub trait TransformExt)]
+impl Transform {
+	fn translate(mut self, delta: Vec3) -> Self {
+		self.translation += delta;
+		self
 	}
 }

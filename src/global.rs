@@ -3,6 +3,8 @@
 
 use crate::prelude::*;
 
+pub mod assets;
+
 /// Naming of all render layers used within the project
 pub enum GlobalRenderLayers {
 	/// Default render layers, used for in game since most entity logic assumes it is in game anyway
