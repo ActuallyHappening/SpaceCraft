@@ -4,6 +4,7 @@
 pub use std::ops::{Add as _, Div as _, Mul as _};
 pub use std::f32::consts::TAU;
 pub use std::borrow::Cow;
+pub use std::num::*;
 
 // bevy
 pub use bevy::prelude::*;

@@ -31,26 +31,40 @@ enum StartScreenStates {
 }
 
 impl StartScreen {
-	fn spawn_initial(mut commands: Commands, mut mma: MM2, ass: Res<AssetServer>, effects: ResMut<Assets<EffectAsset>>) {
+	fn spawn_initial(mut commands: Commands, mut mma: MM2, ass: Res<AssetServer>, mut effects: ResMut<Assets<EffectAsset>>) {
 		let mut column = ManualColumn {
 			const_x: 0.,
 			const_width: 200.,
 			current_y: 0.,
 			item_height: 50.,
 			margin: 10.,
-		};
+		}.center_with(2);
 
 		commands
-			.spawn(HostGameButtonBundle::new(column.next(), &mut mma))
+			.spawn(GameButtonBundle::new(column.next(), &mut mma))
 			.with_children(|parent| {
-				parent.spawn(ButtonParticles::new(effects));
-				parent.spawn(ButtonText::new("Host Game", ass));
+				parent.spawn(ButtonParticles::new(&mut effects));
+				parent.spawn(ButtonText::new("Host Game", &ass));
+			});
+
+		commands
+			.spawn(GameButtonBundle::new(column.next(), &mut mma))
+			.with_children(|parent| {
+				parent.spawn(ButtonParticles::new(&mut effects));
+				parent.spawn(ButtonText::new("Join Game", &ass));
+			});
+		
+		commands
+			.spawn(GameButtonBundle::new(column.next(), &mut mma))
+			.with_children(|parent| {
+				parent.spawn(ButtonParticles::new(&mut effects));
+				parent.spawn(ButtonText::new("Solo", &ass));
 			});
 	}
 }
 
 #[derive(Bundle)]
-struct HostGameButtonBundle {
+struct GameButtonBundle {
 	mesh: Mesh2dHandle,
 	material: Handle<ColorMaterial>,
 	spatial: SpatialBundle,
@@ -63,7 +77,7 @@ struct HostGameButtonBundle {
 	layer: RenderLayers,
 }
 
-impl HostGameButtonBundle {
+impl GameButtonBundle {
 	fn new(manual_node: ManualNode, mma: &mut MM2) -> Self {
 		Self {
 			mesh: mma
@@ -152,7 +166,7 @@ struct ButtonText {
 }
 
 impl ButtonText {
-	fn new(text: impl Into<Cow<'static, str>>, ass: Res<AssetServer>) -> Self {
+	fn new(text: impl Into<Cow<'static, str>>, ass: &AssetServer) -> Self {
 		let style = TextStyle {
 			font: ass.load(GlobalFont::Default),
 			font_size: 40.,
@@ -184,7 +198,7 @@ struct ButtonParticles {
 }
 
 impl ButtonParticles {
-	fn new(mut effects: ResMut<Assets<EffectAsset>>) -> Self {
+	fn new(mut effects: &mut Assets<EffectAsset>) -> Self {
 		let mut gradient = Gradient::new();
 		// gradient.add_key(0.0, Vec4::new(0.5, 0.5, 0.5, 1.0));
 		// gradient.add_key(0.1, Vec4::new(0.5, 0.5, 0.0, 1.0));

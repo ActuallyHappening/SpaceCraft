@@ -53,7 +53,7 @@ mod manual_ui {
 				position: Vec2::new(self.const_x, self.current_y),
 			};
 
-			self.current_y += self.item_height + self.margin;
+			self.current_y -= self.item_height + self.margin;
 
 			Some(node)
 		}
@@ -62,6 +62,17 @@ mod manual_ui {
 	impl ManualColumn {
 		pub fn next(&mut self) -> ManualNode {
 			Iterator::next(self).unwrap()
+		}
+
+		/// Will offset the column so that the items are centered when [items]
+		/// number of `.next()` calls are made
+		pub fn center_with(mut self, items: u8) -> Self {
+			if items == 0 {
+				self
+			} else {
+				self.current_y += (self.item_height * items as f32 + self.margin * (items - 1) as f32) / 2.;
+				self
+			}
 		}
 	}
 }
