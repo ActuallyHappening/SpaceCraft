@@ -7,6 +7,8 @@ use crate::prelude::*;
 
 pub mod assets;
 
+pub const DEFAULT_PORT: u16 = 5069;
+
 /// Naming of all render layers used within the project
 pub enum GlobalRenderLayers {
 	/// Default render layers, used for in game since most entity logic assumes it is in game anyway

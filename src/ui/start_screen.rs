@@ -1,4 +1,5 @@
 use bevy::sprite::Mesh2dHandle;
+use bevy::text::Text2dBounds;
 
 use super::manual_ui::*;
 use super::path_tracing::*;
@@ -14,33 +15,37 @@ struct Cam(UiCameras);
 
 impl Plugin for StartScreen {
 	fn build(&self, app: &mut App) {
+		app.add_systems(
+			Update,
+			(
+				ButtonParticle::follow_parent_bbox,
+				StartScreen::handle_hover_interactions,
+				StartScreen::handle_click_interactions,
+			)
+				.run_if(in_state_start_menu),
+		);
+
+		// initial menu
+		app.add_systems(
+			OnEnter(GlobalGameStates::StartMenu(StartScreenStates::Initial)),
+			Self::spawn_initial,
+		);
+
+		// hosting submenu
 		app
-			.add_state::<StartScreenStates>()
-			.add_systems(OnEnter(StartScreenStates::Initial), Self::spawn_initial)
 			.add_systems(
-				OnEnter(StartScreenStates::ConfigureHost),
+				OnEnter(GlobalGameStates::StartMenu(
+					StartScreenStates::ConfigureHosting,
+				)),
 				Self::spawn_configure_host,
 			)
 			.add_systems(
-				Update,
-				(
-					ButtonParticle::follow_parent_bbox,
-					StartScreen::handle_hover_interactions,
-					StartScreen::handle_click_interactions,
-				),
+				OnExit(GlobalGameStates::StartMenu(
+					StartScreenStates::ConfigureHosting,
+				)),
+				Self::despawn_configure_host,
 			);
 	}
-}
-
-#[derive(States, Component, Debug, Default, PartialEq, Eq, Hash, Clone, Copy)]
-enum StartScreenStates {
-	#[default]
-	Initial,
-
-	ConfigureHost,
-
-	ConfigureClient,
-	// ConfigureSolo,
 }
 
 /// List of buttons that can be clicked
@@ -94,16 +99,24 @@ impl StartScreen {
 		.center_with(2);
 
 		for btn in InitialUiButtons::iter() {
+			let manual_node = column.next();
+			let wrap_size = manual_node.bbox.dimensions();
 			commands
 				.spawn(GameButtonBundle::new(
 					INITIAL_CAM,
 					btn,
-					column.next(),
+					manual_node,
 					&mut mma,
 				))
 				.with_children(|parent| {
 					parent.spawn(ButtonParticles::new(INITIAL_CAM, &mut effects));
-					parent.spawn(ButtonText::new(INITIAL_CAM, btn.get_text(), &ass));
+					parent.spawn(ButtonText::new(
+						INITIAL_CAM,
+						btn.get_text(),
+						40.,
+						wrap_size,
+						&ass,
+					));
 				});
 		}
 
@@ -133,17 +146,31 @@ impl StartScreen {
 		.center_with(2);
 
 		for btn in HostGameButtons::iter() {
+			let manual_node = column.next();
+			let text_wrap = manual_node.bbox.dimensions();
 			commands
 				.spawn(GameButtonBundle::new(
 					CONFIG_HOST,
 					btn,
-					column.next(),
+					manual_node,
 					&mut mma,
 				))
 				.with_children(|parent| {
 					parent.spawn(ButtonParticles::new(CONFIG_HOST, &mut effects));
-					parent.spawn(ButtonText::new(CONFIG_HOST, btn.get_text(), &ass));
+					parent.spawn(ButtonText::new(
+						CONFIG_HOST,
+						btn.get_text(),
+						25.,
+						text_wrap,
+						&ass,
+					));
 				});
+		}
+	}
+
+	fn despawn_configure_host(mut commands: Commands, btns: Query<Entity, With<HostGameButtons>>) {
+		for btn in btns.iter() {
+			commands.entity(btn).despawn_recursive();
 		}
 	}
 
@@ -203,7 +230,50 @@ impl StartScreen {
 		}
 	}
 
-	fn handle_click_interactions(mut click_events: EventReader<Pointer<Click>>, this: Query<&Cam>) {}
+	fn handle_click_interactions(
+		mut click_events: EventReader<Pointer<Click>>,
+		initial_btns: Query<(&Cam, &InitialUiButtons)>,
+		host_btns: Query<(&Cam, &HostGameButtons)>,
+		correct_camera: CorrectCamera,
+
+		mut next_state: ResMut<NextState<GlobalGameStates>>,
+		mut commands: Commands,
+	) {
+		for click_event in click_events.read() {
+			if let Ok((cam, btn)) = initial_btns.get(click_event.target) {
+				// found callback target
+				let camera = click_event.event.hit.camera;
+				if correct_camera.confirm(&camera, **cam) {
+					// correct camera
+
+					match btn {
+						InitialUiButtons::InitialHostGame => {
+							next_state.set(GlobalGameStates::StartMenu(
+								StartScreenStates::ConfigureHosting,
+							));
+						}
+						InitialUiButtons::InitialJoinGame => {
+							next_state.set(GlobalGameStates::StartMenu(
+								StartScreenStates::ConfigureClient,
+							));
+						}
+					}
+				}
+			} else if let Ok((cam, btn)) = host_btns.get(click_event.target) {
+				// found callback target
+				let camera = click_event.event.hit.camera;
+				if correct_camera.confirm(&camera, **cam) {
+					// correct camera
+
+					next_state.set(GlobalGameStates::InGame(InGameStates::Hosting));
+					commands.insert_resource(match btn {
+						HostGameButtons::HostPublicGame => HostingConfig::new_public(),
+						HostGameButtons::HostMachineLocalGame => HostingConfig::new_machine_local(),
+					});
+				}
+			}
+		}
+	}
 }
 
 #[derive(Bundle)]
@@ -257,10 +327,16 @@ struct ButtonText {
 }
 
 impl ButtonText {
-	fn new(cam: UiCameras, text: impl Into<Cow<'static, str>>, ass: &AssetServer) -> Self {
+	fn new(
+		cam: UiCameras,
+		text: impl Into<Cow<'static, str>>,
+		font_size: f32,
+		wrap_size: Vec2,
+		ass: &AssetServer,
+	) -> Self {
 		let style = TextStyle {
 			font: ass.load(GlobalFont::Default),
-			font_size: 40.,
+			font_size,
 			color: Color::MIDNIGHT_BLUE,
 		};
 
@@ -268,6 +344,7 @@ impl ButtonText {
 			text_bundle: Text2dBundle {
 				text: Text::from_section(text.into(), style.clone()).with_alignment(TextAlignment::Center),
 				transform: Transform::from_translation(Vec3::Z),
+				text_2d_bounds: Text2dBounds { size: wrap_size },
 				..default()
 			},
 			name: Name::new("Button Text"),

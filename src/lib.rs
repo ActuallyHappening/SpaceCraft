@@ -6,10 +6,13 @@ mod ui;
 mod utils;
 mod world;
 
+#[allow(unused_imports)]
+use bevy_mod_picking::{
+	prelude::{DebugPickingPlugin, DefaultHighlightingPlugin},
+	DefaultPickingPlugins,
+};
 use player::PlayerPlugins;
 use ui::UiPlugins;
-#[allow(unused_imports)]
-use bevy_mod_picking::{DefaultPickingPlugins, prelude::{DefaultHighlightingPlugin, DebugPickingPlugin}};
 
 use crate::prelude::*;
 
@@ -19,6 +22,7 @@ impl Plugin for MainPlugin {
 	fn build(&self, app: &mut App) {
 		use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 
+		// spawn initial Main Camera
 		app.add_systems(Startup, |mut commands: Commands| {
 			commands
 				.spawn(Camera3dBundle {
@@ -38,6 +42,9 @@ impl Plugin for MainPlugin {
 				.named("Main Camera")
 				.render_layer(GlobalRenderLayers::InGame);
 		});
+
+		// states
+		app.add_state::<GlobalGameStates>();
 
 		app.add_plugins((
 			bevy_editor_pls::EditorPlugin::default(),

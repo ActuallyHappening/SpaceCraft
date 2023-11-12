@@ -24,6 +24,12 @@ mod manual_ui {
 		pub half_height: f32,
 	}
 
+	impl BBox {
+		pub fn dimensions(&self) -> Vec2 {
+			Vec2::new(self.half_width * 2., self.half_height * 2.)
+		}
+	}
+
 	/// Minimum information needed to construct a bevy bundle
 	pub struct ManualNode {
 		/// Used to create mesh
