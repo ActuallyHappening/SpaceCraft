@@ -23,16 +23,10 @@ impl Plugin for NetcodePlugin {
 }
 
 /// Holds information about what ip and port to connect to, or host on.
-#[derive(Resource, Debug,)]
+#[derive(Resource, Debug)]
 pub enum NetcodeConfig {
-	Hosting {
-		ip: IpAddr,
-		port: u16,
-	},
-	Client {
-		ip: IpAddr,
-		port: u16,
-	},
+	Hosting { ip: IpAddr, port: u16 },
+	Client { ip: IpAddr, port: u16 },
 }
 
 impl NetcodeConfig {
@@ -97,7 +91,36 @@ impl NetcodePlugin {
 				commands.insert_resource(server);
 				commands.insert_resource(transport);
 			}
-			NetcodeConfig::Client { .. } => error!("Trying to add server when actually a client"),
+			// todo: client code
+			NetcodeConfig::Client { ip, port } => {
+				info!("Setting up as client");
+				let server_channels_config = network_channels.get_server_configs();
+				let client_channels_config = network_channels.get_client_configs();
+
+				let client = RenetClient::new(ConnectionConfig {
+					server_channels_config,
+					client_channels_config,
+					..Default::default()
+				});
+
+				let current_time = SystemTime::now()
+					.duration_since(SystemTime::UNIX_EPOCH)
+					.unwrap();
+				let client_id = current_time.as_millis() as u64;
+				let server_addr = SocketAddr::new(*ip, *port);
+				let socket = UdpSocket::bind((*ip, 0)).expect("Couldn't bind to socket");
+				let authentication = ClientAuthentication::Unsecure {
+					client_id,
+					protocol_id: PROTOCOL_ID,
+					server_addr,
+					user_data: None,
+				};
+				let transport = NetcodeClientTransport::new(current_time, authentication, socket)
+					.expect("Couldn't join to server");
+
+				commands.insert_resource(client);
+				commands.insert_resource(transport);
+			}
 		}
 	}
 

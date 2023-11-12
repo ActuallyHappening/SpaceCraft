@@ -53,6 +53,21 @@ impl Plugin for StartScreen {
 				)),
 				Self::despawn_configure_host,
 			);
+
+		// client submenu
+		app
+			.add_systems(
+				OnEnter(GlobalGameStates::StartMenu(
+					StartScreenStates::ConfigureClient,
+				)),
+				Self::spawn_configure_client,
+			)
+			.add_systems(
+				OnExit(GlobalGameStates::StartMenu(
+					StartScreenStates::ConfigureClient,
+				)),
+				Self::despawn_configure_client,
+			);
 	}
 }
 
@@ -84,6 +99,21 @@ impl HostGameButtons {
 		match self {
 			HostGameButtons::HostPublicGame => "Host Public Game",
 			HostGameButtons::HostMachineLocalGame => "Host Machine-Local Game",
+		}
+	}
+}
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
+enum ClientGameButtons {
+	// PublicGame,
+	MachineLocalGame,
+}
+
+impl ClientGameButtons {
+	const fn get_text(self) -> &'static str {
+		match self {
+			// ClientGameButtons::HostPublicGame => "Host Public Game",
+			ClientGameButtons::MachineLocalGame => "Join Machine-Local Game",
 		}
 	}
 }
@@ -122,13 +152,6 @@ impl StartScreen {
 						.render_layer(GlobalRenderLayers::Ui(Self::INITIAL_CAM));
 				});
 		}
-
-		// commands
-		// 	.spawn(GameButtonBundle::new(column.next(), &mut mma))
-		// 	.with_children(|parent| {
-		// 		parent.spawn(ButtonParticles::new(&mut effects));
-		// 		parent.spawn(ButtonText::new("Solo", &ass));
-		// 	});
 	}
 
 	fn despawn_initial(mut commands: Commands, btns: Query<Entity, With<InitialUiButtons>>) {
@@ -173,6 +196,50 @@ impl StartScreen {
 	}
 
 	fn despawn_configure_host(mut commands: Commands, btns: Query<Entity, With<HostGameButtons>>) {
+		for btn in btns.iter() {
+			commands.entity(btn).despawn_recursive();
+		}
+	}
+
+	const CLIENT_CAM: UiCameras = UiCameras::MiddleRight;
+
+	fn spawn_configure_client(
+		mut commands: Commands,
+		mut mma: MM2,
+		ass: Res<AssetServer>,
+		mut effects: ResMut<Assets<EffectAsset>>,
+	) {
+		let mut column = ManualColumn {
+			const_x: -200.,
+			const_width: 200.,
+			current_y: 0.,
+			item_height: 50.,
+			margin: 10.,
+		}
+		.center_with(2);
+
+		for btn in ClientGameButtons::iter() {
+			let manual_node = column.next();
+			let text_wrap = manual_node.bbox.dimensions();
+			commands
+				.spawn(GameButtonBundle::new(btn, manual_node, &mut mma))
+				.render_layer(GlobalRenderLayers::Ui(Self::CLIENT_CAM))
+				.insert(Cam(Self::CLIENT_CAM))
+				.with_children(|parent| {
+					parent
+						.spawn(ButtonParticles::new(&mut effects))
+						.render_layer(GlobalRenderLayers::Ui(Self::CLIENT_CAM));
+					parent
+						.spawn(ButtonText::new(btn.get_text(), 25., text_wrap, &ass))
+						.render_layer(GlobalRenderLayers::Ui(Self::CLIENT_CAM));
+				});
+		}
+	}
+
+	fn despawn_configure_client(
+		mut commands: Commands,
+		btns: Query<Entity, With<ClientGameButtons>>,
+	) {
 		for btn in btns.iter() {
 			commands.entity(btn).despawn_recursive();
 		}
@@ -238,6 +305,7 @@ impl StartScreen {
 		mut click_events: EventReader<Pointer<Click>>,
 		initial_btns: Query<(&Cam, &InitialUiButtons)>,
 		host_btns: Query<(&Cam, &HostGameButtons)>,
+		client_btns: Query<(&Cam, &ClientGameButtons)>,
 		correct_camera: CorrectCamera,
 
 		mut next_state: ResMut<NextState<GlobalGameStates>>,
@@ -275,6 +343,19 @@ impl StartScreen {
 						HostGameButtons::HostMachineLocalGame => NetcodeConfig::new_hosting_machine_local(),
 					});
 				}
+			} else if let Ok((cam, btn)) = client_btns.get(click_event.target) {
+				// found callback target
+				let camera = click_event.event.hit.camera;
+				if correct_camera.confirm(&camera, **cam) {
+					// correct camera
+
+					next_state.set(GlobalGameStates::InGame);
+					commands.insert_resource(match btn {
+						ClientGameButtons::MachineLocalGame => NetcodeConfig::new_client_machine_local(),
+					});
+				}
+			} else {
+				warn!("Cannot find target callback");
 			}
 		}
 	}
