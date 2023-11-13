@@ -1,12 +1,16 @@
+mod bouncing_balls;
 mod global;
+mod netcode;
 mod player;
 mod prelude;
 mod states;
 mod ui;
 mod utils;
 mod world;
-mod netcode;
 
+use self::netcode::NetcodePlugin;
+use self::player::PlayerPlugins;
+use self::ui::UiPlugins;
 #[allow(unused_imports)]
 use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 #[allow(unused_imports)]
@@ -15,9 +19,6 @@ use bevy_mod_picking::{
 	DefaultPickingPlugins,
 };
 use bevy_replicon::ReplicationPlugins;
-use self::player::PlayerPlugins;
-use self::ui::UiPlugins;
-use self::netcode::NetcodePlugin;
 
 use crate::prelude::*;
 
@@ -30,8 +31,25 @@ impl Plugin for MainPlugin {
 		info!("MainPlugin initializing ...");
 		app.add_systems(Startup, || info!("Startup running"));
 
+		// global system set configuration
+		app.configure_sets(
+			FixedUpdate,
+			(
+				GlobalSystemSet::AfterPhysics.after(GlobalSystemSet::Physics),
+				(PhysicsSet::Prepare, PhysicsSet::StepSimulation, PhysicsSet::Sync).in_set(GlobalSystemSet::Physics),
+			),
+		);
+
 		// spawn initial Main Camera
 		app.add_systems(Startup, |mut commands: Commands| {
+			commands.spawn(DirectionalLightBundle {
+				directional_light: DirectionalLight {
+					shadows_enabled: true,
+					..default()
+				},
+				..default()
+			});
+
 			commands
 				.spawn((
 					Camera3dBundle {
@@ -47,17 +65,17 @@ impl Plugin for MainPlugin {
 						tonemapping: Tonemapping::None,
 						..default()
 					},
-					// BloomSettings {
-					// 	intensity: 1.0,
-					// 	low_frequency_boost: 0.5,
-					// 	low_frequency_boost_curvature: 0.5,
-					// 	high_pass_frequency: 0.5,
-					// 	prefilter_settings: BloomPrefilterSettings {
-					// 		threshold: 3.0,
-					// 		threshold_softness: 0.6,
-					// 	},
-					// 	composite_mode: BloomCompositeMode::Additive,
-					// },
+					BloomSettings {
+						intensity: 1.0,
+						low_frequency_boost: 0.5,
+						low_frequency_boost_curvature: 0.5,
+						high_pass_frequency: 0.5,
+						prefilter_settings: BloomPrefilterSettings {
+							threshold: 3.0,
+							threshold_softness: 0.6,
+						},
+						composite_mode: BloomCompositeMode::Additive,
+					},
 				))
 				.insert(VisibilityBundle::default())
 				.named("Main Camera")
@@ -75,11 +93,39 @@ impl Plugin for MainPlugin {
 				.build()
 				// .disable::<DebugPickingPlugin>()
 				.disable::<DefaultHighlightingPlugin>(),
+			PhysicsPlugins::new(FixedUpdate),
 			HanabiPlugin,
 			PlayerPlugins,
 			UiPlugins,
 			ReplicationPlugins,
 			NetcodePlugin,
 		));
+
+		// testing
+		// app.add_systems(
+		// 	OnEnter(GlobalGameStates::InGame),
+		// 	|mut commands: Commands, mut mma: MMA| {
+		// 		commands.spawn((
+		// 			PbrBundle {
+		// 				material: mma.mats.add(StandardMaterial {
+		// 					emissive: Color::RED * 5.,
+
+		// 					..default()
+		// 				}),
+		// 				mesh: mma.meshs.add(
+		// 					shape::Capsule {
+		// 						radius: 0.1,
+		// 						rings: 5,
+		// 						depth: 4.,
+		// 						..default()
+		// 					}
+		// 					.into(),
+		// 				),
+		// 				..default()
+		// 			},
+		// 			Name::new("Bullet"),
+		// 		));
+		// 	},
+		// );
 	}
 }
