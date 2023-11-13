@@ -99,6 +99,7 @@ impl Plugin for MainPlugin {
 			UiPlugins,
 			ReplicationPlugins,
 			NetcodePlugin,
+			self::bouncing_balls::BouncingBallsPlugin,
 		));
 
 		// testing

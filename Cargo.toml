@@ -24,7 +24,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = "0.12"
+bevy = { version = "0.12", features = ["serialize"] }
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
 bevy_xpbd_3d = { version = "0.3.2", features = ["enhanced-determinism"] }
