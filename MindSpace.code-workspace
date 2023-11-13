@@ -15,6 +15,9 @@
 		// {
 		// 	"path": "../bevy_starfield"
 		// }
+		// {
+		// 	"path": "../bevy-examples"
+		// }
 	],
 	"settings": {
 		"cSpell.words": [
@@ -22,7 +25,7 @@
 			"cooldown",
 			"hanabi",
 			"linvel",
-			"pickable",
+			"picka ble",
 			"Pickable",
 			"Raycast",
 			"reparented",

@@ -654,8 +654,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_editor_pls"
-version = "0.5.0"
-source = "git+https://github.com/jakobhellermann/bevy_editor_pls.git#1a2a0eee4dbda843eb6e8d9d9d108c080b2bde91"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "170e3ee3293f70be7fa1b82e8ffe52dcb190c68b2f0ef4847afe65626b417ad7"
 dependencies = [
  "bevy",
  "bevy_editor_pls_core",
@@ -666,8 +667,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_editor_pls_core"
-version = "0.5.0"
-source = "git+https://github.com/jakobhellermann/bevy_editor_pls.git#1a2a0eee4dbda843eb6e8d9d9d108c080b2bde91"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9bab331de653d7d976a1fb0ab3ae8eff1dc821c5991c09bdbe945e70234839c"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -677,8 +679,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_editor_pls_default_windows"
-version = "0.5.0"
-source = "git+https://github.com/jakobhellermann/bevy_editor_pls.git#1a2a0eee4dbda843eb6e8d9d9d108c080b2bde91"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b833e3b3d5c69b92527e766b470b27cb4745406e2087be19be81b595cc48792c"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -1250,8 +1253,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_renet"
-version = "0.0.9"
-source = "git+https://github.com/lucaspoffo/renet#a7bced4cfb7fbe60f1447f9eb6423d2a8bc1cc6e"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b0f74ab5d4a9954c4dc1497bc55bfd5f845e254f24717c6464accffa4498f95"
 dependencies = [
  "bevy",
  "renet",
@@ -1259,8 +1263,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_replicon"
-version = "0.16.0"
-source = "git+https://github.com/Bendzae/bevy_replicon_fork.git?branch=bevy-0.12#134fa35b4f5b62eb0c330bbd7ca71a6fa12607d0"
+version = "0.17.0"
+source = "git+https://github.com/lifescapegame/bevy_replicon.git#542223b8cc5cf1762e83722de95d282b6a800c90"
 dependencies = [
  "bevy",
  "bevy_renet",
@@ -3781,8 +3785,9 @@ checksum = "216080ab382b992234dda86873c18d4c48358f5cfcb70fd693d7f6f2131b628b"
 
 [[package]]
 name = "renet"
-version = "0.0.13"
-source = "git+https://github.com/lucaspoffo/renet#a7bced4cfb7fbe60f1447f9eb6423d2a8bc1cc6e"
+version = "0.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3ac6743d7567cad8ca1bb3b7ebe773ea81f2f7ed356cb0867ddb56251429644"
 dependencies = [
  "bevy_ecs",
  "bytes",
@@ -3793,8 +3798,9 @@ dependencies = [
 
 [[package]]
 name = "renetcode"
-version = "0.0.9"
-source = "git+https://github.com/lucaspoffo/renet#a7bced4cfb7fbe60f1447f9eb6423d2a8bc1cc6e"
+version = "0.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d20c7f74570e31217a9bbe6912e8d93ebf461939731ccb2f09a0da50e729ff7"
 dependencies = [
  "chacha20poly1305",
  "log",

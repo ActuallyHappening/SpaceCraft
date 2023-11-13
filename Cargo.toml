@@ -24,7 +24,6 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-# bevy
 bevy = "0.12"
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
@@ -32,7 +31,6 @@ extension-traits = "1.0.1"
 meshtext = "0.3.0"
 structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
-# generic
 
 # hanabi particles
 [dependencies.bevy_hanabi]
@@ -42,9 +40,9 @@ features = ["3d", "2d"]
 
 # bevy_replicon
 [dependencies.bevy_replicon]
-git = "https://github.com/Bendzae/bevy_replicon_fork.git"
-branch = "bevy-0.12"
+git = "https://github.com/lifescapegame/bevy_replicon.git"
 
 [dependencies.bevy_editor_pls]
-git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
+# git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
+version = "0.6"
 features = ["default_windows"]
