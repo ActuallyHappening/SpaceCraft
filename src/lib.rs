@@ -65,17 +65,17 @@ impl Plugin for MainPlugin {
 						tonemapping: Tonemapping::None,
 						..default()
 					},
-					BloomSettings {
-						intensity: 1.0,
-						low_frequency_boost: 0.5,
-						low_frequency_boost_curvature: 0.5,
-						high_pass_frequency: 0.5,
-						prefilter_settings: BloomPrefilterSettings {
-							threshold: 3.0,
-							threshold_softness: 0.6,
-						},
-						composite_mode: BloomCompositeMode::Additive,
-					},
+					// BloomSettings {
+					// 	intensity: 1.0,
+					// 	low_frequency_boost: 0.5,
+					// 	low_frequency_boost_curvature: 0.5,
+					// 	high_pass_frequency: 0.5,
+					// 	prefilter_settings: BloomPrefilterSettings {
+					// 		threshold: 3.0,
+					// 		threshold_softness: 0.6,
+					// 	},
+					// 	composite_mode: BloomCompositeMode::Additive,
+					// },
 				))
 				.insert(VisibilityBundle::default())
 				.named("Main Camera")

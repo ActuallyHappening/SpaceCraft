@@ -18,6 +18,12 @@
 		// {
 		// 	"path": "../bevy-examples"
 		// }
+		{
+			"path": "../bevy_timewarp"
+		},
+		{
+			"path": "../bevy_xpbd"
+		}
 	],
 	"settings": {
 		"cSpell.words": [

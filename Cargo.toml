@@ -27,7 +27,6 @@ opt-level = 3
 bevy = { version = "0.12", features = ["serialize"] }
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
-bevy_xpbd_3d = { version = "0.3.2", features = ["enhanced-determinism"] }
 extension-traits = "1.0.1"
 meshtext = "0.3.0"
 structstruck = "0.4.1"
@@ -47,3 +46,8 @@ git = "https://github.com/lifescapegame/bevy_replicon.git"
 # git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
 version = "0.6"
 features = ["default_windows"]
+
+[dependencies.bevy_xpbd_3d]
+# version = "0.3.2"
+features = ["enhanced-determinism"]
+git = "https://github.com/Jondolf/bevy_xpbd.git"
