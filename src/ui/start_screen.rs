@@ -7,6 +7,18 @@ use super::ui_cameras::CorrectCamera;
 use crate::netcode::NetcodeConfig;
 use crate::prelude::*;
 
+/// Sub-state
+#[derive(States, Default, Debug, PartialEq, Eq, Clone, Copy, Hash)]
+enum StartScreenStates {
+	#[default]
+	Initial,
+
+	ConfigureHosting,
+
+	ConfigureClient,
+	// ConfigureSolo
+}
+
 /// Plugin
 pub struct StartScreen;
 
@@ -23,13 +35,13 @@ impl Plugin for StartScreen {
 				StartScreen::handle_hover_interactions,
 				StartScreen::handle_click_interactions,
 			)
-				.run_if(in_state_start_menu),
+				.run_if(in_state(GlobalGameStates::StartMenu)),
 		);
 
 		// initial menu
 		app
 			.add_systems(
-				OnEnter(GlobalGameStates::StartMenu(StartScreenStates::Initial)),
+				OnEnter(StartScreenStates::Initial),
 				// spawning
 				Self::spawn_initial,
 			)
@@ -42,30 +54,22 @@ impl Plugin for StartScreen {
 		// hosting submenu
 		app
 			.add_systems(
-				OnEnter(GlobalGameStates::StartMenu(
-					StartScreenStates::ConfigureHosting,
-				)),
+				OnEnter(StartScreenStates::ConfigureHosting),
 				Self::spawn_configure_host,
 			)
 			.add_systems(
-				OnExit(GlobalGameStates::StartMenu(
-					StartScreenStates::ConfigureHosting,
-				)),
+				OnExit(StartScreenStates::ConfigureHosting),
 				Self::despawn_configure_host,
 			);
 
 		// client submenu
 		app
 			.add_systems(
-				OnEnter(GlobalGameStates::StartMenu(
-					StartScreenStates::ConfigureClient,
-				)),
+				OnEnter(StartScreenStates::ConfigureClient),
 				Self::spawn_configure_client,
 			)
 			.add_systems(
-				OnExit(GlobalGameStates::StartMenu(
-					StartScreenStates::ConfigureClient,
-				)),
+				OnExit(StartScreenStates::ConfigureClient),
 				Self::despawn_configure_client,
 			);
 	}
@@ -308,7 +312,8 @@ impl StartScreen {
 		client_btns: Query<(&Cam, &ClientGameButtons)>,
 		correct_camera: CorrectCamera,
 
-		mut next_state: ResMut<NextState<GlobalGameStates>>,
+		mut global_state: ResMut<NextState<GlobalGameStates>>,
+		mut local_state: ResMut<NextState<StartScreenStates>>,
 		mut commands: Commands,
 	) {
 		for click_event in click_events.read() {
@@ -320,14 +325,14 @@ impl StartScreen {
 
 					match btn {
 						InitialUiButtons::InitialHostGame => {
-							next_state.set(GlobalGameStates::StartMenu(
+							local_state.set(
 								StartScreenStates::ConfigureHosting,
-							));
+							);
 						}
 						InitialUiButtons::InitialJoinGame => {
-							next_state.set(GlobalGameStates::StartMenu(
+							local_state.set(
 								StartScreenStates::ConfigureClient,
-							));
+							);
 						}
 					}
 				}
@@ -337,7 +342,7 @@ impl StartScreen {
 				if correct_camera.confirm(&camera, **cam) {
 					// correct camera
 
-					next_state.set(GlobalGameStates::InGame);
+					global_state.set(GlobalGameStates::InGame);
 					commands.insert_resource(match btn {
 						HostGameButtons::HostPublicGame => NetcodeConfig::new_hosting_public(),
 						HostGameButtons::HostMachineLocalGame => NetcodeConfig::new_hosting_machine_local(),
@@ -349,7 +354,7 @@ impl StartScreen {
 				if correct_camera.confirm(&camera, **cam) {
 					// correct camera
 
-					next_state.set(GlobalGameStates::InGame);
+					global_state.set(GlobalGameStates::InGame);
 					commands.insert_resource(match btn {
 						ClientGameButtons::MachineLocalGame => NetcodeConfig::new_client_machine_local(),
 					});

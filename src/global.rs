@@ -13,9 +13,9 @@ pub const PROTOCOL_ID: u64 = 0;
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GlobalSystemSet {
 	/// Runs physics simulation
-	Physics,
+	RawPhysics,
 	/// Runs after physics simulation
-	AfterPhysics,
+	GameLogic,
 }
 
 /// Naming of all render layers used within the project

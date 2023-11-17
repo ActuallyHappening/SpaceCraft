@@ -1,4 +1,3 @@
-mod bouncing_balls;
 mod global;
 mod netcode;
 mod player;
@@ -35,8 +34,14 @@ impl Plugin for MainPlugin {
 		app.configure_sets(
 			FixedUpdate,
 			(
-				GlobalSystemSet::AfterPhysics.after(GlobalSystemSet::Physics),
-				(PhysicsSet::Prepare, PhysicsSet::StepSimulation, PhysicsSet::Sync).in_set(GlobalSystemSet::Physics),
+				(GlobalSystemSet::RawPhysics, GlobalSystemSet::GameLogic).chain(),
+				(
+					PhysicsSet::Prepare,
+					PhysicsSet::StepSimulation,
+					PhysicsSet::Sync,
+				)
+					.in_set(GlobalSystemSet::RawPhysics),
+				ServerSet::Send.after(GlobalSystemSet::GameLogic),
 			),
 		);
 
@@ -85,6 +90,7 @@ impl Plugin for MainPlugin {
 		// states
 		app.add_state::<GlobalGameStates>();
 
+		// dep plugins
 		app.add_plugins((
 			bevy_editor_pls::EditorPlugin::default(),
 			ScreenDiagnosticsPlugin::default(),
@@ -95,38 +101,18 @@ impl Plugin for MainPlugin {
 				.disable::<DefaultHighlightingPlugin>(),
 			PhysicsPlugins::new(FixedUpdate),
 			HanabiPlugin,
-			PlayerPlugins,
-			UiPlugins,
-			ReplicationPlugins,
+			ReplicationPlugins
+				.build()
+				.set(ServerPlugin::new(TickPolicy::Manual)),
 			NetcodePlugin,
-			self::bouncing_balls::BouncingBallsPlugin,
+			TimewarpPlugin::new(TimewarpConfig::new(
+				GlobalSystemSet::GameLogic,
+				GlobalSystemSet::GameLogic,
+			)),
 		));
-
-		// testing
-		// app.add_systems(
-		// 	OnEnter(GlobalGameStates::InGame),
-		// 	|mut commands: Commands, mut mma: MMA| {
-		// 		commands.spawn((
-		// 			PbrBundle {
-		// 				material: mma.mats.add(StandardMaterial {
-		// 					emissive: Color::RED * 5.,
-
-		// 					..default()
-		// 				}),
-		// 				mesh: mma.meshs.add(
-		// 					shape::Capsule {
-		// 						radius: 0.1,
-		// 						rings: 5,
-		// 						depth: 4.,
-		// 						..default()
-		// 					}
-		// 					.into(),
-		// 				),
-		// 				..default()
-		// 			},
-		// 			Name::new("Bullet"),
-		// 		));
-		// 	},
-		// );
+		app.add_plugins((
+			// PlayerPlugins,
+			UiPlugins,
+		));
 	}
 }

@@ -18,8 +18,19 @@ impl Plugin for NetcodePlugin {
 		app
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
-			.add_systems(Update, Self::server_event_system.run_if(has_authority()));
+			.add_systems(Update, Self::server_event_system.run_if(has_authority()))
+			.add_systems(FixedUpdate, frame_inc_and_replicon_tick_sync);
 	}
+}
+
+pub fn frame_inc_and_replicon_tick_sync(
+	mut game_clock: ResMut<GameClock>, // your own tick counter
+	mut replicon_tick: ResMut<RepliconTick>,
+) {
+	// advance your tick and replicon's tick in lockstep
+	game_clock.advance(1);
+	let delta = game_clock.frame().saturating_sub(replicon_tick.get());
+	replicon_tick.increment_by(delta);
 }
 
 /// Holds information about what ip and port to connect to, or host on.

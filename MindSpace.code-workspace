@@ -35,7 +35,8 @@
 			"Pickable",
 			"Raycast",
 			"reparented",
-			"replicon"
+			"replicon",
+			"Timewarp"
 		]
 	}
 }

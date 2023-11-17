@@ -8,6 +8,9 @@ publish = false
 [workspace]
 members = ["xtask"]
 
+[lints.clippy]
+
+
 [features]
 default = ["dev"]
 ## Only used while developing the game
@@ -51,3 +54,6 @@ features = ["default_windows"]
 # version = "0.3.2"
 features = ["enhanced-determinism"]
 git = "https://github.com/Jondolf/bevy_xpbd.git"
+
+[dependencies.bevy_timewarp]
+git = "https://github.com/ActuallyHappening/bevy_timewarp.git"

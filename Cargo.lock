@@ -1384,6 +1384,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_timewarp"
+version = "0.1.0"
+source = "git+https://github.com/ActuallyHappening/bevy_timewarp.git#1220314e79fc99fc9e48b0a2022fead2c1cfd7e6"
+dependencies = [
+ "bevy",
+ "itertools",
+ "thiserror",
+]
+
+[[package]]
 name = "bevy_transform"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2060,6 +2070,7 @@ dependencies = [
  "bevy_mod_picking",
  "bevy_replicon",
  "bevy_screen_diagnostics",
+ "bevy_timewarp",
  "bevy_xpbd_3d",
  "extension-traits",
  "meshtext",
