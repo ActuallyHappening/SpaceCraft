@@ -1,4 +1,5 @@
 //! Glob exports of dependencies and utils in a convenient path
+//! 
 
 // std
 pub use std::borrow::Cow;
@@ -32,6 +33,7 @@ pub use strum::IntoEnumIterator as _;
 pub use rand::random;
 pub use serde::{Serialize, Deserialize};
 pub use clap::Parser;
+pub use strum::IntoStaticStr;
 
 // internal re-exports
 pub use crate::global::assets::*;

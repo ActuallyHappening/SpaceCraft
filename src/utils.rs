@@ -6,10 +6,10 @@ use extension_traits::extension;
 
 mod text;
 
-pub trait IntoBlueprint {
+pub trait FromBlueprint {
 	type Blueprint;
 
-	fn stamp_from_blueprint(blueprint: &Self::Blueprint) -> Self;
+	fn stamp_from_blueprint(blueprint: &Self::Blueprint, mma: &mut MMA) -> Self;
 }
 
 #[allow(clippy::upper_case_acronyms)]

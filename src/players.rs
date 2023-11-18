@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+mod blocks;
+
 /// Plugin Group
 pub struct PlayerPlugins;
 
@@ -16,6 +18,7 @@ pub use player::PlayerBlueprint;
 mod player {
 	use super::blocks::{BlockBlueprint, BlockId, StructureBlock};
 	use super::thruster::ThrusterBlock;
+	use crate::players::blocks::StructureBlockBundle;
 	use crate::prelude::*;
 
 	pub struct PlayerPlugin;
@@ -45,13 +48,14 @@ mod player {
 			PlayerBlueprint {
 				network_id,
 				transform,
-				structure_children: vec![],
+				structure_children: vec![BlockBlueprint::new(StructureBlock::Aluminum, IVec3::ZERO)],
 				thruster_children: vec![],
 			}
 		}
 	}
 
-	/// Parent entity of a player
+	/// Parent entity of a player.
+	/// Doesn't actually have its own mesh
 	#[derive(Bundle)]
 	struct PlayerBundle {
 		spatial: SpatialBundle,
@@ -71,29 +75,52 @@ mod player {
 		fn handle_spawn_player_blueprints(
 			mut events: EventReader<PlayerBlueprint>,
 			mut commands: Commands,
+			mut mma: MMA,
 		) {
 			for player_blueprint in events.read() {
-				debug!("Expanding player blueprint for {:?}", player_blueprint.network_id);
-				commands.spawn(PlayerBundle::stamp_from_blueprint(player_blueprint)).with_children(|parent| {
-
-				});
+				debug!(
+					"Expanding player blueprint for {:?}",
+					player_blueprint.network_id
+				);
+				commands
+					.spawn(PlayerBundle::stamp_from_blueprint(
+						player_blueprint,
+						&mut mma,
+					))
+					.with_children(|parent| {
+						for blueprint in &player_blueprint.structure_children {
+							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
+								blueprint, &mut mma,
+							));
+						}
+					});
 			}
 		}
 	}
 
-	impl IntoBlueprint for PlayerBundle {
+	impl FromBlueprint for PlayerBundle {
 		type Blueprint = PlayerBlueprint;
-		
-		fn stamp_from_blueprint(PlayerBlueprint { network_id, transform, .. }: &PlayerBlueprint) -> Self {
+
+		fn stamp_from_blueprint(
+			PlayerBlueprint {
+				network_id,
+				transform,
+				..
+			}: &PlayerBlueprint,
+			_mma: &mut MMA,
+		) -> Self {
 			Self {
 				spatial: SpatialBundle {
 					transform: *transform,
 					..default()
 				},
 				name: Name::new(format!("Player {}", network_id)),
-				controllable_player: ControllablePlayer { network_id: *network_id, movement_input: Default::default() },
+				controllable_player: ControllablePlayer {
+					network_id: *network_id,
+					movement_input: Default::default(),
+				},
 				collider: AsyncCollider(ComputedCollider::ConvexHull),
-				replication: Replication
+				replication: Replication,
 			}
 		}
 	}
@@ -106,5 +133,3 @@ mod thruster {
 	#[derive(Debug, Serialize, Deserialize, Clone)]
 	pub struct ThrusterBlock;
 }
-
-mod blocks;

@@ -25,14 +25,76 @@ pub struct BlockBlueprint<T> {
 	pub specific_marker: T,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct StructureBlock;
+pub mod manual_builder {
+	use crate::prelude::*;
 
-#[derive(Bundle)]
-pub struct StructureBlockBundle {
-	spatial: SpatialBundle,
-	collider: AsyncCollider,
-	name: Name,
+	pub enum Facing {
+		Up,
+	}
+
+	pub type RelativePixel = IVec3;
+}
+
+pub use structure_block::{StructureBlock, StructureBlockBundle};
+mod structure_block {
+	use crate::prelude::*;
+
+	use super::manual_builder;
+	use super::BlockBlueprint;
+
+	#[derive(Debug, Serialize, Deserialize, Clone, IntoStaticStr)]
+	pub enum StructureBlock {
+		Aluminum,
+	}
+
+	impl StructureBlock {
+		pub fn name(&self) -> &'static str {
+			self.into()
+		}
+	}
+
+	#[derive(Bundle)]
+	pub struct StructureBlockBundle {
+		pbr: PbrBundle,
+		collider: AsyncCollider,
+		name: Name,
+	}
+
+	impl FromBlueprint for StructureBlockBundle {
+		type Blueprint = BlockBlueprint<StructureBlock>;
+
+		fn stamp_from_blueprint(
+			BlockBlueprint {
+				transform,
+				mesh,
+				material,
+				specific_marker,
+			}: &Self::Blueprint,
+			mma: &mut MMA,
+		) -> Self {
+			Self {
+				pbr: PbrBundle {
+					transform: *transform,
+					mesh: mesh.get_mesh(mma),
+					material: material.get_material(&mut mma.mats),
+					..default()
+				},
+				collider: AsyncCollider(ComputedCollider::ConvexHull),
+				name: Name::new(format!("StructureBlock {}", specific_marker.name())),
+			}
+		}
+	}
+
+	impl BlockBlueprint<StructureBlock> {
+		pub fn new(block: StructureBlock, location: manual_builder::RelativePixel) -> Self {
+			BlockBlueprint {
+				transform: Transform::from_translation(location.as_vec3() * PIXEL_SIZE),
+				mesh: super::OptimizableMesh::StandardBlock,
+				material: super::OptimizableMaterial::OpaqueColour(Color::SILVER),
+				specific_marker: block,
+			}
+		}
+	}
 }
 
 /// Since raw [Mesh] cannot be serialized
@@ -43,10 +105,10 @@ pub enum OptimizableMesh {
 }
 
 impl OptimizableMesh {
-	pub fn get_mesh(&self, ass: &mut AssetServer) -> Handle<Mesh> {
+	pub fn get_mesh(&self, mma: &mut MMA) -> Handle<Mesh> {
 		match self {
-			Self::FromAsset(name) => ass.load(name),
-			Self::StandardBlock => ass.add(shape::Cube { size: PIXEL_SIZE }.into()),
+			Self::FromAsset(name) => mma.ass.load(name),
+			Self::StandardBlock => mma.meshs.add(shape::Cube { size: PIXEL_SIZE }.into()),
 		}
 	}
 }
