@@ -144,6 +144,7 @@ impl Plugin for MainPlugin {
 			UiPlugins,
 			PlayerPlugins,
 		));
+		// app.register_type::<BlockId>();
 
 		// network replication
 		app.replicate::<Position>().replicate::<Rotation>();

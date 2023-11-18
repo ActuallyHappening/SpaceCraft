@@ -2,6 +2,13 @@ use crate::prelude::*;
 
 use crate::blocks::{manual_builder, BlockBlueprint};
 
+pub struct ThrusterPlugin;
+impl Plugin for ThrusterPlugin {
+	fn build(&self, app: &mut App) {
+			app.register_type::<Thruster>();
+	}
+}
+
 /// Will spawn a particle emitter as a child
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ThrusterBlock {

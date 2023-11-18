@@ -9,6 +9,7 @@ impl PluginGroup for PlayerPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>()
 			.add(player::PlayerPlugin)
+			.add(thruster_block::ThrusterPlugin)
 			.build()
 	}
 }
