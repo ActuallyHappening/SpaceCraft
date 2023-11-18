@@ -102,7 +102,6 @@ impl NetcodePlugin {
 				commands.insert_resource(server);
 				commands.insert_resource(transport);
 			}
-			// todo: client code
 			NetcodeConfig::Client { ip, port } => {
 				info!("Setting up as client");
 				let server_channels_config = network_channels.get_server_configs();

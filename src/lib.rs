@@ -1,6 +1,6 @@
 mod global;
 mod netcode;
-mod player;
+mod players;
 mod prelude;
 mod states;
 mod ui;
@@ -8,7 +8,7 @@ mod utils;
 mod world;
 
 use self::netcode::NetcodePlugin;
-use self::player::PlayerPlugins;
+use self::players::PlayerPlugins;
 use self::ui::UiPlugins;
 #[allow(unused_imports)]
 use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};

@@ -19,7 +19,7 @@ pub use bevy::render::view::RenderLayers;
 // bevy_* deps
 pub use bevy_hanabi::prelude::*;
 pub use bevy_mod_picking::prelude::*;
-pub use bevy_replicon::prelude::*;
+pub use bevy_replicon::{prelude::*, renet::ClientId};
 pub use bevy_xpbd_3d::prelude::*;
 pub use bevy_timewarp::prelude::*;
 
@@ -27,7 +27,10 @@ pub use bevy_timewarp::prelude::*;
 pub use structstruck::strike as nested_structs;
 pub use strum::EnumIter;
 pub use strum::IntoEnumIterator as _;
+// pub use uuid::Uuid;
+pub use rand::random;
 
+// internal re-exports
 pub use crate::global::assets::*;
 pub use crate::global::*;
 pub use crate::states::*;

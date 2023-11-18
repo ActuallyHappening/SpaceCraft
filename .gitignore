@@ -10,6 +10,7 @@
 !Cargo.toml
 !MindSpace.code-workspace
 !README.md
+!ARCHITECTURE.md
 !rust-toolchain.toml
 !Trunk.toml
 !xtask

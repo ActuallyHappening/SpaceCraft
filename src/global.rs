@@ -16,6 +16,8 @@ pub enum GlobalSystemSet {
 	RawPhysics,
 	/// Runs after physics simulation
 	GameLogic,
+
+	BlueprintExpansion,
 }
 
 /// Naming of all render layers used within the project

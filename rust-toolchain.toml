@@ -1,4 +1,4 @@
 [toolchain]
-channel = "stable"
+channel = "1.73"
 # channel = "nightly-2023-10-18"
 # channel = "nightly"

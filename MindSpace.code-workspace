@@ -15,14 +15,17 @@
 		// {
 		// 	"path": "../bevy_starfield"
 		// }
-		// {
-		// 	"path": "../bevy-examples"
-		// }
+		{
+			"path": "../testing-bug"
+		},
 		{
 			"path": "../bevy_timewarp"
 		},
 		{
 			"path": "../bevy_xpbd"
+		},
+		{
+			"path": "../bevy_replicon"
 		}
 	],
 	"settings": {
