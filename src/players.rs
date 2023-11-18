@@ -32,7 +32,7 @@ mod player {
 	}
 
 	/// Sent as an event to all clients, then expanded into a full player bundle
-	#[derive(Event, Serialize, Deserialize)]
+	#[derive(Event, Serialize, Deserialize, Clone, Debug)]
 	pub struct PlayerBlueprint {
 		network_id: ClientId,
 		transform: Transform,
@@ -54,9 +54,11 @@ mod player {
 	/// Parent entity of a player
 	#[derive(Bundle)]
 	struct PlayerBundle {
-		spatial: VisibilityBundle,
+		spatial: SpatialBundle,
 		replication: Replication,
 		collider: AsyncCollider,
+		name: Name,
+		controllable_player: ControllablePlayer,
 	}
 
 	#[derive(Component)]
@@ -70,6 +72,29 @@ mod player {
 			mut events: EventReader<PlayerBlueprint>,
 			mut commands: Commands,
 		) {
+			for player_blueprint in events.read() {
+				debug!("Expanding player blueprint for {:?}", player_blueprint.network_id);
+				commands.spawn(PlayerBundle::stamp_from_blueprint(player_blueprint)).with_children(|parent| {
+
+				});
+			}
+		}
+	}
+
+	impl IntoBlueprint for PlayerBundle {
+		type Blueprint = PlayerBlueprint;
+		
+		fn stamp_from_blueprint(PlayerBlueprint { network_id, transform, .. }: &PlayerBlueprint) -> Self {
+			Self {
+				spatial: SpatialBundle {
+					transform: *transform,
+					..default()
+				},
+				name: Name::new(format!("Player {}", network_id)),
+				controllable_player: ControllablePlayer { network_id: *network_id, movement_input: Default::default() },
+				collider: AsyncCollider(ComputedCollider::ConvexHull),
+				replication: Replication
+			}
 		}
 	}
 }
@@ -78,69 +103,8 @@ mod thruster {
 	use crate::prelude::*;
 
 	/// Will spawn a particle emitter as a child
-	#[derive(Serialize, Deserialize)]
+	#[derive(Debug, Serialize, Deserialize, Clone)]
 	pub struct ThrusterBlock;
 }
 
-mod blocks {
-	use bevy::asset::AssetPath;
-
-	use crate::prelude::*;
-
-	/// The unique identifier for a persistent block in the world
-	#[derive(Reflect, Debug, Clone, Copy, Component)]
-	#[reflect(Component)]
-	pub struct BlockId(u128);
-
-	impl Default for BlockId {
-		fn default() -> Self {
-			warn!("Generating default BlockId!!");
-			Self(0)
-		}
-	}
-
-	/// Represents a 'block', which is useful for spawning standardized structures
-	/// like thrusters.
-	///
-	/// Assumes all blocks have a position, material and mesh. These restrictions may be lifted
-	/// if ever there was a need.
-	#[derive(Debug, Serialize, Deserialize)]
-	pub struct BlockBlueprint<T> {
-		pub transform: Transform,
-		pub mesh: OptimizableMesh,
-		pub material: OptimizableMaterial,
-		pub specific_marker: T,
-	}
-
-	#[derive(Serialize, Deserialize)]
-	pub struct StructureBlock;
-
-	/// Since raw [Mesh] cannot be serialized
-	#[derive(Debug, Serialize, Deserialize, Clone)]
-	pub enum OptimizableMesh {
-		StandardBlock,
-		FromAsset(String),
-	}
-
-	impl OptimizableMesh {
-		pub fn into_mesh(&self, ass: &mut AssetServer) -> Handle<Mesh> {
-			match self {
-				Self::FromAsset(name) => ass.load(name),
-				Self::StandardBlock => ass.add(shape::Cube { size: PIXEL_SIZE }.into()),
-			}
-		}
-	}
-
-	#[derive(Debug, Serialize, Deserialize)]
-	pub enum OptimizableMaterial {
-		OpaqueColour(Color),
-	}
-
-	impl OptimizableMaterial {
-		pub fn into_material(&self, mat: &mut Assets<StandardMaterial>) -> Handle<StandardMaterial> {
-			match self {
-				Self::OpaqueColour(col) => mat.add((*col).into()),
-			}
-		}
-	}
-}
+mod blocks;

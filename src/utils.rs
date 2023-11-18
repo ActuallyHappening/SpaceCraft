@@ -6,6 +6,12 @@ use extension_traits::extension;
 
 mod text;
 
+pub trait IntoBlueprint {
+	type Blueprint;
+
+	fn stamp_from_blueprint(blueprint: &Self::Blueprint) -> Self;
+}
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(SystemParam)]
 pub struct MMA<'w> {
