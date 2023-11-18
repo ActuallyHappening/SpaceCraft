@@ -36,7 +36,7 @@ pub fn frame_inc_and_replicon_tick_sync(
 /// Holds information about what ip and port to connect to, or host on.
 #[derive(Resource, Debug, clap::Parser)]
 pub enum NetcodeConfig {
-	Hosting {
+	Server {
 		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
 		ip: IpAddr,
 
@@ -55,14 +55,14 @@ pub enum NetcodeConfig {
 impl NetcodeConfig {
 	pub const fn new_hosting_public() -> Self {
 		// TODO: Verify this actually hosts, don't we need 0.0.0.0?
-		NetcodeConfig::Hosting {
+		NetcodeConfig::Server {
 			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
 			port: DEFAULT_PORT,
 		}
 	}
 
 	pub const fn new_hosting_machine_local() -> Self {
-		NetcodeConfig::Hosting {
+		NetcodeConfig::Server {
 			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
 			port: DEFAULT_PORT,
 		}
@@ -84,7 +84,7 @@ impl NetcodePlugin {
 		config: Res<NetcodeConfig>,
 	) {
 		match config.into_inner() {
-			NetcodeConfig::Hosting { ip: addr, port } => {
+			NetcodeConfig::Server { ip: addr, port } => {
 				info!("Setting up as server");
 				let server_channels_config = network_channels.get_server_configs();
 				let client_channels_config = network_channels.get_client_configs();
@@ -153,7 +153,7 @@ impl NetcodePlugin {
 		mut commands: Commands,
 	) {
 		match config.into_inner() {
-			NetcodeConfig::Hosting { .. } => {
+			NetcodeConfig::Server { .. } => {
 				info!("Disconnecting as server");
 				server.disconnect_all();
 				commands.remove_resource::<RenetServer>();

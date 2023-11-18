@@ -96,10 +96,10 @@ impl Plugin for MainPlugin {
 		// will take cli inputs, or default to start menu
 		// app.add_state::<GlobalGameStates>();
 		let state;
-		if let Ok(c) = self::netcode::NetcodeConfig::try_parse() {
+		if std::env::args().len() > 1 {
 			info!("Using options provided by CLI");
 			state = GlobalGameStates::InGame;
-			app.insert_resource(c);
+			app.insert_resource(self::netcode::NetcodeConfig::parse());
 		} else {
 			state = GlobalGameStates::StartMenu;
 		}
@@ -136,7 +136,7 @@ impl Plugin for MainPlugin {
 			)),
 		));
 		app.add_plugins((
-			// PlayerPlugins,
+			PlayerPlugins,
 			UiPlugins,
 		));
 		app.replicate::<Position>().replicate::<Rotation>();
