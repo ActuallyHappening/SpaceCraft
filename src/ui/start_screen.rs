@@ -201,6 +201,7 @@ impl StartScreen {
 	}
 
 	fn despawn_configure_host(mut commands: Commands, btns: Query<Entity, With<HostGameButtons>>) {
+		debug!("Despawning configuring host UI");
 		for btn in btns.iter() {
 			commands.entity(btn).despawn_recursive();
 		}
@@ -340,6 +341,7 @@ impl StartScreen {
 					// correct camera
 
 					global_state.set(GlobalGameStates::InGame);
+					local_state.set(StartScreenStates::Initial);
 					commands.insert_resource(match btn {
 						HostGameButtons::HostPublicGame => NetcodeConfig::new_hosting_public(),
 						HostGameButtons::HostMachineLocalGame => NetcodeConfig::new_hosting_machine_local(),

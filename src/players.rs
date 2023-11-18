@@ -25,7 +25,7 @@ mod player {
 	impl Plugin for PlayerPlugin {
 		fn build(&self, app: &mut App) {
 			app
-				.add_server_event::<PlayerBlueprint>(EventType::Unordered)
+				.replicate::<PlayerBlueprint>()
 				.add_systems(
 					FixedUpdate,
 					Self::handle_spawn_player_blueprints
@@ -35,7 +35,7 @@ mod player {
 	}
 
 	/// Sent as an event to all clients, then expanded into a full player bundle
-	#[derive(Event, Serialize, Deserialize, Clone, Debug)]
+	#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 	pub struct PlayerBlueprint {
 		network_id: ClientId,
 		transform: Transform,
@@ -73,17 +73,17 @@ mod player {
 
 	impl PlayerPlugin {
 		fn handle_spawn_player_blueprints(
-			mut events: EventReader<PlayerBlueprint>,
+			player_blueprints: Query<(Entity, &PlayerBlueprint), Added<PlayerBlueprint>>,
 			mut commands: Commands,
 			mut mma: MMA,
 		) {
-			for player_blueprint in events.read() {
+			for (player, player_blueprint) in player_blueprints.iter() {
 				debug!(
 					"Expanding player blueprint for {:?}",
 					player_blueprint.network_id
 				);
-				commands
-					.spawn(PlayerBundle::stamp_from_blueprint(
+				commands.entity(player)
+					.insert(PlayerBundle::stamp_from_blueprint(
 						player_blueprint,
 						&mut mma,
 					))

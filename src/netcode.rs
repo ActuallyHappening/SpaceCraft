@@ -46,7 +46,7 @@ pub enum NetcodeConfig {
 	Client {
 		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
 		ip: IpAddr,
-		
+
 		#[arg(short, long, default_value_t = DEFAULT_PORT)]
 		port: u16,
 	},
@@ -82,6 +82,7 @@ impl NetcodePlugin {
 		mut commands: Commands,
 		network_channels: Res<NetworkChannels>,
 		config: Res<NetcodeConfig>,
+		mut manual_server_feedback: EventWriter<ServerEvent>,
 	) {
 		match config.into_inner() {
 			NetcodeConfig::Server { ip: addr, port } => {
@@ -113,6 +114,11 @@ impl NetcodePlugin {
 
 				commands.insert_resource(server);
 				commands.insert_resource(transport);
+
+				commands.spawn(PlayerBlueprint::default_at(
+					SERVER_ID,
+					Transform::default(),
+				));
 			}
 			NetcodeConfig::Client { ip, port } => {
 				info!("Setting up as client");
@@ -169,22 +175,19 @@ impl NetcodePlugin {
 	}
 
 	/// Logs server events and spawns a new player whenever a client connects.
-	fn server_event_system(
-		mut server_event: EventReader<ServerEvent>,
-		mut spawn_player: EventWriter<ToClients<PlayerBlueprint>>,
-	) {
+	fn server_event_system(mut server_event: EventReader<ServerEvent>, mut commands: Commands) {
 		for event in server_event.read() {
 			match event {
 				ServerEvent::ClientConnected { client_id } => {
-					info!("player: {client_id} Connected");
+					info!("New player with id {client_id} connected");
 
-					spawn_player.send(ToClients {
-						mode: SendMode::Broadcast,
-						event: PlayerBlueprint::default_at(*client_id, Transform::default()),
-					});
+					commands.spawn(PlayerBlueprint::default_at(
+						*client_id,
+						Transform::default(),
+					));
 				}
 				ServerEvent::ClientDisconnected { client_id, reason } => {
-					info!("client {client_id} disconnected: {reason}");
+					info!("Client {client_id} disconnected because: {reason}");
 				}
 			}
 		}
