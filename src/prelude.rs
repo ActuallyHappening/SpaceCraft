@@ -7,6 +7,7 @@ pub use std::net::*;
 pub use std::num::*;
 pub use std::ops::{Add as _, Div as _, Mul as _};
 pub use std::time::*;
+pub use bevy::utils::HashMap; // is this better than std library?
 
 // bevy
 pub use bevy::app::*;
@@ -29,6 +30,8 @@ pub use strum::EnumIter;
 pub use strum::IntoEnumIterator as _;
 // pub use uuid::Uuid;
 pub use rand::random;
+pub use serde::{Serialize, Deserialize};
+pub use clap::Parser;
 
 // internal re-exports
 pub use crate::global::assets::*;

@@ -9,6 +9,7 @@ pub mod assets;
 
 pub const DEFAULT_PORT: u16 = 5069;
 pub const PROTOCOL_ID: u64 = 0;
+pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
 
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GlobalSystemSet {
@@ -17,7 +18,7 @@ pub enum GlobalSystemSet {
 	/// Runs after physics simulation
 	GameLogic,
 
-	BlueprintExpansion,
+	BlueprintExpansion(&'static str),
 }
 
 /// Naming of all render layers used within the project

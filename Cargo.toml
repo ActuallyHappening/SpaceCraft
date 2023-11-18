@@ -30,9 +30,11 @@ opt-level = 3
 bevy = { version = "0.12", features = ["serialize"] }
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
+clap = { version = "4.4.8", features = ["derive"] }
 extension-traits = "1.0.1"
 meshtext = "0.3.0"
 rand = "0.8.5"
+serde = { version = "1.0.192", features = ["derive"] }
 structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
 
@@ -46,6 +48,10 @@ features = ["3d", "2d"]
 [dependencies.bevy_replicon]
 git = "https://github.com/lifescapegame/bevy_replicon.git"
 
+[dependencies.renet]
+version = "*"
+features = ["serde"]
+
 [dependencies.bevy_editor_pls]
 # git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
 version = "0.6"
@@ -53,7 +59,7 @@ features = ["default_windows"]
 
 [dependencies.bevy_xpbd_3d]
 # version = "0.3.2"
-features = ["enhanced-determinism"]
+features = ["enhanced-determinism", "serialize"]
 git = "https://github.com/Jondolf/bevy_xpbd.git"
 
 [dependencies.bevy_timewarp]

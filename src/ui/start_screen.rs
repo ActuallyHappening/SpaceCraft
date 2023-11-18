@@ -28,6 +28,7 @@ struct Cam(UiCameras);
 
 impl Plugin for StartScreen {
 	fn build(&self, app: &mut App) {
+		app.add_state::<StartScreenStates>();
 		app.add_systems(
 			Update,
 			(
@@ -43,7 +44,7 @@ impl Plugin for StartScreen {
 			.add_systems(
 				OnEnter(StartScreenStates::Initial),
 				// spawning
-				Self::spawn_initial,
+				Self::spawn_initial.run_if(in_state(GlobalGameStates::StartMenu)),
 			)
 			.add_systems(
 				OnEnter(GlobalGameStates::InGame),
@@ -325,14 +326,10 @@ impl StartScreen {
 
 					match btn {
 						InitialUiButtons::InitialHostGame => {
-							local_state.set(
-								StartScreenStates::ConfigureHosting,
-							);
+							local_state.set(StartScreenStates::ConfigureHosting);
 						}
 						InitialUiButtons::InitialJoinGame => {
-							local_state.set(
-								StartScreenStates::ConfigureClient,
-							);
+							local_state.set(StartScreenStates::ConfigureClient);
 						}
 					}
 				}

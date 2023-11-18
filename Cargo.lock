@@ -1524,6 +1524,7 @@ dependencies = [
  "nalgebra",
  "parry3d",
  "parry3d-f64",
+ "serde",
 ]
 
 [[package]]
@@ -1792,9 +1793,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.7"
+version = "4.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac495e00dcec98c83465d5ad66c5c4fabd652fd6686e7c6269b117e729a6f17b"
+checksum = "2275f18819641850fa26c89acc84d465c1bf91ce57bc2748b28c420473352f64"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1802,9 +1803,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.7"
+version = "4.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c77ed9a32a62e6ca27175d00d29d05ca32e396ea1eb5fb01d8256b669cec7663"
+checksum = "07cdf1b148b25c1e1f7a42225e30a0d99a615cd4637eae7365548dd4529b95bc"
 dependencies = [
  "anstream",
  "anstyle",
@@ -2072,9 +2073,12 @@ dependencies = [
  "bevy_screen_diagnostics",
  "bevy_timewarp",
  "bevy_xpbd_3d",
+ "clap",
  "extension-traits",
  "meshtext",
  "rand",
+ "renet",
+ "serde",
  "structstruck",
  "strum",
  "uuid",
@@ -3262,6 +3266,7 @@ dependencies = [
  "num-complex",
  "num-rational",
  "num-traits",
+ "serde",
  "simba",
  "typenum",
 ]
@@ -3386,6 +3391,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ba157ca0885411de85d6ca030ba7e2a83a28636056c7c699b07c8b6f7383214"
 dependencies = [
  "num-traits",
+ "serde",
 ]
 
 [[package]]
@@ -3687,6 +3693,7 @@ dependencies = [
  "num-traits",
  "rayon",
  "rustc-hash",
+ "serde",
  "simba",
  "slab",
  "smallvec",
@@ -3710,6 +3717,7 @@ dependencies = [
  "num-traits",
  "rayon",
  "rustc-hash",
+ "serde",
  "simba",
  "slab",
  "smallvec",
@@ -4044,6 +4052,7 @@ dependencies = [
  "log",
  "octets",
  "renetcode",
+ "serde",
 ]
 
 [[package]]

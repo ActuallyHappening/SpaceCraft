@@ -34,7 +34,13 @@ impl Plugin for MainPlugin {
 		app.configure_sets(
 			FixedUpdate,
 			(
-				(GlobalSystemSet::RawPhysics, GlobalSystemSet::GameLogic).chain(),
+				(
+					GlobalSystemSet::BlueprintExpansion("player"),
+					GlobalSystemSet::BlueprintExpansion("blocks"),
+					GlobalSystemSet::RawPhysics,
+					GlobalSystemSet::GameLogic,
+				)
+					.chain(),
 				(
 					PhysicsSet::Prepare,
 					PhysicsSet::StepSimulation,
@@ -87,8 +93,27 @@ impl Plugin for MainPlugin {
 				.render_layer(GlobalRenderLayers::InGame);
 		});
 
-		// states
-		app.add_state::<GlobalGameStates>();
+		// will take cli inputs, or default to start menu
+		// app.add_state::<GlobalGameStates>();
+		let state;
+		if let Ok(c) = self::netcode::NetcodeConfig::try_parse() {
+			info!("Using options provided by CLI");
+			state = GlobalGameStates::InGame;
+			app.insert_resource(c);
+		} else {
+			state = GlobalGameStates::StartMenu;
+		}
+		app
+			.insert_resource::<State<GlobalGameStates>>(State::new(state))
+			.init_resource::<NextState<GlobalGameStates>>()
+			.add_systems(
+				StateTransition,
+				(
+					bevy::ecs::schedule::run_enter_schedule::<GlobalGameStates>.run_if(run_once()),
+					apply_state_transition::<GlobalGameStates>,
+				)
+					.chain(),
+			);
 
 		// dep plugins
 		app.add_plugins((
@@ -114,5 +139,6 @@ impl Plugin for MainPlugin {
 			// PlayerPlugins,
 			UiPlugins,
 		));
+		app.replicate::<Position>().replicate::<Rotation>();
 	}
 }

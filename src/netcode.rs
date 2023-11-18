@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{players::PlayerBlueprint, prelude::*};
 
 pub use bevy_replicon::{
 	prelude::*,
@@ -34,10 +34,22 @@ pub fn frame_inc_and_replicon_tick_sync(
 }
 
 /// Holds information about what ip and port to connect to, or host on.
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, clap::Parser)]
 pub enum NetcodeConfig {
-	Hosting { ip: IpAddr, port: u16 },
-	Client { ip: IpAddr, port: u16 },
+	Hosting {
+		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
+		ip: IpAddr,
+
+		#[arg(short, long, default_value_t = DEFAULT_PORT)]
+		port: u16,
+	},
+	Client {
+		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
+		ip: IpAddr,
+		
+		#[arg(short, long, default_value_t = DEFAULT_PORT)]
+		port: u16,
+	},
 }
 
 impl NetcodeConfig {
@@ -157,17 +169,19 @@ impl NetcodePlugin {
 	}
 
 	/// Logs server events and spawns a new player whenever a client connects.
-	fn server_event_system(mut server_event: EventReader<ServerEvent>, mut commands: Commands) {
+	fn server_event_system(
+		mut server_event: EventReader<ServerEvent>,
+		mut spawn_player: EventWriter<ToClients<PlayerBlueprint>>,
+	) {
 		for event in server_event.read() {
 			match event {
 				ServerEvent::ClientConnected { client_id } => {
 					info!("player: {client_id} Connected");
 
-					// commands.spawn(AuthorityPlayerBundle::new(
-					// 	ControllablePlayer::new(*client_id),
-					// 	PLAYER_STRUCTURE.clone(),
-					// 	Transform::from_xyz(0., 100., 0.),
-					// ));
+					spawn_player.send(ToClients {
+						mode: SendMode::Broadcast,
+						event: PlayerBlueprint::default_at(*client_id, Transform::default()),
+					});
 				}
 				ServerEvent::ClientDisconnected { client_id, reason } => {
 					info!("client {client_id} disconnected: {reason}");
