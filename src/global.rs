@@ -18,7 +18,15 @@ pub enum GlobalSystemSet {
 	/// Runs after physics simulation
 	GameLogic,
 
-	BlueprintExpansion(&'static str),
+	BlueprintExpansion,
+}
+
+/// Makes sure that the blueprints that the player creates are
+/// expanded before, so that thruster visuals can be spawned on time
+#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum BlueprintExpansion {
+	Player,
+	Thruster,
 }
 
 /// Naming of all render layers used within the project

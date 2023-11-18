@@ -29,7 +29,7 @@ mod player {
 		fn build(&self, app: &mut App) {
 			app.replicate::<PlayerBlueprint>().add_systems(
 				FixedUpdate,
-				Self::handle_spawn_player_blueprints.in_set(GlobalSystemSet::BlueprintExpansion("player")),
+				Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),
 			);
 		}
 	}

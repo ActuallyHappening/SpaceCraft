@@ -1,3 +1,4 @@
+mod blocks;
 mod global;
 mod netcode;
 mod players;
@@ -6,7 +7,6 @@ mod states;
 mod ui;
 mod utils;
 mod world;
-mod blocks;
 
 use self::netcode::NetcodePlugin;
 use self::players::PlayerPlugins;
@@ -35,9 +35,11 @@ impl Plugin for MainPlugin {
 		app.configure_sets(
 			FixedUpdate,
 			(
+				(BlueprintExpansion::Player, BlueprintExpansion::Thruster)
+					.chain()
+					.in_set(GlobalSystemSet::BlueprintExpansion),
 				(
-					GlobalSystemSet::BlueprintExpansion("player"),
-					GlobalSystemSet::BlueprintExpansion("blocks"),
+					GlobalSystemSet::BlueprintExpansion,
 					GlobalSystemSet::RawPhysics,
 					GlobalSystemSet::GameLogic,
 				)
@@ -140,10 +142,7 @@ impl Plugin for MainPlugin {
 		app.insert_resource(Gravity(Vec3::ZERO));
 
 		// game logic plugins
-		app.add_plugins((
-			UiPlugins,
-			PlayerPlugins,
-		));
+		app.add_plugins((UiPlugins, PlayerPlugins));
 		// app.register_type::<BlockId>();
 
 		// network replication
