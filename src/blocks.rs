@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 /// The unique identifier for a persistent block in the world
-#[derive(Reflect, Debug, Clone, Copy, Component)]
+#[derive(Reflect, Debug, Clone, Copy, Component, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct BlockId(u128);
 
@@ -9,6 +9,12 @@ impl Default for BlockId {
 	fn default() -> Self {
 		warn!("Generating default BlockId!!");
 		Self(0)
+	}
+}
+
+impl BlockId {
+	pub fn random() -> Self {
+		Self(random())
 	}
 }
 

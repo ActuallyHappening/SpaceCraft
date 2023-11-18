@@ -136,10 +136,16 @@ impl Plugin for MainPlugin {
 				GlobalSystemSet::GameLogic,
 			)),
 		));
+		// dep configuration
+		app.insert_resource(Gravity(Vec3::ZERO));
+
+		// game logic plugins
 		app.add_plugins((
-			PlayerPlugins,
 			UiPlugins,
+			PlayerPlugins,
 		));
+
+		// network replication
 		app.replicate::<Position>().replicate::<Rotation>();
 	}
 }
