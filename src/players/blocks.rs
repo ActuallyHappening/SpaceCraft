@@ -30,6 +30,30 @@ pub mod manual_builder {
 
 	pub enum Facing {
 		Up,
+		Down,
+		Left,
+		Right,
+		Forwards,
+		Backwards,
+	}
+
+	impl Facing {
+		pub fn into_quat(self) -> Quat {
+			match self {
+				Self::Up => Quat::from_rotation_x(0.0),
+				Self::Down => Quat::from_rotation_x(PI),
+				Self::Left => Quat::from_rotation_y(PI / 2.0),
+				Self::Right => Quat::from_rotation_y(-PI / 2.0),
+				Self::Forwards => Quat::from_rotation_z(PI / 2.0),
+				Self::Backwards => Quat::from_rotation_z(-PI / 2.0),
+			}
+		}
+	}
+
+	impl From<Facing> for Quat {
+		fn from(facing: Facing) -> Self {
+			facing.into_quat()
+		}
 	}
 
 	pub type RelativePixel = IVec3;
@@ -86,7 +110,7 @@ mod structure_block {
 	}
 
 	impl BlockBlueprint<StructureBlock> {
-		pub fn new(block: StructureBlock, location: manual_builder::RelativePixel) -> Self {
+		pub fn new_structure(block: StructureBlock, location: manual_builder::RelativePixel) -> Self {
 			BlockBlueprint {
 				transform: Transform::from_translation(location.as_vec3() * PIXEL_SIZE),
 				mesh: super::OptimizableMesh::StandardBlock,
@@ -101,6 +125,9 @@ mod structure_block {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum OptimizableMesh {
 	StandardBlock,
+	CustomRectangularPrism {
+		size: Vec3,
+	},
 	FromAsset(String),
 }
 
@@ -109,6 +136,7 @@ impl OptimizableMesh {
 		match self {
 			Self::FromAsset(name) => mma.ass.load(name),
 			Self::StandardBlock => mma.meshs.add(shape::Cube { size: PIXEL_SIZE }.into()),
+			Self::CustomRectangularPrism { size } => mma.meshs.add(shape::Box::new(size.x, size.y, size.z).into()),
 		}
 	}
 }

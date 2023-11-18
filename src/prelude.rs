@@ -3,7 +3,7 @@
 
 // std
 pub use std::borrow::Cow;
-pub use std::f32::consts::TAU;
+pub use std::f32::consts::{TAU, PI};
 pub use std::net::*;
 pub use std::num::*;
 pub use std::ops::{Add as _, Div as _, Mul as _};

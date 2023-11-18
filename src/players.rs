@@ -16,21 +16,20 @@ impl PluginGroup for PlayerPlugins {
 pub use player::PlayerBlueprint;
 
 mod player {
+	use super::blocks::manual_builder::Facing;
 	use super::blocks::{BlockBlueprint, BlockId, StructureBlock};
-	use super::thruster::ThrusterBlock;
+	use super::thruster_block::ThrusterBlock;
 	use crate::players::blocks::StructureBlockBundle;
-	use crate::prelude::*;
+	use crate::players::thruster_block::ThrusterBlockBundle;
+use crate::prelude::*;
 
 	pub struct PlayerPlugin;
 	impl Plugin for PlayerPlugin {
 		fn build(&self, app: &mut App) {
-			app
-				.replicate::<PlayerBlueprint>()
-				.add_systems(
-					FixedUpdate,
-					Self::handle_spawn_player_blueprints
-						.in_set(GlobalSystemSet::BlueprintExpansion("player")),
-				);
+			app.replicate::<PlayerBlueprint>().add_systems(
+				FixedUpdate,
+				Self::handle_spawn_player_blueprints.in_set(GlobalSystemSet::BlueprintExpansion("player")),
+			);
 		}
 	}
 
@@ -48,8 +47,14 @@ mod player {
 			PlayerBlueprint {
 				network_id,
 				transform,
-				structure_children: vec![BlockBlueprint::new(StructureBlock::Aluminum, IVec3::ZERO)],
-				thruster_children: vec![],
+				structure_children: vec![BlockBlueprint::new_structure(
+					StructureBlock::Aluminum,
+					IVec3::ZERO,
+				)],
+				thruster_children: vec![BlockBlueprint::new_thruster(
+					IVec3::new(-1, 0, 0),
+					Facing::Right,
+				)],
 			}
 		}
 	}
@@ -82,7 +87,8 @@ mod player {
 					"Expanding player blueprint for {:?}",
 					player_blueprint.network_id
 				);
-				commands.entity(player)
+				commands
+					.entity(player)
 					.insert(PlayerBundle::stamp_from_blueprint(
 						player_blueprint,
 						&mut mma,
@@ -90,6 +96,12 @@ mod player {
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
 							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
+								blueprint, &mut mma,
+							));
+						}
+
+						for blueprint in &player_blueprint.thruster_children {
+							parent.spawn(ThrusterBlockBundle::stamp_from_blueprint(
 								blueprint, &mut mma,
 							));
 						}
@@ -126,10 +138,63 @@ mod player {
 	}
 }
 
-mod thruster {
+mod thruster_block {
 	use crate::prelude::*;
+
+	use super::blocks::{manual_builder, BlockBlueprint};
 
 	/// Will spawn a particle emitter as a child
 	#[derive(Debug, Serialize, Deserialize, Clone)]
 	pub struct ThrusterBlock;
+
+	#[derive(Bundle)]
+	pub struct ThrusterBlockBundle {
+		pbr: PbrBundle,
+		collider: AsyncCollider,
+		name: Name,
+	}
+
+	impl FromBlueprint for ThrusterBlockBundle {
+		type Blueprint = BlockBlueprint<ThrusterBlock>;
+
+		fn stamp_from_blueprint(
+			BlockBlueprint {
+				transform,
+				mesh,
+				material,
+				specific_marker,
+			}: &Self::Blueprint,
+			mma: &mut MMA,
+		) -> Self {
+			Self {
+				pbr: PbrBundle {
+					transform: *transform,
+					mesh: mesh.get_mesh(mma),
+					material: material.get_material(&mut mma.mats),
+					..default()
+				},
+				collider: AsyncCollider(ComputedCollider::ConvexHull),
+				name: Name::new("ThrusterBlock"),
+			}
+		}
+	}
+
+	impl BlockBlueprint<ThrusterBlock> {
+		pub fn new_thruster(location: manual_builder::RelativePixel, facing: impl Into<Quat>) -> Self {
+			let rotation = facing.into();
+			BlockBlueprint {
+				transform: Transform {
+					translation: location.as_vec3() * PIXEL_SIZE
+						+ Transform::from_rotation(rotation).forward() * PIXEL_SIZE / 2.,
+					rotation,
+					..default()
+				},
+				mesh: super::blocks::OptimizableMesh::CustomRectangularPrism {
+					size: Vec3::splat(PIXEL_SIZE / 2.),
+				},
+				material: super::blocks::OptimizableMaterial::OpaqueColour(Color::RED),
+				specific_marker: ThrusterBlock,
+			}
+		}
+	}
 }
