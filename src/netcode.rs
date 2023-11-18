@@ -82,7 +82,7 @@ impl NetcodePlugin {
 		mut commands: Commands,
 		network_channels: Res<NetworkChannels>,
 		config: Res<NetcodeConfig>,
-		mut manual_server_feedback: EventWriter<ServerEvent>,
+		_manual_server_feedback: EventWriter<ServerEvent>,
 	) {
 		match config.into_inner() {
 			NetcodeConfig::Server { ip: addr, port } => {

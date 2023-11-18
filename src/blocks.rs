@@ -46,12 +46,13 @@ pub mod manual_builder {
 	impl Facing {
 		pub fn into_quat(self) -> Quat {
 			match self {
-				Self::Up => Quat::from_rotation_x(0.0),
-				Self::Down => Quat::from_rotation_x(PI),
-				Self::Left => Quat::from_rotation_y(PI / 2.0),
-				Self::Right => Quat::from_rotation_y(-PI / 2.0),
-				Self::Forwards => Quat::from_rotation_z(PI / 2.0),
-				Self::Backwards => Quat::from_rotation_z(-PI / 2.0),
+				// Self::Up => Quat::from_rotation_x(0.0),
+				// Self::Down => Quat::from_rotation_x(PI),
+				// Self::Left => Quat::from_rotation_y(PI / 2.0),
+				Self::Right => Quat::from_rotation_z(TAU / 4.),
+				// Self::Forwards => Quat::from_rotation_z(PI / 2.0),
+				// Self::Backwards => Quat::from_rotation_z(-PI / 2.0),
+				_ => todo!()
 			}
 		}
 	}

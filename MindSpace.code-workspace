@@ -6,12 +6,12 @@
 		{
 			"path": "src"
 		},
-		// {
-		// 	"path": "../creativity-game-0.11"
-		// },
-		// {
-		// 	"path": "../bevy_hanabi"
-		// },
+		{
+			"path": "../creativity-game-0.11"
+		},
+		{
+			"path": "../bevy_hanabi"
+		},
 		// {
 		// 	"path": "../bevy_starfield"
 		// }

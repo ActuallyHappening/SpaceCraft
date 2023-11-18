@@ -453,7 +453,7 @@ struct ButtonParticles {
 impl ButtonParticles {
 	fn new(
 		// cam: UiCameras,
-		mut effects: &mut Assets<EffectAsset>,
+		effects: &mut Assets<EffectAsset>,
 	) -> Self {
 		let mut gradient = Gradient::new();
 		// gradient.add_key(0.0, Vec4::new(0.5, 0.5, 0.5, 1.0));
