@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-mod blocks;
-
 /// Plugin Group
 pub struct PlayerPlugins;
 
@@ -16,12 +14,12 @@ impl PluginGroup for PlayerPlugins {
 pub use player::PlayerBlueprint;
 
 mod player {
-	use super::blocks::manual_builder::Facing;
-	use super::blocks::{BlockBlueprint, BlockId, StructureBlock};
 	use super::thruster_block::ThrusterBlock;
-	use crate::players::blocks::StructureBlockBundle;
+	use crate::blocks::manual_builder::Facing;
+	use crate::blocks::StructureBlockBundle;
+	use crate::blocks::{BlockBlueprint, BlockId, StructureBlock};
 	use crate::players::thruster_block::ThrusterBlockBundle;
-use crate::prelude::*;
+	use crate::prelude::*;
 
 	pub struct PlayerPlugin;
 	impl Plugin for PlayerPlugin {
@@ -141,7 +139,7 @@ use crate::prelude::*;
 mod thruster_block {
 	use crate::prelude::*;
 
-	use super::blocks::{manual_builder, BlockBlueprint};
+	use crate::blocks::{manual_builder, BlockBlueprint};
 
 	/// Will spawn a particle emitter as a child
 	#[derive(Debug, Serialize, Deserialize, Clone)]
@@ -189,10 +187,10 @@ mod thruster_block {
 					rotation,
 					..default()
 				},
-				mesh: super::blocks::OptimizableMesh::CustomRectangularPrism {
+				mesh: OptimizableMesh::CustomRectangularPrism {
 					size: Vec3::splat(PIXEL_SIZE / 2.),
 				},
-				material: super::blocks::OptimizableMaterial::OpaqueColour(Color::RED),
+				material: OptimizableMaterial::OpaqueColour(Color::RED),
 				specific_marker: ThrusterBlock,
 			}
 		}

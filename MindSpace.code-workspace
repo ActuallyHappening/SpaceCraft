@@ -6,27 +6,27 @@
 		{
 			"path": "src"
 		},
-		{
-			"path": "../creativity-game-0.11"
-		},
-		{
-			"path": "../bevy_hanabi"
-		},
+		// {
+		// 	"path": "../creativity-game-0.11"
+		// },
+		// {
+		// 	"path": "../bevy_hanabi"
+		// },
 		// {
 		// 	"path": "../bevy_starfield"
 		// }
-		{
-			"path": "../testing-bug"
-		},
-		{
-			"path": "../bevy_timewarp"
-		},
-		{
-			"path": "../bevy_xpbd"
-		},
-		{
-			"path": "../bevy_replicon"
-		}
+		// {
+		// 	"path": "../testing-bug"
+		// },
+		// {
+		// 	"path": "../bevy_timewarp"
+		// },
+		// {
+		// 	"path": "../bevy_xpbd"
+		// },
+		// {
+		// 	"path": "../bevy_replicon"
+		// }
 	],
 	"settings": {
 		"cSpell.words": [

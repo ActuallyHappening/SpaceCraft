@@ -6,6 +6,7 @@ mod states;
 mod ui;
 mod utils;
 mod world;
+mod blocks;
 
 use self::netcode::NetcodePlugin;
 use self::players::PlayerPlugins;

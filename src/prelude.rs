@@ -40,3 +40,4 @@ pub use crate::global::assets::*;
 pub use crate::global::*;
 pub use crate::states::*;
 pub use crate::utils::*;
+pub use crate::blocks::*;
