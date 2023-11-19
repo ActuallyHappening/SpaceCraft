@@ -128,6 +128,7 @@ impl Plugin for MainPlugin {
 				// .disable::<DebugPickingPlugin>()
 				.disable::<DefaultHighlightingPlugin>(),
 			PhysicsPlugins::new(FixedUpdate),
+			PhysicsDebugPlugin::default(),
 			HanabiPlugin,
 			ReplicationPlugins
 				.build()

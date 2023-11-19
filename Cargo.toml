@@ -60,7 +60,7 @@ features = ["default_windows"]
 
 [dependencies.bevy_xpbd_3d]
 # version = "0.3.2"
-features = ["enhanced-determinism", "serialize"]
+features = ["enhanced-determinism", "serialize", "debug-plugin"]
 git = "https://github.com/Jondolf/bevy_xpbd.git"
 
 [dependencies.bevy_timewarp]

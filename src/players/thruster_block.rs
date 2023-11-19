@@ -7,10 +7,13 @@ pub struct ThrusterPlugin;
 
 impl Plugin for ThrusterPlugin {
 	fn build(&self, app: &mut App) {
-		app.register_type::<Thruster>().add_systems(
-			FixedUpdate,
-			Self::spawn_thruster_visuals.in_set(BlueprintExpansion::Thruster),
-		);
+		app
+			.register_type::<Thruster>()
+			.add_systems(
+				FixedUpdate,
+				Self::spawn_thruster_visuals.in_set(BlueprintExpansion::Thruster),
+			)
+			.add_systems(Update, Self::sync_thruster_with_visuals);
 	}
 }
 
@@ -29,24 +32,41 @@ pub struct ThrusterBlockBundle {
 	collider: AsyncCollider,
 	name: Name,
 	thruster: Thruster,
+	force: ExternalForce,
+	// body: RigidBody,
 }
 
 impl ThrusterPlugin {
+	fn sync_thruster_with_visuals(
+		thrusters: Query<(&Children, &Thruster)>,
+		mut particle_effects: Query<&mut CompiledParticleEffect>,
+	) {
+		for (thrusters, thrust) in thrusters.iter() {
+			for thruster in thrusters {
+				if let Ok(mut particles) = particle_effects.get_mut(*thruster) {
+					particles.set_property(
+						Self::LIFETIME_ATTR,
+						thrust.current_status.clamp(0., 1.).into(),
+					)
+				}
+			}
+		}
+	}
+
+	/// Can change, typically stays constant
+	const ACCELERATION_ATTR: &str = "dynamic_accel";
+	/// Makes a visual difference in the colour and range of the particles.
+	/// Between 0 (for no lifetime) and 1 (for full lifetime)
+	const LIFETIME_ATTR: &str = "dynamic_lifetime";
+
 	fn spawn_thruster_visuals(
 		added_thrusters: Query<Entity, Added<Thruster>>,
 		mut commands: Commands,
-		_mma: MMA,
 		mut effects: ResMut<Assets<EffectAsset>>,
 	) {
 		for thruster in added_thrusters.iter() {
 			commands.entity(thruster).with_children(|parent| {
 				debug!("Spawning thruster visuals");
-
-				/// Can change, typically stays constant
-				const ACCELERATION_ATTR: &str = "dynamic_accel";
-				/// Makes a visual difference in the colour and range of the particles.
-				/// Between 0 (for no lifetime) and 1 (for full lifetime)
-				const LIFETIME_ATTR: &str = "dynamic_lifetime";
 
 				let mut color_gradient = Gradient::new();
 				color_gradient.add_key(0.0, Vec4::splat(1.0));
@@ -61,7 +81,7 @@ impl ThrusterPlugin {
 
 				let writer = ExprWriter::new();
 
-				let age = (writer.lit(1.) - writer.prop(LIFETIME_ATTR)).expr();
+				let age = (writer.lit(1.) - writer.prop(Self::LIFETIME_ATTR)).expr();
 				let init_age1 = SetAttributeModifier::new(Attribute::AGE, age);
 
 				let lifetime = writer.lit(1.).expr();
@@ -80,18 +100,18 @@ impl ThrusterPlugin {
 
 				let init_vel1 = SetVelocitySphereModifier {
 					center: writer.lit(Vec3::ZERO).expr(),
-					speed: writer.prop(ACCELERATION_ATTR).expr(),
+					speed: writer.prop(Self::ACCELERATION_ATTR).expr(),
 				};
 
 				let effect = effects.add(
 					EffectAsset::new(
 						32768,
-						Spawner::rate(500.0.into()).with_starts_active(true),
+						Spawner::rate(500.0.into()).with_starts_active(false),
 						writer.finish(),
 					)
 					.with_name("emit:rate")
-					.with_property(ACCELERATION_ATTR, Value::from(PIXEL_SIZE * 10.))
-					.with_property(LIFETIME_ATTR, Value::from(0.5))
+					.with_property(Self::ACCELERATION_ATTR, Value::from(PIXEL_SIZE * 10.))
+					.with_property(Self::LIFETIME_ATTR, Value::from(0.5))
 					// .with_property("my_accel", Vec3::new(0., -3., 0.).into())
 					.init(init_pos1)
 					// Make spawned particles move away from the emitter origin
@@ -167,6 +187,7 @@ impl FromBlueprint for ThrusterBlockBundle {
 			collider: AsyncCollider(ComputedCollider::ConvexHull),
 			name: Name::new("ThrusterBlock"),
 			thruster: specific_marker.clone().into(),
+			force: ExternalForce::ZERO,
 		}
 	}
 }
@@ -189,4 +210,5 @@ impl BlockBlueprint<ThrusterBlock> {
 		}
 	}
 }
+
 // #endregion

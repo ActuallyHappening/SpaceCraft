@@ -66,7 +66,8 @@ mod player {
 	struct PlayerBundle {
 		spatial: SpatialBundle,
 		replication: Replication,
-		collider: AsyncCollider,
+		collider: Collider,
+		body: RigidBody,
 		name: Name,
 		controllable_player: ControllablePlayer,
 	}
@@ -93,7 +94,7 @@ mod player {
 					.insert(PlayerBundle::stamp_from_blueprint(
 						player_blueprint,
 						&mut mma,
-					))
+					)).insert(ExternalForce::ZERO)
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
 							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
@@ -132,7 +133,8 @@ mod player {
 					network_id: *network_id,
 					movement_input: Default::default(),
 				},
-				collider: AsyncCollider(ComputedCollider::ConvexHull),
+				collider: Collider::ball(0.1),
+				body: RigidBody::Dynamic,
 				replication: Replication,
 			}
 		}
