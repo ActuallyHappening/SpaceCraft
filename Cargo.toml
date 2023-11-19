@@ -40,7 +40,8 @@ strum = { version = "0.25.0", features = ["derive"] }
 
 # hanabi particles
 [dependencies.bevy_hanabi]
-version = "0.8"
+# version = "0.8"
+git = "https://github.com/ActuallyHappening/bevy_hanabi.git"
 default-features = false
 features = ["3d", "2d"]
 

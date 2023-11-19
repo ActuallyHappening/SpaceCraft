@@ -816,8 +816,7 @@ dependencies = [
 [[package]]
 name = "bevy_hanabi"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dca4b0a04e401d05dc74bc829f2e41bd62afdbacc095165fadb4e93caf0ba546"
+source = "git+https://github.com/ActuallyHappening/bevy_hanabi.git#0f391a82e45dcd0689c338dce0c39a246965b937"
 dependencies = [
  "anyhow",
  "bevy",
