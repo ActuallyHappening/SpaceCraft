@@ -66,7 +66,8 @@ mod player {
 	struct PlayerBundle {
 		spatial: SpatialBundle,
 		replication: Replication,
-		collider: Collider,
+		// collider: Collider,
+		mass: MassPropertiesBundle,
 		body: RigidBody,
 		name: Name,
 		controllable_player: ControllablePlayer,
@@ -133,7 +134,8 @@ mod player {
 					network_id: *network_id,
 					movement_input: Default::default(),
 				},
-				collider: Collider::ball(0.1),
+				// collider: Collider::ball(0.1),
+				mass: MassPropertiesBundle::new_computed(&Collider::ball(PIXEL_SIZE), 10.),
 				body: RigidBody::Dynamic,
 				replication: Replication,
 			}

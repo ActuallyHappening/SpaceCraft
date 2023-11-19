@@ -39,15 +39,20 @@ pub struct ThrusterBlockBundle {
 impl ThrusterPlugin {
 	fn sync_thruster_with_visuals(
 		thrusters: Query<(&Children, &Thruster)>,
-		mut particle_effects: Query<&mut CompiledParticleEffect>,
+		mut particle_effects: Query<(&mut CompiledParticleEffect, &mut EffectSpawner)>,
 	) {
 		for (thrusters, thrust) in thrusters.iter() {
 			for thruster in thrusters {
-				if let Ok(mut particles) = particle_effects.get_mut(*thruster) {
+				if let Ok((mut particles, mut spawner)) = particle_effects.get_mut(*thruster) {
 					particles.set_property(
 						Self::LIFETIME_ATTR,
 						thrust.current_status.clamp(0., 1.).into(),
-					)
+					);
+					if thrust.current_status <= 0. {
+						spawner.set_active(false);
+					} else {
+						spawner.set_active(true);
+					}
 				}
 			}
 		}
@@ -125,6 +130,9 @@ impl ThrusterPlugin {
 					.render(SizeOverLifetimeModifier {
 						gradient: size_gradient,
 						screen_space_size: false,
+					})
+					.render(OrientModifier {
+						mode: OrientMode::ParallelCameraDepthPlane,
 					}),
 				);
 
@@ -150,7 +158,7 @@ impl ThrusterBlock {
 	pub fn new() -> Self {
 		Self {
 			id: BlockId::random(),
-			strength: 10_000.,
+			strength: 0.5,
 		}
 	}
 }
@@ -160,7 +168,7 @@ impl From<ThrusterBlock> for Thruster {
 		Thruster {
 			id,
 			strength_factor: strength,
-			current_status: 0.,
+			current_status: 0.5,
 		}
 	}
 }
