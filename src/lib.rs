@@ -56,6 +56,7 @@ impl Plugin for MainPlugin {
 					.in_set(GlobalSystemSet::BlueprintExpansion),
 				(
 					GlobalSystemSet::BlueprintExpansion,
+					GlobalSystemSet::ThrustersSync,
 					GlobalSystemSet::RawPhysics,
 					GlobalSystemSet::GameLogic,
 				)

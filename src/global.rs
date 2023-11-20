@@ -15,9 +15,13 @@ pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
 pub enum GlobalSystemSet {
 	BlueprintExpansion,
 
+	/// Syncs thruster data with InternalForces
+	ThrustersSync,
+
 	/// Runs physics simulation
 	/// Note: Thrusters sync their data with external force just before this
 	RawPhysics,
+
 	/// Runs after physics simulation
 	GameLogic,
 }

@@ -15,8 +15,10 @@ impl Plugin for ThrusterPlugin {
 			.register_type::<Thruster>()
 			.add_systems(
 				FixedUpdate,
-				((Self::spawn_thruster_visuals)
-					.in_set(BlueprintExpansion::Thruster),),
+				(
+					(Self::spawn_thruster_visuals).in_set(BlueprintExpansion::Thruster),
+					Self::sync_thruster_with_internal_forces.in_set(GlobalSystemSet::ThrustersSync),
+				),
 			)
 			.add_systems(Update, Self::sync_thruster_with_visuals);
 	}
@@ -28,7 +30,13 @@ struct Thruster {
 	id: BlockId,
 	strength_factor: f32,
 	/// Between 0..=1, synced with visuals and physics
-	pub current_status: f32,
+	current_status: f32,
+}
+
+impl Thruster {
+	pub fn current_status(&self) -> f32 {
+		self.current_status.clamp(0., 1.,)
+	}
 }
 
 #[derive(Bundle)]
@@ -60,6 +68,12 @@ impl ThrusterPlugin {
 					}
 				}
 			}
+		}
+	}
+
+	fn sync_thruster_with_internal_forces(mut thrusters: Query<(&Thruster, &mut InternalForce)>) {
+		for (thruster, mut internal_force) in thrusters.iter_mut() {
+			internal_force.0 = Vec3::Z * thruster.current_status() * thruster.strength_factor;
 		}
 	}
 
@@ -145,7 +159,7 @@ impl ThrusterPlugin {
 					Name::new("Thruster Visuals"),
 					ParticleEffectBundle {
 						effect: ParticleEffect::new(effect),
-						transform: Transform::from_rotation(Quat::from_rotation_x(TAU / 4.)),
+						transform: Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.)),
 						..default()
 					},
 				));
@@ -167,7 +181,7 @@ impl ThrusterBlock {
 	pub fn new() -> Self {
 		Self {
 			id: BlockId::random(),
-			strength: 0.5,
+			strength: 4.,
 		}
 	}
 }
@@ -177,7 +191,7 @@ impl From<ThrusterBlock> for Thruster {
 		Thruster {
 			id,
 			strength_factor: strength,
-			current_status: 0.5,
+			current_status: 0.,
 		}
 	}
 }
@@ -216,7 +230,7 @@ impl BlockBlueprint<ThrusterBlock> {
 		BlockBlueprint {
 			transform: Transform {
 				translation: location.as_vec3() * PIXEL_SIZE
-					+ Transform::from_rotation(rotation).forward() * PIXEL_SIZE / 2.,
+					- Transform::from_rotation(rotation).forward() * PIXEL_SIZE / 2.,
 				rotation,
 				..default()
 			},

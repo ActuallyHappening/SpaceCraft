@@ -34,10 +34,21 @@ fn apply_internal_forces(
 				warn!("A child entity (with an InternalForce but no RigidBody) is a (ColliderParent) parent of a RigidBody entity with a persistent ExternalForce. \
 								This is not supported, as child entities in this format continuously update their parent's ExternalForce component, therefor making the parent's ExternalForce not persistent!");
 			} else {
-				// todo: Implement parent/child position difference so that torque works
-				parents_force.apply_force_at_point(internal_force.0, Vec3::ZERO, center_of_mass.0);
+				let parent_child_transform = child_global_transform.reparented_to(parent_global_transform);
 
-				info!("New external force: {:?}", parents_force);
+				if parent_child_transform.scale.round() != Vec3::splat(1.) {
+					warn!("Scaling is not yet supported for `InternalForce` components. Offending transform: {:?}", parent_child_transform);
+				} else {
+					let internal_quat = parent_child_transform.rotation;
+					let internal_force = internal_quat.mul_vec3(internal_force.0);
+					let internal_point = parent_child_transform.translation;
+
+					// todo: Implement parent/child position difference so that torque works
+					parents_force.apply_force_at_point(internal_force, internal_point, center_of_mass.0);
+
+					info!("New external force: {:?}", parents_force);
+				}
+
 			}
 		} else {
 			warn!("Collider parent points to a non-RigidBody entity");
