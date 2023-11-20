@@ -46,13 +46,12 @@ pub mod manual_builder {
 	impl Facing {
 		pub fn into_quat(self) -> Quat {
 			match self {
-				// Self::Up => Quat::from_rotation_x(0.0),
-				// Self::Down => Quat::from_rotation_x(PI),
-				// Self::Left => Quat::from_rotation_y(PI / 2.0),
-				Self::Right => Quat::from_rotation_z(TAU / 4.),
-				// Self::Forwards => Quat::from_rotation_z(PI / 2.0),
-				// Self::Backwards => Quat::from_rotation_z(-PI / 2.0),
-				_ => todo!()
+				Self::Forwards => Quat::IDENTITY,
+				Self::Backwards => Quat::from_rotation_y(TAU / 2.),
+				Self::Right => Quat::from_rotation_y(-TAU / 4.),
+				Self::Left => Quat::from_rotation_y(TAU / 4.),
+				Self::Up => Quat::from_rotation_x(TAU / 4.),
+				Self::Down => Quat::from_rotation_x(-TAU / 4.),
 			}
 		}
 	}
@@ -64,6 +63,41 @@ pub mod manual_builder {
 	}
 
 	pub type RelativePixel = IVec3;
+
+	#[cfg(test)]
+	mod test {
+		use super::*;
+
+		#[test]
+		fn facing_forwards() {
+			let quat = Facing::Forwards.into_quat();
+			let zero = Transform::from_rotation(quat);
+
+			let forwards = zero.forward().normalize();
+
+			assert_eq!(forwards, -Vec3::Z);
+		}
+
+		#[test]
+		fn facing_right() {
+			let quat = Facing::Right.into_quat();
+			let zero = Transform::from_rotation(quat);
+
+			let forwards = zero.forward().normalize();
+
+			assert_eq!(forwards, Vec3::X);
+		}
+
+		#[test]
+		fn facing_up() {
+			let quat = Facing::Up.into_quat();
+			let zero = Transform::from_rotation(quat);
+
+			let forwards = zero.forward().normalize();
+
+			assert_eq!(forwards, Vec3::Y);
+		}
+	}
 }
 
 pub use structure_block::{StructureBlock, StructureBlockBundle};

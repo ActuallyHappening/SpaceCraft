@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [workspace]
-members = ["xtask"]
+members = ["xtask", "bevy_xpbd3d_parenting"]
 
 # [lints.clippy]
 

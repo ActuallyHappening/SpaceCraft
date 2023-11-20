@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+pub use player::ControllablePlayer;
+
 mod thruster_block;
 
 /// Plugin Group
@@ -66,15 +68,16 @@ mod player {
 	struct PlayerBundle {
 		spatial: SpatialBundle,
 		replication: Replication,
-		// collider: Collider,
 		mass: MassPropertiesBundle,
 		body: RigidBody,
 		name: Name,
 		controllable_player: ControllablePlayer,
+		external_force: ExternalForce,
 	}
 
+	/// The marker component for player entities
 	#[derive(Component)]
-	struct ControllablePlayer {
+	pub struct ControllablePlayer {
 		network_id: ClientId,
 		movement_input: HashMap<BlockId, f32>,
 	}
@@ -136,6 +139,7 @@ mod player {
 				},
 				// collider: Collider::ball(0.1),
 				mass: MassPropertiesBundle::new_computed(&Collider::ball(PIXEL_SIZE), 10.),
+				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
 			}

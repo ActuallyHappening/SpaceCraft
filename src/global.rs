@@ -13,12 +13,13 @@ pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
 
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GlobalSystemSet {
+	BlueprintExpansion,
+
 	/// Runs physics simulation
+	/// Note: Thrusters sync their data with external force just before this
 	RawPhysics,
 	/// Runs after physics simulation
 	GameLogic,
-
-	BlueprintExpansion,
 }
 
 /// Makes sure that the blueprints that the player creates are
@@ -58,7 +59,7 @@ impl From<GlobalRenderLayers> for RenderLayers {
 }
 
 /// Handles distribution of the camera orders.
-/// This currently only serves the crate::ui module
+/// This currently only serves the [`crate::ui`] module
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GlobalCameraOrders {
 	/// Default camera order, used for in game

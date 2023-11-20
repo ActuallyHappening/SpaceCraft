@@ -511,7 +511,7 @@ impl ButtonParticle {
 		parents: Query<&BevyPath>,
 		time: Res<Time>,
 	) {
-		for (parent, mut transform) in spawner.iter_mut() {
+		for (parent, mut transform) in &mut spawner {
 			if let Ok(path) = parents.get(parent.get()) {
 				const FACTOR: f32 = 250.;
 				let time = time.elapsed().as_millis() as f32 % FACTOR / FACTOR;

@@ -27,6 +27,15 @@
 		// {
 		// 	"path": "../bevy_replicon"
 		// }
+		{
+			"path": "../bevy-inspector-egui"
+		},
+		{
+			"path": "../bevy_editor_pls",
+		},
+		{
+			"path": "../bevy_xpbd"
+		}
 	],
 	"settings": {
 		"cSpell.words": [

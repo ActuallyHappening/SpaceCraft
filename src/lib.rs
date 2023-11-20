@@ -1,3 +1,19 @@
+#![deny(clippy::arithmetic_side_effects)]
+#![warn(
+	clippy::all,
+	// clippy::restriction,
+	clippy::pedantic,
+	clippy::nursery,
+	clippy::cargo
+)]
+#![allow(
+	clippy::module_name_repetitions,
+	clippy::needless_pass_by_value,
+	clippy::too_many_arguments,
+	clippy::wildcard_imports,
+	clippy::use_self
+)]
+
 mod blocks;
 mod global;
 mod netcode;

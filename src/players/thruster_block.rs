@@ -2,6 +2,8 @@ use crate::prelude::*;
 
 use crate::blocks::{manual_builder, BlockBlueprint};
 
+use super::ControllablePlayer;
+
 // Plugin
 pub struct ThrusterPlugin;
 
@@ -11,7 +13,8 @@ impl Plugin for ThrusterPlugin {
 			.register_type::<Thruster>()
 			.add_systems(
 				FixedUpdate,
-				Self::spawn_thruster_visuals.in_set(BlueprintExpansion::Thruster),
+				((Self::spawn_thruster_visuals, Self::add_thruster_joint)
+					.in_set(BlueprintExpansion::Thruster),),
 			)
 			.add_systems(Update, Self::sync_thruster_with_visuals);
 	}
@@ -19,7 +22,7 @@ impl Plugin for ThrusterPlugin {
 
 /// Component for all thrusters (on a player)
 #[derive(Debug, Component, Reflect, Clone)]
-pub struct Thruster {
+struct Thruster {
 	id: BlockId,
 	strength_factor: f32,
 	/// Between 0..=1, synced with visuals and physics
@@ -30,13 +33,25 @@ pub struct Thruster {
 pub struct ThrusterBlockBundle {
 	pbr: PbrBundle,
 	collider: AsyncCollider,
+	// body: RigidBody,
 	name: Name,
 	thruster: Thruster,
-	force: ExternalForce,
-	// body: RigidBody,
 }
 
 impl ThrusterPlugin {
+	fn add_thruster_joint(
+		new_thrusters: Query<(Entity, &Parent), Added<Thruster>>,
+		mut commands: Commands,
+	) {
+		for (thruster, parent) in new_thrusters.iter() {
+			commands
+				.entity(thruster)
+				.insert((FixedJoint::new(thruster, parent.get())));
+			
+			debug!("Added a joint");
+		}
+	}
+
 	fn sync_thruster_with_visuals(
 		thrusters: Query<(&Children, &Thruster)>,
 		mut particle_effects: Query<(&mut CompiledParticleEffect, &mut EffectSpawner)>,
@@ -138,7 +153,11 @@ impl ThrusterPlugin {
 
 				parent.spawn((
 					Name::new("Thruster Visuals"),
-					ParticleEffectBundle::new(effect),
+					ParticleEffectBundle {
+						effect: ParticleEffect::new(effect),
+						transform: Transform::from_rotation(Quat::from_rotation_x(TAU / 4.)),
+						..default()
+					},
 				));
 			});
 		}
@@ -193,9 +212,9 @@ impl FromBlueprint for ThrusterBlockBundle {
 				..default()
 			},
 			collider: AsyncCollider(ComputedCollider::ConvexHull),
+			// body: RigidBody::Dynamic,
 			name: Name::new("ThrusterBlock"),
 			thruster: specific_marker.clone().into(),
-			force: ExternalForce::ZERO,
 		}
 	}
 }
