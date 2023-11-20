@@ -74,12 +74,10 @@ mod manual_ui {
 		/// Will offset the column so that the items are centered when [items]
 		/// number of `.next()` calls are made
 		pub fn center_with(mut self, items: u8) -> Self {
-			if items == 0 {
-				self
-			} else {
+			if items != 0 {
 				self.current_y += (self.item_height * items as f32 + self.margin * (items - 1) as f32) / 2.;
-				self
 			}
+			self
 		}
 	}
 }

@@ -35,7 +35,7 @@
 		},
 		{
 			"path": "../bevy_xpbd"
-		}
+		},
 	],
 	"settings": {
 		"cSpell.words": [
@@ -48,6 +48,7 @@
 			"Raycast",
 			"reparented",
 			"replicon",
+			"Substep",
 			"Timewarp"
 		]
 	}

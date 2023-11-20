@@ -1,5 +1,5 @@
 use bevy::asset::AssetPath;
-use meshtext::MeshGenerator;
+// use meshtext::MeshGenerator;
 
 #[derive(Debug, Clone)]
 pub enum GlobalFont {
@@ -14,10 +14,10 @@ impl From<GlobalFont> for AssetPath<'_> {
 	}
 }
 
-impl From<GlobalFont> for MeshGenerator<meshtext::Face<'_>> {
-	fn from(value: GlobalFont) -> Self {
-		match value {
-			GlobalFont::Default => MeshGenerator::new(include_bytes!("../../assets/fonts/FiraMono-Medium.ttf")),
-		}
-	}
-}
+// impl From<GlobalFont> for MeshGenerator<meshtext::Face<'_>> {
+// 	fn from(value: GlobalFont) -> Self {
+// 		match value {
+// 			GlobalFont::Default => MeshGenerator::new(include_bytes!("../../assets/fonts/FiraMono-Medium.ttf")),
+// 		}
+// 	}
+// }

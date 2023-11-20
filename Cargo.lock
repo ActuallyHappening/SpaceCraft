@@ -935,7 +935,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "752764558a1f429c20704c3b836a019fa308961c43fdfef4f08e339d456c96be"
 dependencies = [
- "glam 0.24.2",
+ "glam",
  "serde",
 ]
 
@@ -945,7 +945,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b596c41a56f2268ec7cde560edc588bc7b5886e4b49c8b27c4dcc9f7c743424c"
 dependencies = [
- "glam 0.24.2",
+ "glam",
 ]
 
 [[package]]
@@ -1171,7 +1171,7 @@ dependencies = [
  "bevy_utils",
  "downcast-rs",
  "erased-serde",
- "glam 0.24.2",
+ "glam",
  "serde",
  "smallvec",
  "smol_str",
@@ -1510,37 +1510,19 @@ name = "bevy_xpbd3d_parenting"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_xpbd_3d 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_xpbd_3d",
+ "serde",
 ]
 
 [[package]]
 name = "bevy_xpbd_3d"
 version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8abc57e8b249dc2ae59896189c05a39faca384c1f2eb7fd6dfb5127ad796354d"
 dependencies = [
  "bevy",
- "bevy_xpbd_derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_xpbd_derive",
  "derive_more",
  "fxhash",
- "glam 0.24.2",
- "indexmap 2.1.0",
- "itertools",
- "nalgebra",
- "parry3d",
- "parry3d-f64",
-]
-
-[[package]]
-name = "bevy_xpbd_3d"
-version = "0.3.2"
-source = "git+https://github.com/Jondolf/bevy_xpbd.git#7592ed86e2afd85ae11b35a47fbf3512e1b90813"
-dependencies = [
- "bevy",
- "bevy_xpbd_derive 0.1.0 (git+https://github.com/Jondolf/bevy_xpbd.git)",
- "derive_more",
- "fxhash",
- "glam 0.24.2",
+ "glam",
  "indexmap 2.1.0",
  "itertools",
  "nalgebra",
@@ -1552,17 +1534,6 @@ dependencies = [
 [[package]]
 name = "bevy_xpbd_derive"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e1ef1d5e328abe1b76df974245f78e17fd17867583883d5e77444c6a8223a64"
-dependencies = [
- "quote",
- "syn 2.0.38",
-]
-
-[[package]]
-name = "bevy_xpbd_derive"
-version = "0.1.0"
-source = "git+https://github.com/Jondolf/bevy_xpbd.git#7592ed86e2afd85ae11b35a47fbf3512e1b90813"
 dependencies = [
  "quote",
  "syn 2.0.38",
@@ -1738,16 +1709,6 @@ checksum = "f1174fb0b6ec23863f8b971027804a42614e347eafb0a95bf0b12cdae21fc4d0"
 dependencies = [
  "jobserver",
  "libc",
-]
-
-[[package]]
-name = "cdt"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b91b872294f63ef586b32aa94141561681aa35ca2d703960cca4f661f4e18184"
-dependencies = [
- "geometry-predicates",
- "thiserror",
 ]
 
 [[package]]
@@ -2104,10 +2065,10 @@ dependencies = [
  "bevy_replicon",
  "bevy_screen_diagnostics",
  "bevy_timewarp",
- "bevy_xpbd_3d 0.3.2 (git+https://github.com/Jondolf/bevy_xpbd.git)",
+ "bevy_xpbd3d_parenting",
+ "bevy_xpbd_3d",
  "clap",
  "extension-traits",
- "meshtext",
  "rand",
  "renet",
  "serde",
@@ -2270,7 +2231,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f732ad247afe275d6cf901e0f134025ad735007c8f4d82e667a6871f1b4a5441"
 dependencies = [
  "egui",
- "glam 0.24.2",
+ "glam",
 ]
 
 [[package]]
@@ -2307,7 +2268,7 @@ checksum = "8fce2eeef77fd4a293a54b62aa00ac9daebfbcda4bf8998c5a815635b004aa1c"
 dependencies = [
  "const_panic",
  "encase_derive",
- "glam 0.24.2",
+ "glam",
  "thiserror",
 ]
 
@@ -2559,12 +2520,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "geometry-predicates"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dba84198cf199c11b83f1cb9243eaeb70dc50b719d2835ebf34bf2481bca010"
-
-[[package]]
 name = "gethostname"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2625,12 +2580,6 @@ name = "gimli"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
-
-[[package]]
-name = "glam"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12f597d56c1bd55a811a1be189459e8fad2bbc272616375602443bdfb37fa774"
 
 [[package]]
 name = "glam"
@@ -2821,7 +2770,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7cb3df16a7bcb1b5bc092abd55e14f77ca70aea14445026e264586fc62889a10"
 dependencies = [
  "constgebra",
- "glam 0.24.2",
+ "glam",
 ]
 
 [[package]]
@@ -3191,17 +3140,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "meshtext"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54cc64b800d5eeb02b15d1f85806fd04a8f7c4747432fd947f4a87946abdc323"
-dependencies = [
- "cdt",
- "glam 0.22.0",
- "ttf-parser 0.18.1",
-]
-
-[[package]]
 name = "metal"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3292,7 +3230,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "307ed9b18cc2423f29e83f84fd23a8e73628727990181f18641a8b5dc2ab1caa"
 dependencies = [
  "approx",
- "glam 0.24.2",
+ "glam",
  "matrixmultiply",
  "nalgebra-macros",
  "num-complex",
@@ -3676,7 +3614,7 @@ version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4586edfe4c648c71797a74c84bacb32b52b212eff5dfe2bb9f2c599844023e7"
 dependencies = [
- "ttf-parser 0.20.0",
+ "ttf-parser",
 ]
 
 [[package]]
@@ -4628,12 +4566,6 @@ dependencies = [
  "tracing-subscriber",
  "wasm-bindgen",
 ]
-
-[[package]]
-name = "ttf-parser"
-version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0609f771ad9c6155384897e1df4d948e692667cc0588548b68eb44d052b27633"
 
 [[package]]
 name = "ttf-parser"

@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use extension_traits::extension;
 
-mod text;
+// mod text;
 
 pub trait FromBlueprint {
 	type Blueprint;

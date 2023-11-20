@@ -13,7 +13,7 @@ impl Plugin for ThrusterPlugin {
 			.register_type::<Thruster>()
 			.add_systems(
 				FixedUpdate,
-				((Self::spawn_thruster_visuals, Self::add_thruster_joint)
+				((Self::spawn_thruster_visuals)
 					.in_set(BlueprintExpansion::Thruster),),
 			)
 			.add_systems(Update, Self::sync_thruster_with_visuals);
@@ -36,22 +36,10 @@ pub struct ThrusterBlockBundle {
 	// body: RigidBody,
 	name: Name,
 	thruster: Thruster,
+	internal_force: ExternalForce,
 }
 
 impl ThrusterPlugin {
-	fn add_thruster_joint(
-		new_thrusters: Query<(Entity, &Parent), Added<Thruster>>,
-		mut commands: Commands,
-	) {
-		for (thruster, parent) in new_thrusters.iter() {
-			commands
-				.entity(thruster)
-				.insert((FixedJoint::new(thruster, parent.get())));
-			
-			debug!("Added a joint");
-		}
-	}
-
 	fn sync_thruster_with_visuals(
 		thrusters: Query<(&Children, &Thruster)>,
 		mut particle_effects: Query<(&mut CompiledParticleEffect, &mut EffectSpawner)>,
@@ -215,6 +203,7 @@ impl FromBlueprint for ThrusterBlockBundle {
 			// body: RigidBody::Dynamic,
 			name: Name::new("ThrusterBlock"),
 			thruster: specific_marker.clone().into(),
+			internal_force: ExternalForce::ZERO.with_persistence(false),
 		}
 	}
 }

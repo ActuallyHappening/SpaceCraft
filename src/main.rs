@@ -19,7 +19,7 @@ fn main() {
 				})
 				.set(LogPlugin {
 					level: bevy::log::Level::WARN,
-					filter: "creativity_game=trace,bevy_ecs=info,bevy_replicon=debug,renet=debug".into(),
+					filter: "creativity_game=trace,bevy_ecs=info,bevy_replicon=debug,renet=debug,bevy_xpbd_3d=debug".into(),
 				})
 				.build(),
 		)

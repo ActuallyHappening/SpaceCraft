@@ -32,7 +32,7 @@ bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
 clap = { version = "4.4.8", features = ["derive"] }
 extension-traits = "1.0.1"
-meshtext = "0.3.0"
+# meshtext = "0.3.0"
 rand = "0.8.5"
 serde = { version = "1.0.192", features = ["derive"] }
 structstruck = "0.4.1"
@@ -58,10 +58,17 @@ git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
 # version = "0.6"
 features = ["default_windows"]
 
-[dependencies.bevy_xpbd_3d]
+[workspace.dependencies.bevy_xpbd_3d]
 # version = "0.3.2"
 features = ["enhanced-determinism", "serialize", "debug-plugin"]
-git = "https://github.com/Jondolf/bevy_xpbd.git"
+# git = "https://github.com/Jondolf/bevy_xpbd.git"
+path = "../bevy_xpbd/crates/bevy_xpbd_3d"
+
+[dependencies.bevy_xpbd_3d]
+workspace = true
+
+[dependencies.bevy_xpbd3d_parenting]
+path = "./bevy_xpbd3d_parenting"
 
 [dependencies.bevy_timewarp]
 git = "https://github.com/ActuallyHappening/bevy_timewarp.git"

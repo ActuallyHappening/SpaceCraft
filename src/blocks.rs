@@ -153,7 +153,7 @@ mod structure_block {
 	impl BlockBlueprint<StructureBlock> {
 		pub fn new_structure(block: StructureBlock, location: manual_builder::RelativePixel) -> Self {
 			BlockBlueprint {
-				transform: Transform::from_translation(location.as_vec3() * PIXEL_SIZE),
+				transform: Transform::from_translation(location.as_vec3().mul(PIXEL_SIZE)),
 				mesh: super::OptimizableMesh::StandardBlock,
 				material: super::OptimizableMaterial::OpaqueColour(Color::SILVER),
 				specific_marker: block,
