@@ -25,15 +25,21 @@ impl Plugin for ThrusterPlugin {
 }
 
 /// Component for all thrusters (on a player)
-#[derive(Debug, Component, Reflect, Clone)]
+#[derive(Debug, Component, Reflect, Clone, InspectorOptions)]
+#[reflect(InspectorOptions)]
 struct Thruster {
 	id: BlockId,
+
+	#[inspector(min = 0.0)]
 	strength_factor: f32,
+
 	/// Between 0..=1, synced with visuals and physics
+	#[inspector(min = 0.0, max = 1.0)]
 	current_status: f32,
 }
 
 impl Thruster {
+	/// Get the current status of the thruster, i.e. factor between 0..=1 of how strongly it is firing.
 	pub fn current_status(&self) -> f32 {
 		self.current_status.clamp(0., 1.,)
 	}
@@ -73,7 +79,7 @@ impl ThrusterPlugin {
 
 	fn sync_thruster_with_internal_forces(mut thrusters: Query<(&Thruster, &mut InternalForce)>) {
 		for (thruster, mut internal_force) in thrusters.iter_mut() {
-			internal_force.0 = Vec3::Z * thruster.current_status() * thruster.strength_factor;
+			internal_force.set(Vec3::Z * thruster.current_status() * thruster.strength_factor);
 		}
 	}
 
@@ -181,7 +187,7 @@ impl ThrusterBlock {
 	pub fn new() -> Self {
 		Self {
 			id: BlockId::random(),
-			strength: 4.,
+			strength: 10.,
 		}
 	}
 }

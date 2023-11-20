@@ -24,6 +24,7 @@ pub use bevy_mod_picking::prelude::*;
 pub use bevy_replicon::{prelude::*, renet::ClientId};
 pub use bevy_xpbd_3d::prelude::*;
 pub use bevy_timewarp::prelude::*;
+pub use bevy_inspector_egui::prelude::*;
 
 // helper deps
 pub use structstruck::strike as nested_structs;

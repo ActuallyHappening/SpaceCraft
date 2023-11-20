@@ -2059,6 +2059,7 @@ name = "creativity-game"
 version = "0.0.0"
 dependencies = [
  "bevy",
+ "bevy-inspector-egui",
  "bevy_editor_pls",
  "bevy_hanabi",
  "bevy_mod_picking",
