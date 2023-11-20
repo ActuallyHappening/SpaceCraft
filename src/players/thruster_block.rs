@@ -1,3 +1,5 @@
+use bevy_xpbd3d_parenting::InternalForce;
+
 use crate::prelude::*;
 
 use crate::blocks::{manual_builder, BlockBlueprint};
@@ -36,7 +38,7 @@ pub struct ThrusterBlockBundle {
 	// body: RigidBody,
 	name: Name,
 	thruster: Thruster,
-	internal_force: ExternalForce,
+	internal_force: InternalForce,
 }
 
 impl ThrusterPlugin {
@@ -203,7 +205,7 @@ impl FromBlueprint for ThrusterBlockBundle {
 			// body: RigidBody::Dynamic,
 			name: Name::new("ThrusterBlock"),
 			thruster: specific_marker.clone().into(),
-			internal_force: ExternalForce::ZERO.with_persistence(false),
+			internal_force: InternalForce(Vec3::Z),
 		}
 	}
 }

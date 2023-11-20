@@ -98,7 +98,7 @@ mod player {
 					.insert(PlayerBundle::stamp_from_blueprint(
 						player_blueprint,
 						&mut mma,
-					)).insert(ExternalForce::ZERO)
+					))
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
 							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
