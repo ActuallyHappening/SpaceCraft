@@ -96,7 +96,7 @@ impl ThrusterPlugin {
 	) {
 		for thruster in added_thrusters.iter() {
 			commands.entity(thruster).with_children(|parent| {
-				debug!("Spawning thruster visuals");
+				// debug!("Spawning thruster visuals");
 
 				let mut color_gradient = Gradient::new();
 				color_gradient.add_key(0.0, Vec4::splat(1.0));
