@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)] // requires `derive` feature
@@ -7,6 +9,7 @@ enum Cli {
 	Release(Release),
 	Dev(Dev),
 	Setup(Setup),
+	Update,
 }
 
 #[derive(clap::Args)]
@@ -26,8 +29,8 @@ struct Setup {
 	#[command(subcommand)]
 	platform: Platform,
 
-	#[arg(long, short)]
-	user_name: String,
+	// #[arg(long, short)]
+	// user_name: String,
 }
 
 #[derive(Subcommand)]
@@ -57,31 +60,41 @@ fn main() {
 		Cli::Release(Release { platform }) => match platform {
 			Platform::Windows => {
 				cargo_exec(["build", "--release", "--target", "x86_64-pc-windows-gnu"]);
+				assert!(Path::new("target/x86_64-pc-windows-gnu/release/").is_dir());
 			}
 			_ => todo!(),
 		},
 		Cli::Setup(Setup {
 			platform,
-			user_name,
+			// user_name,
 		}) => match platform {
 			Platform::Windows => {
-				exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
-				cargo_exec(["install", "xwin"]);
-				exec(
-					"xwin",
-					[
-						"--accept-license",
-						"splat",
-						"--disable-symlinks",
-						"--output",
-						format!("/Users/{}/.xwin", user_name).as_str(),
-					],
-				);
+				// exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
+				exec("rustup", ["target", "add", "x86_64-pc-windows-gnu"]);
+				// cargo_exec(["install", "xwin"]);
+				// exec(
+				// 	"xwin",
+				// 	[
+				// 		"--accept-license",
+				// 		"splat",
+				// 		"--disable-symlinks",
+				// 		"--output",
+				// 		format!("/Users/{}/.xwin", user_name).as_str(),
+				// 	],
+				// );
 				exec("brew", ["install", "llvm"]);
 				exec("brew", ["install", "mingw-w64"]);
 			}
 			_ => todo!(),
 		},
+		Cli::Update => {
+			cargo_exec(["update"]);
+			exec("rustup", ["update"]);
+			#[cfg(target_os = "macos")]
+			exec("brew", ["update"]);
+			#[cfg(target_os = "macos")]
+			exec("brew", ["upgrade"]);
+		}
 		_ => todo!(),
 	}
 }
