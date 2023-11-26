@@ -28,7 +28,6 @@ struct Dev {
 struct Setup {
 	#[command(subcommand)]
 	platform: Platform,
-
 	// #[arg(long, short)]
 	// user_name: String,
 }
@@ -53,14 +52,26 @@ fn exec<'a, 's>(exec_str: &'a str, args: impl IntoIterator<Item = &'s str>) {
 	assert!(exec_output.success())
 }
 
+fn get_bin_name() -> String {
+	// parse Cargo.toml for bin name
+	let cargo_toml = std::fs::read_to_string("Cargo.toml").unwrap();
+	let cargo_toml: toml::Value = toml::from_str(&cargo_toml).unwrap();
+	let bin_name = cargo_toml["package"]["name"].as_str().unwrap();
+	bin_name.to_string()
+}
+
 fn main() {
 	let args = Cli::parse();
 
 	match args {
 		Cli::Release(Release { platform }) => match platform {
 			Platform::Windows => {
-				cargo_exec(["build", "--release", "--target", "x86_64-pc-windows-gnu"]);
+				cargo_exec(["build", "--release", "--target", "x86_64-pc-windows-gnu", "--no-default-features", "--features", "release"]);
 				assert!(Path::new("target/x86_64-pc-windows-gnu/release/").is_dir());
+				let bin_name = get_bin_name();
+				assert!(Path::new(format!("target/x86_64-pc-windows-gnu/release/{}.exe", bin_name).as_str()).is_file());
+
+				todo!("Package windows build");
 			}
 			_ => todo!(),
 		},
@@ -82,7 +93,9 @@ fn main() {
 				// 		format!("/Users/{}/.xwin", user_name).as_str(),
 				// 	],
 				// );
+				#[cfg(target_os = "macos")]
 				exec("brew", ["install", "llvm"]);
+				#[cfg(target_os = "macos")]
 				exec("brew", ["install", "mingw-w64"]);
 			}
 			_ => todo!(),

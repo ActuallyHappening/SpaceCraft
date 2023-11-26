@@ -12,12 +12,13 @@ members = ["xtask", "bevy_xpbd3d_parenting"]
 
 
 [features]
-default = ["dev", "helper-scenes"]
+default = ["dev"]
 ## Only used while developing the game
 dev = ["bevy/dynamic_linking"]
 
-## Developer specific, to remove upon release
-helper-scenes = []
+## The only feature flag that should be enabled when building this game
+## in release mode
+release = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

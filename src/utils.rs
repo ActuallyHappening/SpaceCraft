@@ -6,7 +6,6 @@ use extension_traits::extension;
 
 // mod text;
 
-#[cfg(feature = "helper-scenes")]
 pub mod scenes;
 
 pub trait FromBlueprint {
