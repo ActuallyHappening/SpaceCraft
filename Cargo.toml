@@ -12,9 +12,12 @@ members = ["xtask", "bevy_xpbd3d_parenting"]
 
 
 [features]
-default = ["dev"]
+default = ["dev", "helper-scenes"]
 ## Only used while developing the game
 dev = ["bevy/dynamic_linking"]
+
+## Developer specific, to remove upon release
+helper-scenes = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -42,7 +45,9 @@ strum = { version = "0.25.0", features = ["derive"] }
 # hanabi particles
 [dependencies.bevy_hanabi]
 # version = "0.8"
-git = "https://github.com/ActuallyHappening/bevy_hanabi.git"
+# git = "https://github.com/ActuallyHappening/bevy_hanabi.git"
+git = "https://github.com/djeedai/bevy_hanabi.git"
+branch = "u/effect-properties"
 default-features = false
 features = ["3d", "2d"]
 

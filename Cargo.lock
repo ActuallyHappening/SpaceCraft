@@ -815,8 +815,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_hanabi"
-version = "0.8.0"
-source = "git+https://github.com/ActuallyHappening/bevy_hanabi.git#0f391a82e45dcd0689c338dce0c39a246965b937"
+version = "0.9.0-dev"
+source = "git+https://github.com/djeedai/bevy_hanabi.git?branch=u/effect-properties#efbf649983960cd42066b37cfba60e1723b962c0"
 dependencies = [
  "anyhow",
  "bevy",

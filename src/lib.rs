@@ -156,6 +156,8 @@ impl Plugin for MainPlugin {
 				GlobalSystemSet::GameLogic,
 				GlobalSystemSet::GameLogic,
 			)),
+			#[cfg(feature = "helper-scenes")]
+			crate::utils::scenes::HelperScene,
 		));
 		// dep configuration
 		app.insert_resource(Gravity(Vec3::ZERO));

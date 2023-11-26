@@ -58,12 +58,12 @@ pub struct ThrusterBlockBundle {
 impl ThrusterPlugin {
 	fn sync_thruster_with_visuals(
 		thrusters: Query<(&Children, &Thruster)>,
-		mut particle_effects: Query<(&mut CompiledParticleEffect, &mut EffectSpawner)>,
+		mut particle_effects: Query<(&mut EffectProperties, &mut EffectSpawner)>,
 	) {
 		for (thrusters, thrust) in thrusters.iter() {
 			for thruster in thrusters {
-				if let Ok((mut particles, mut spawner)) = particle_effects.get_mut(*thruster) {
-					particles.set_property(
+				if let Ok((properties, mut spawner)) = particle_effects.get_mut(*thruster) {
+					EffectProperties::set_if_changed(properties,
 						Self::LIFETIME_ATTR,
 						thrust.current_status.clamp(0., 1.).into(),
 					);
@@ -168,6 +168,7 @@ impl ThrusterPlugin {
 						transform: Transform::from_rotation(Quat::from_rotation_x(-TAU / 4.)),
 						..default()
 					},
+					EffectProperties::default(),
 				));
 			});
 		}
