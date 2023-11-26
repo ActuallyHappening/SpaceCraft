@@ -1,5 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
+use std::process::Stdio;
 
 use clap::{Parser, Subcommand};
 
@@ -39,6 +41,7 @@ struct Setup {
 #[derive(Subcommand)]
 enum Platform {
 	Windows,
+	#[command(name = "macos")]
 	MacOS,
 	// Web,
 	// Linux,
@@ -60,8 +63,11 @@ fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str>) {
 fn exec<'a, 's>(exec_str: &'a str, args: impl IntoIterator<Item = &'s str>) -> String {
 	let mut exec = std::process::Command::new(exec_str);
 	exec.args(args);
+	exec.stdout(Stdio::piped());
+
 	let exec_output = exec.spawn().unwrap().wait_with_output().unwrap();
 	assert!(exec_output.status.success());
+
 	exec_output
 		.stdout
 		.into_iter()
@@ -95,7 +101,7 @@ fn get_sdk_root() -> PathBuf {
 	let str = str.trim();
 	let path = Path::new(str);
 
-	assert!(path.exists());
+	assert!(path.exists(), "SDK path {str} does not exist");
 
 	PathBuf::from(path)
 }
@@ -139,8 +145,8 @@ fn main() {
 					[("SDKROOT", sdk_root)],
 				);
 				let silicon_build = format!("target/aarch64-apple-darwin/release/{bin_name}");
-				let silicon_build = Path::new(silicon_build.as_str());
-				assert!(silicon_build.is_file());
+				assert!(PathBuf::from(&silicon_build).is_file());
+
 				exec_with_envs(
 					&get_cargo_path(),
 					[
@@ -153,6 +159,16 @@ fn main() {
 					],
 					[("SDKROOT", sdk_root)],
 				);
+				let intel_build = format!("target/x86_64-apple-darwin/release/{bin_name}");
+				assert!(PathBuf::from(&intel_build).is_file());
+
+				exec("lipo", [
+					"-create",
+					"-output",
+					format!("target/release/{bin_name}").as_str(),
+					&silicon_build,
+					&intel_build,
+				]);
 			}
 		},
 		Cli::Setup(Setup {
