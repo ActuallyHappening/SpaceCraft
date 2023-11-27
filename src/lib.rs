@@ -13,6 +13,7 @@
 // 	clippy::wildcard_imports,
 // 	clippy::use_self
 // )]
+#![windows_subsystem = "windows"]
 
 mod blocks;
 mod global;

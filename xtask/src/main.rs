@@ -129,13 +129,13 @@ fn main() {
 				let final_zip = format!("{} v{}.zip", app_name, version);
 				// cwd into release_dir
 				let original_cwd = std::env::current_dir().unwrap();
-				std::env::set_current_dir(release_folder).unwrap();
+				std::env::set_current_dir(release_dir).unwrap();
 
 				if PathBuf::from(&final_zip).exists() {
 					debug!("Removing old zip: rm \"{}\"", &final_zip);
 					remove_file(&final_zip).unwrap();
 				}
-				exec("zip", ["-r", &final_zip, "./src"]);
+				exec("zip", ["-r", &final_zip, "."]);
 
 				std::env::set_current_dir(original_cwd).unwrap();
 			}

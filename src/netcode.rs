@@ -56,7 +56,7 @@ impl NetcodeConfig {
 	pub const fn new_hosting_public() -> Self {
 		// TODO: Verify this actually hosts, don't we need 0.0.0.0?
 		NetcodeConfig::Server {
-			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
+			ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
 			port: DEFAULT_PORT,
 		}
 	}
@@ -115,10 +115,7 @@ impl NetcodePlugin {
 				commands.insert_resource(server);
 				commands.insert_resource(transport);
 
-				commands.spawn(PlayerBlueprint::default_at(
-					SERVER_ID,
-					Transform::default(),
-				));
+				commands.spawn(PlayerBlueprint::default_at(SERVER_ID, Transform::default()));
 			}
 			NetcodeConfig::Client { ip, port } => {
 				info!("Setting up as client");
@@ -136,7 +133,7 @@ impl NetcodePlugin {
 					.unwrap();
 				let client_id = current_time.as_millis() as u64;
 				let server_addr = SocketAddr::new(*ip, *port);
-				let socket = UdpSocket::bind((*ip, 0)).expect("Couldn't bind to socket");
+				let socket = UdpSocket::bind((*ip, 0)).expect("Couldn't bind to (unspecified) socket");
 				let authentication = ClientAuthentication::Unsecure {
 					client_id,
 					protocol_id: PROTOCOL_ID,
