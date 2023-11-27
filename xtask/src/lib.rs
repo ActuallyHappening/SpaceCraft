@@ -1,5 +1,6 @@
 pub use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use convert_case::{Case, Casing};
 
 pub fn get_cargo_path() -> String {
 	// get cargo executable from env CARGO, and run it with str
@@ -58,4 +59,9 @@ pub fn get_sdk_root() -> PathBuf {
 	assert!(path.exists(), "SDK path {str} does not exist");
 
 	PathBuf::from(path)
+}
+
+#[cfg(target_os = "macos")]
+pub fn get_osx_app_name() -> String {
+	get_bin_name().to_case(Case::Title)
 }
