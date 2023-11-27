@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, remove_dir_all};
+use std::fs::{create_dir_all, remove_dir_all, remove_file};
 
 use clap::{Parser, Subcommand};
 use xtask::*;
@@ -132,7 +132,6 @@ fn main() {
 					"release/macos/{app_name}.app",
 					app_name = app_name.replace(' ', "")
 				);
-				let final_dir = format!("release/macos/{app_name}.dmg");
 				let package_path = PathBuf::from(&dir);
 				if remove_dir_all(&package_path).is_ok() {
 					println!("Removed old package");
@@ -156,6 +155,12 @@ fn main() {
 				// todo: copy over icons from build/macos
 
 				// put into volume
+				let version = get_version_string();
+				let final_dmg = format!("release/macos/{app_name} v{version}.dmg");
+				if PathBuf::from(&final_dmg).is_file() {
+					println!("Removing old dmg: {}", final_dmg);
+					remove_file(&final_dmg).unwrap();
+				}
 				exec(
 					"hdiutil",
 					[
@@ -166,7 +171,7 @@ fn main() {
 						&app_name,
 						"-srcfolder",
 						&dir,
-						&final_dir,
+						&final_dmg,
 					],
 				);
 

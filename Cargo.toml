@@ -1,6 +1,6 @@
 [package]
-name = "creativity-game"
-default-run = "creativity-game"
+name = "space-craft"
+default-run = "space-craft"
 version = "0.0.0"
 edition = "2021"
 publish = false

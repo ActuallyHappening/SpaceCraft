@@ -50,6 +50,15 @@ pub fn get_bin_name() -> String {
 	bin_name.to_string()
 }
 
+pub fn get_version_string() -> String {
+	// parse Cargo.toml for version number
+	let cargo_toml = std::fs::read_to_string("Cargo.toml").unwrap();
+	let cargo_toml: toml::Value = toml::from_str(&cargo_toml).unwrap();
+	let version = cargo_toml["package"]["version"].as_str().unwrap();
+	version.to_string()
+
+}
+
 #[cfg(target_os = "macos")]
 pub fn get_sdk_root() -> PathBuf {
 	let str = exec("xcrun", ["-sdk", "macosx", "--show-sdk-path"]);

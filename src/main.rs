@@ -19,10 +19,10 @@ fn main() {
 				})
 				.set(LogPlugin {
 					level: bevy::log::Level::WARN,
-					filter: "creativity_game=trace,bevy_ecs=info,bevy_replicon=debug,renet=debug,bevy_xpbd_3d=debug".into(),
+					filter: "space_craft=trace,bevy_ecs=info,bevy_replicon=debug,renet=debug,bevy_xpbd_3d=debug".into(),
 				})
 				.build(),
 		)
-		.add_plugins((creativity_game::MainPlugin,))
+		.add_plugins((space_craft::MainPlugin,))
 		.run();
 }

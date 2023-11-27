@@ -2088,30 +2088,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "creativity-game"
-version = "0.0.0"
-dependencies = [
- "bevy",
- "bevy-inspector-egui",
- "bevy_editor_pls",
- "bevy_hanabi",
- "bevy_mod_picking",
- "bevy_replicon",
- "bevy_screen_diagnostics",
- "bevy_timewarp",
- "bevy_xpbd3d_parenting",
- "bevy_xpbd_3d",
- "clap",
- "extension-traits",
- "rand",
- "renet",
- "serde",
- "structstruck",
- "strum",
- "uuid",
-]
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4347,6 +4323,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74212e6bbe9a4352329b2f68ba3130c15a3f26fe88ff22dbdc6cdd58fa85e99c"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "space-craft"
+version = "0.0.0"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy_editor_pls",
+ "bevy_hanabi",
+ "bevy_mod_picking",
+ "bevy_replicon",
+ "bevy_screen_diagnostics",
+ "bevy_timewarp",
+ "bevy_xpbd3d_parenting",
+ "bevy_xpbd_3d",
+ "clap",
+ "extension-traits",
+ "rand",
+ "renet",
+ "serde",
+ "structstruck",
+ "strum",
+ "uuid",
 ]
 
 [[package]]
