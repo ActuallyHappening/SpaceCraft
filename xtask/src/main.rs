@@ -147,13 +147,12 @@ fn main() {
 				// prepare package_path
 				let package_folder = "release/macos/src";
 				let package_dir = format!(
-					"{package_folder}/{bin_name}.app",
+					"{package_folder}/{app_name}.app",
 				);
-				let package_path = PathBuf::from(&package_dir);
-				if remove_dir_all(&package_path).is_ok() {
+				if remove_dir_all(PathBuf::from(&package_folder)).is_ok() {
 					println!("Removed old package");
 				}
-				create_dir_all(&package_path).expect("Unable to create package directory");
+				create_dir_all(Path::new(&package_dir)).expect("Unable to create package directory");
 
 				// copy assets, binary and eventually credits
 				let assets_dir = format!("{}/Contents/MacOS/assets", &package_dir);
@@ -169,7 +168,6 @@ fn main() {
 				let final_bin_file = format!("{}/Contents/MacOS/{bin_name}", &package_dir, bin_name = bin_name);
 				exec("cp", [&bin_file, final_bin_file.as_str()]);
 				exec("strip", [final_bin_file.as_str()]);
-				// todo: copy over icons from build/macos
 
 				// copy over contents in build/macos
 				let build_dir = "build/macos.app";
@@ -262,6 +260,53 @@ fn main() {
 			Platform::MacOS => {
 				exec("rustup", ["target", "add", "aarch64-apple-darwin"]);
 				exec("rustup", ["target", "add", "x86_64-apple-darwin"]);
+
+				// sort out icons
+				let build_dir = "build/macos.app/Contents";
+				let icon_dir = format!("{}/AppIcon.iconset", build_dir);
+				if remove_dir_all(&icon_dir).is_ok() {
+					println!("Removed old iconset dir");
+				}
+				create_dir(&icon_dir).unwrap();
+
+				let base_icon = "assets/images/icon_1024x1024.png";
+				assert!(Path::new(base_icon).exists());
+
+				let sips= |size: u16| {
+					exec("sips", [
+						"-z",
+						size.to_string().as_str(),
+						size.to_string().as_str(),
+						base_icon,
+						"--out",
+						format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
+					]);
+				};
+				let sips2 = |size: u16| {
+					assert!(size > 16);
+					exec("sips", [
+						"-z",
+						size.to_string().as_str(),
+						size.to_string().as_str(),
+						base_icon,
+						"--out",
+						format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
+					]);
+				};
+				for size in [16, 32, 128, 256, 512].iter() {
+					sips(*size);
+				}
+				for size in [32, 64, 256, 512].iter() {
+					sips2(*size);
+				}
+
+				exec("iconutil", [
+					"-c",
+					"icns",
+					&icon_dir,
+					"--output",
+					format!("{}/Resources/AppIcon.icns", build_dir).as_str(),
+				]);
 			}
 		},
 		Cli::Update => {
