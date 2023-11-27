@@ -7,9 +7,11 @@ use xtask::*;
 #[command(bin_name = "cargo xtask")]
 #[command(author, version, about, long_about = None)]
 enum Cli {
+	/// Builds and packages the application for release.
 	Package(Release),
-	Dev(Dev),
+	/// Updates icons and ensures rustup has targets added.
 	Prepare(Setup),
+	// Dev(Dev),
 	Update,
 }
 
