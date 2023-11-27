@@ -27,16 +27,18 @@ struct Release {
 
 	/// Will ln -s the un-compressed package into applications.
 	/// Only applicable for MacOS <-> MacOS builds.
-	#[arg(long, short, default_value_t = false)]
-	link_into_applications: bool,
+	#[arg(long, default_value_t = false)]
+	macos_link_into_applications: bool,
 
 	/// Links in /Applications into the .dmg, so that the user can drag the app into /Applications.
+	/// Only applicable for -> MacOS builds
 	#[arg(long, default_value_t = true)]
-	link_for_bundle: bool,
+	macos_link_for_bundle: bool,
 
 	/// Will automatically call `open` on the package after building.
+	/// Only applicable for MacOS builds
 	#[arg(long, short, default_value_t = false)]
-	open: bool,
+	macos_open: bool,
 
 	#[command(subcommand)]
 	platform: Platform,
@@ -83,9 +85,9 @@ fn main() {
 			platform,
 			bin_name,
 			app_name,
-			link_into_applications,
-			link_for_bundle,
-			open,
+			macos_link_into_applications: link_into_applications,
+			macos_link_for_bundle: link_for_bundle,
+			macos_open: open,
 		}) => match platform {
 			Platform::Windows => {
 				cargo_exec([

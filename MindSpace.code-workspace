@@ -24,9 +24,9 @@
 		// {
 		// 	"path": "../bevy_xpbd"
 		// },
-		{
-			"path": "../bevy_replicon"
-		},
+		// {
+		// 	"path": "../bevy_replicon"
+		// },
 		// {
 		// 	"path": "../bevy-inspector-egui"
 		// },

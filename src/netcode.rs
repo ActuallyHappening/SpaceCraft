@@ -86,7 +86,7 @@ impl NetcodePlugin {
 	) {
 		match config.into_inner() {
 			NetcodeConfig::Server { ip: addr, port } => {
-				info!("Setting up as server");
+				info!("Setting up as server, hosting on {}:{}", addr, port);
 				let server_channels_config = network_channels.get_server_configs();
 				let client_channels_config = network_channels.get_client_configs();
 
@@ -118,7 +118,7 @@ impl NetcodePlugin {
 				commands.spawn(PlayerBlueprint::default_at(SERVER_ID, Transform::default()));
 			}
 			NetcodeConfig::Client { ip, port } => {
-				info!("Setting up as client");
+				info!("Setting up as client, connecting to {:?} on port {}", ip, port);
 				let server_channels_config = network_channels.get_server_configs();
 				let client_channels_config = network_channels.get_client_configs();
 
