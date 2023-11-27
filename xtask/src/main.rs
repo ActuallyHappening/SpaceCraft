@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, remove_dir_all, remove_file, create_dir};
+use std::fs::{create_dir, create_dir_all, remove_dir_all, remove_file};
 
 use clap::{Parser, Subcommand};
 use xtask::*;
@@ -27,7 +27,6 @@ struct Release {
 	/// Only applicable for MacOS <-> MacOS builds.
 	#[arg(long, short, default_value_t = false)]
 	link_into_applications: bool,
-
 
 	/// Links in /Applications into the .dmg, so that the user can drag the app into /Applications.
 	#[arg(long, default_value_t = true)]
@@ -87,12 +86,36 @@ fn main() {
 					"release",
 				]);
 				assert!(Path::new("target/x86_64-pc-windows-gnu/release/").is_dir());
-				assert!(Path::new(
-					format!("target/x86_64-pc-windows-gnu/release/{}.exe", bin_name).as_str()
-				)
-				.is_file());
+				let bin_path = format!(
+					"target/x86_64-pc-windows-gnu/release/{bin_name}.exe",
+					bin_name = bin_name
+				);
+				assert!(Path::new(bin_path.as_str()).is_file());
 
-				todo!("Package windows build");
+				let release_folder = "release/windows";
+				let release_dir = format!("{}/src", release_folder);
+				if remove_dir_all(PathBuf::from(&release_dir)).is_ok() {
+					println!("Removed old release");
+				}
+				create_dir_all(&release_dir).unwrap();
+
+				// copy assets, binary and eventually credits
+				exec(
+					"cp",
+					["-r", "assets/", format!("{}/assets", release_dir).as_str()],
+				);
+				exec(
+					"cp",
+					[
+						&bin_path,
+						format!("{}/{}.exe", release_dir, bin_name).as_str(),
+					],
+				);
+
+				// put into zip
+				let version = get_version_string();
+				let final_zip = format!("{}/{} v{}.zip", release_folder, app_name, version);
+				exec("zip", ["-r", &final_zip, &release_dir]);
 			}
 			#[cfg(not(target_os = "macos"))]
 			Platform::MacOS => {
@@ -148,9 +171,7 @@ fn main() {
 
 				// prepare package_path
 				let package_folder = "release/macos/src";
-				let package_dir = format!(
-					"{package_folder}/{app_name}.app",
-				);
+				let package_dir = format!("{package_folder}/{app_name}.app",);
 				if remove_dir_all(PathBuf::from(&package_folder)).is_ok() {
 					println!("Removed old package");
 				}
@@ -159,15 +180,12 @@ fn main() {
 				// copy assets, binary and eventually credits
 				let assets_dir = format!("{}/Contents/MacOS/assets", &package_dir);
 				create_dir_all(&assets_dir).unwrap();
-				exec(
-					"cp",
-					[
-						"-r",
-						"assets/",
-						&assets_dir,
-					],
+				exec("cp", ["-r", "assets/", &assets_dir]);
+				let final_bin_file = format!(
+					"{}/Contents/MacOS/{bin_name}",
+					&package_dir,
+					bin_name = bin_name
 				);
-				let final_bin_file = format!("{}/Contents/MacOS/{bin_name}", &package_dir, bin_name = bin_name);
 				exec("cp", [&bin_file, final_bin_file.as_str()]);
 				exec("strip", [final_bin_file.as_str()]);
 
@@ -181,18 +199,17 @@ fn main() {
 					],
 				);
 				create_dir(format!("{package_dir}/Contents/Resources")).unwrap();
-				exec("cp", [
-					format!("{build_dir}/Contents/Resources/AppIcon.icns").as_str(),
-					format!("{package_dir}/Contents/Resources/AppIcon.icns").as_str(),
-				]);
+				exec(
+					"cp",
+					[
+						format!("{build_dir}/Contents/Resources/AppIcon.icns").as_str(),
+						format!("{package_dir}/Contents/Resources/AppIcon.icns").as_str(),
+					],
+				);
 
 				if link_for_bundle {
 					// ln -s /Applications into the bundle
-					exec("ln", [
-						"-s",
-						"/Applications",
-						&package_folder,
-					]);
+					exec("ln", ["-s", "/Applications", &package_folder]);
 				}
 
 				// put into volume
@@ -274,26 +291,32 @@ fn main() {
 				let base_icon = "assets/images/icon_1024x1024.png";
 				assert!(Path::new(base_icon).exists());
 
-				let sips= |size: u16| {
-					exec("sips", [
-						"-z",
-						size.to_string().as_str(),
-						size.to_string().as_str(),
-						base_icon,
-						"--out",
-						format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
-					]);
+				let sips = |size: u16| {
+					exec(
+						"sips",
+						[
+							"-z",
+							size.to_string().as_str(),
+							size.to_string().as_str(),
+							base_icon,
+							"--out",
+							format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
+						],
+					);
 				};
 				let sips2 = |size: u16| {
 					assert!(size > 16);
-					exec("sips", [
-						"-z",
-						size.to_string().as_str(),
-						size.to_string().as_str(),
-						base_icon,
-						"--out",
-						format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
-					]);
+					exec(
+						"sips",
+						[
+							"-z",
+							size.to_string().as_str(),
+							size.to_string().as_str(),
+							base_icon,
+							"--out",
+							format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
+						],
+					);
 				};
 				for size in [16, 32, 128, 256, 512].iter() {
 					sips(*size);
@@ -302,13 +325,16 @@ fn main() {
 					sips2(*size);
 				}
 
-				exec("iconutil", [
-					"-c",
-					"icns",
-					&icon_dir,
-					"--output",
-					format!("{}/Resources/AppIcon.icns", build_dir).as_str(),
-				]);
+				exec(
+					"iconutil",
+					[
+						"-c",
+						"icns",
+						&icon_dir,
+						"--output",
+						format!("{}/Resources/AppIcon.icns", build_dir).as_str(),
+					],
+				);
 			}
 		},
 		Cli::Update => {
