@@ -39,6 +39,9 @@
 		// {
 		// 	"path": "../space_editor"
 		// }
+		{
+			"path": "../bevy_game_template"
+		}
 	],
 	"settings": {
 		"cSpell.words": [

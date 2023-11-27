@@ -24,7 +24,16 @@ struct Release {
 	/// Will ln -s the un-compressed package into applications.
 	/// Only applicable for MacOS <-> MacOS builds.
 	#[arg(long, short, default_value_t = false)]
-	link: bool,
+	link_into_applications: bool,
+
+
+	/// Links in /Applications into the .dmg, so that the user can drag the app into /Applications.
+	#[arg(long, default_value_t = true)]
+	link_for_bundle: bool,
+
+	/// Will automatically call `open` on the package after building.
+	#[arg(long, short, default_value_t = false)]
+	open: bool,
 
 	#[command(subcommand)]
 	platform: Platform,
@@ -61,7 +70,9 @@ fn main() {
 			platform,
 			bin_name,
 			app_name,
-			link,
+			link_into_applications,
+			link_for_bundle,
+			open,
 		}) => match platform {
 			Platform::Windows => {
 				cargo_exec([
@@ -134,8 +145,9 @@ fn main() {
 				);
 
 				// prepare package_path
+				let package_folder = "release/macos/src";
 				let package_dir = format!(
-					"release/macos/{bin_name}.app",
+					"{package_folder}/{bin_name}.app",
 				);
 				let package_path = PathBuf::from(&package_dir);
 				if remove_dir_all(&package_path).is_ok() {
@@ -165,14 +177,23 @@ fn main() {
 					"cp",
 					[
 						format!("{build_dir}/Contents/Info.plist").as_str(),
-						format!("{package_dir}/Contents/MacOS/Info.plist").as_str(),
+						format!("{package_dir}/Contents/Info.plist").as_str(),
 					],
 				);
-				create_dir(format!("{package_dir}/Contents/MacOS/Resources")).unwrap();
+				create_dir(format!("{package_dir}/Contents/Resources")).unwrap();
 				exec("cp", [
 					format!("{build_dir}/Contents/Resources/AppIcon.icns").as_str(),
-					format!("{package_dir}/Contents/MacOS/Resources/AppIcon.icns").as_str(),
+					format!("{package_dir}/Contents/Resources/AppIcon.icns").as_str(),
 				]);
+
+				if link_for_bundle {
+					// ln -s /Applications into the bundle
+					exec("ln", [
+						"-s",
+						"/Applications",
+						&package_folder,
+					]);
+				}
 
 				// put into volume
 				let version = get_version_string();
@@ -191,14 +212,13 @@ fn main() {
 						&app_name,
 						// &bin_name,
 						"-srcfolder",
-						&package_dir,
+						&package_folder,
 						&final_dmg,
 					],
 				);
 
 				// if link, ln -s into /Applications
-				// todo: work out why the link doesn't work?
-				if link {
+				if link_into_applications {
 					let app_link = format!("/Applications/{app_name}.app", app_name = app_name);
 					if PathBuf::from(&app_link).is_symlink() || PathBuf::from(&app_link).is_file() {
 						println!("Removing old app link: rm -rf \"{}\"", app_link);
@@ -206,6 +226,11 @@ fn main() {
 					}
 					println!("Linking: ln -s \"{}\" \"{}\"", &package_dir, &app_link);
 					exec("ln", ["-s", &package_dir, &app_link]);
+				}
+
+				if open {
+					println!("Opening: open \"{}\"", package_dir);
+					exec("open", [package_dir.as_str()]);
 				}
 
 				// eventually, code sign and notarize here
