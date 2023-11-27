@@ -7,9 +7,9 @@ use xtask::*;
 #[command(bin_name = "cargo xtask")]
 #[command(author, version, about, long_about = None)]
 enum Cli {
-	Release(Release),
+	Package(Release),
 	Dev(Dev),
-	Setup(Setup),
+	Prepare(Setup),
 	Update,
 }
 
@@ -66,7 +66,7 @@ fn main() {
 	let args = Cli::parse();
 
 	match args {
-		Cli::Release(Release {
+		Cli::Package(Release {
 			platform,
 			bin_name,
 			app_name,
@@ -234,7 +234,7 @@ fn main() {
 				// eventually, code sign and notarize here
 			}
 		},
-		Cli::Setup(Setup {
+		Cli::Prepare(Setup {
 			platform,
 			// user_name,
 		}) => match platform {
