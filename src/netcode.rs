@@ -133,7 +133,7 @@ impl NetcodePlugin {
 					.unwrap();
 				let client_id = current_time.as_millis() as u64;
 				let server_addr = SocketAddr::new(*ip, *port);
-				let socket = UdpSocket::bind((*ip, 0)).expect("Couldn't bind to (unspecified) socket");
+				let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).expect("Couldn't bind to (unspecified) socket");
 				let authentication = ClientAuthentication::Unsecure {
 					client_id,
 					protocol_id: PROTOCOL_ID,
