@@ -1,6 +1,7 @@
+use convert_case::{Case, Casing};
 pub use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use convert_case::{Case, Casing};
+use tracing::*;
 
 pub fn get_cargo_path() -> String {
 	// get cargo executable from env CARGO, and run it with str
@@ -9,19 +10,34 @@ pub fn get_cargo_path() -> String {
 	cargo_exec_path
 }
 
-pub fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str>) {
+pub fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) {
 	// get cargo executable from env CARGO, and run it with str
 	let cargo_exec_path = get_cargo_path();
 	exec(&cargo_exec_path, args);
 }
 
-pub fn exec<'a, 's>(exec_str: &'a str, args: impl IntoIterator<Item = &'s str>) -> String {
+pub fn exec<'a, 's>(exec_str: &'a str, args: impl IntoIterator<Item = &'s str> + Clone) -> String {
+	debug!(
+		"Running: {} \"{}\"",
+		exec_str,
+		args.clone().into_iter().collect::<Vec<_>>().join("\" \"")
+	);
 	let mut exec = std::process::Command::new(exec_str);
 	exec.args(args);
 	exec.stdout(Stdio::piped());
 
 	let exec_output = exec.spawn().unwrap().wait_with_output().unwrap();
-	assert!(exec_output.status.success());
+	assert!(
+		exec_output.status.success(),
+		"Command {} failed: {}",
+		exec_str,
+		exec_output
+			.stderr
+			.clone()
+			.into_iter()
+			.map(|b| b as char)
+			.collect::<String>()
+	);
 
 	exec_output
 		.stdout
@@ -56,7 +72,6 @@ pub fn get_version_string() -> String {
 	let cargo_toml: toml::Value = toml::from_str(&cargo_toml).unwrap();
 	let version = cargo_toml["package"]["version"].as_str().unwrap();
 	version.to_string()
-
 }
 
 #[cfg(target_os = "macos")]

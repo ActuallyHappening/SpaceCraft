@@ -41,6 +41,7 @@ rand = "0.8.5"
 serde = { version = "1.0.192", features = ["derive"] }
 structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
+tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
 
 # hanabi particles
 [dependencies.bevy_hanabi]

@@ -1,6 +1,8 @@
 use std::fs::{create_dir, create_dir_all, remove_dir_all, remove_file};
+use tracing::*;
 
 use clap::{Parser, Subcommand};
+use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use xtask::*;
 
 #[derive(Parser)] // requires `derive` feature
@@ -64,6 +66,16 @@ enum Platform {
 }
 
 fn main() {
+	tracing_subscriber::fmt()
+		.with_env_filter(
+			EnvFilter::builder()
+				.with_default_directive(LevelFilter::INFO.into())
+				.parse_lossy("xtask=trace"),
+		)
+		.init();
+
+		debug!("Initialized tracing");
+
 	let args = Cli::parse();
 
 	match args {
@@ -114,8 +126,18 @@ fn main() {
 
 				// put into zip
 				let version = get_version_string();
-				let final_zip = format!("{}/{} v{}.zip", release_folder, app_name, version);
-				exec("zip", ["-r", &final_zip, &release_dir]);
+				let final_zip = format!("{} v{}.zip", app_name, version);
+				// cwd into release_dir
+				let original_cwd = std::env::current_dir().unwrap();
+				std::env::set_current_dir(release_folder).unwrap();
+
+				if PathBuf::from(&final_zip).exists() {
+					debug!("Removing old zip: rm \"{}\"", &final_zip);
+					remove_file(&final_zip).unwrap();
+				}
+				exec("zip", ["-r", &final_zip, "./src"]);
+
+				std::env::set_current_dir(original_cwd).unwrap();
 			}
 			#[cfg(not(target_os = "macos"))]
 			Platform::MacOS => {

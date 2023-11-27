@@ -4346,6 +4346,7 @@ dependencies = [
  "serde",
  "structstruck",
  "strum",
+ "tracing-subscriber",
  "uuid",
 ]
 
@@ -5465,6 +5466,8 @@ dependencies = [
  "clap",
  "convert_case 0.6.0",
  "toml",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
