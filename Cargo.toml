@@ -1,6 +1,5 @@
 [package]
-name = "space-craft"
-default-run = "space-craft"
+name = "space_craft"
 version = "0.0.0"
 edition = "2021"
 publish = false

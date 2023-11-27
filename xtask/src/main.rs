@@ -1,4 +1,4 @@
-use std::fs::{create_dir_all, remove_dir_all, remove_file};
+use std::fs::{create_dir_all, remove_dir_all, remove_file, create_dir};
 
 use clap::{Parser, Subcommand};
 use xtask::*;
@@ -15,14 +15,19 @@ enum Cli {
 
 #[derive(clap::Args)]
 struct Release {
-	#[command(subcommand)]
-	platform: Platform,
-
 	#[arg(long, short, default_value_t = get_bin_name())]
 	bin_name: String,
 
 	#[arg(long, short, default_value_t = get_osx_app_name())]
 	app_name: String,
+
+	/// Will ln -s the un-compressed package into applications.
+	/// Only applicable for MacOS <-> MacOS builds.
+	#[arg(long, short, default_value_t = false)]
+	link: bool,
+
+	#[command(subcommand)]
+	platform: Platform,
 }
 
 #[derive(clap::Args)]
@@ -56,6 +61,7 @@ fn main() {
 			platform,
 			bin_name,
 			app_name,
+			link,
 		}) => match platform {
 			Platform::Windows => {
 				cargo_exec([
@@ -128,18 +134,17 @@ fn main() {
 				);
 
 				// prepare package_path
-				let dir = format!(
-					"release/macos/{app_name}.app",
-					app_name = app_name.replace(' ', "")
+				let package_dir = format!(
+					"release/macos/{bin_name}.app",
 				);
-				let package_path = PathBuf::from(&dir);
+				let package_path = PathBuf::from(&package_dir);
 				if remove_dir_all(&package_path).is_ok() {
 					println!("Removed old package");
 				}
 				create_dir_all(&package_path).expect("Unable to create package directory");
 
 				// copy assets, binary and eventually credits
-				let assets_dir = format!("{}/Contents/MacOS/assets", &dir);
+				let assets_dir = format!("{}/Contents/MacOS/assets", &package_dir);
 				create_dir_all(&assets_dir).unwrap();
 				exec(
 					"cp",
@@ -149,10 +154,25 @@ fn main() {
 						&assets_dir,
 					],
 				);
-				let final_bin_file = format!("{}/Contents/MacOS/{bin_name}", &dir, bin_name = bin_name);
+				let final_bin_file = format!("{}/Contents/MacOS/{bin_name}", &package_dir, bin_name = bin_name);
 				exec("cp", [&bin_file, final_bin_file.as_str()]);
 				exec("strip", [final_bin_file.as_str()]);
 				// todo: copy over icons from build/macos
+
+				// copy over contents in build/macos
+				let build_dir = "build/macos.app";
+				exec(
+					"cp",
+					[
+						format!("{build_dir}/Contents/Info.plist").as_str(),
+						format!("{package_dir}/Contents/MacOS/Info.plist").as_str(),
+					],
+				);
+				create_dir(format!("{package_dir}/Contents/MacOS/Resources")).unwrap();
+				exec("cp", [
+					format!("{build_dir}/Contents/Resources/AppIcon.icns").as_str(),
+					format!("{package_dir}/Contents/MacOS/Resources/AppIcon.icns").as_str(),
+				]);
 
 				// put into volume
 				let version = get_version_string();
@@ -169,11 +189,24 @@ fn main() {
 						"HFS+",
 						"-volname",
 						&app_name,
+						// &bin_name,
 						"-srcfolder",
-						&dir,
+						&package_dir,
 						&final_dmg,
 					],
 				);
+
+				// if link, ln -s into /Applications
+				// todo: work out why the link doesn't work?
+				if link {
+					let app_link = format!("/Applications/{app_name}.app", app_name = app_name);
+					if PathBuf::from(&app_link).is_symlink() || PathBuf::from(&app_link).is_file() {
+						println!("Removing old app link: rm -rf \"{}\"", app_link);
+						remove_file(&app_link).unwrap();
+					}
+					println!("Linking: ln -s \"{}\" \"{}\"", &package_dir, &app_link);
+					exec("ln", ["-s", &package_dir, &app_link]);
+				}
 
 				// eventually, code sign and notarize here
 			}
