@@ -22,6 +22,13 @@ pub fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) {
 	exec(&cargo_exec_path, args);
 }
 
+pub fn xtask_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) {
+	let cargo_exec_path = get_cargo_path();
+	let mut args = args.into_iter().collect::<Vec<_>>();
+	args.insert(0, "run");
+	exec(&cargo_exec_path, args);
+}
+
 pub fn exec<'a, 's>(exec_str: &'a str, args: impl IntoIterator<Item = &'s str> + Clone) -> String {
 	debug!(
 		"Running: {} \"{}\"",
@@ -80,7 +87,7 @@ pub fn get_current_version() -> String {
 	version.to_string()
 }
 
-pub fn set_current_version(new_version: String) {
+pub fn set_current_version(new_version: &str) {
 	use toml_edit::{Document, value};
 	// parse Cargo.toml for version number
 	let cargo_toml = std::fs::read_to_string("Cargo.toml").unwrap();

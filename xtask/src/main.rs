@@ -75,10 +75,6 @@ struct Release {
 	#[arg(long, default_value_t = false)]
 	dev_patch: bool,
 
-	/// Bump the version recorded in Cargo.toml and other places
-	#[arg(long, default_value_t = true)]
-	update: bool,
-
 	title: String,
 
 	#[arg(long, default_value_t = false)]
@@ -182,6 +178,10 @@ fn main() {
 				exec("zip", ["-r", &final_zip, "."]);
 
 				std::env::set_current_dir(original_cwd).unwrap();
+
+				// mv from src/Space CRaft v0.0.0 to {release_folder}/Space carft v0.0.0
+				let final_zip = format!("{}/src/{}", release_folder, final_zip);
+				exec("mv", [&final_zip, release_folder]);
 
 				info!("Successfully packaged windows application: {}", final_zip);
 			}
@@ -421,7 +421,6 @@ fn main() {
 			version,
 			proper_release,
 			dev_patch,
-			update,
 		}) => {
 			if !all && !windows && !macos {
 				error!("You must specify at least one platform to release, e.g. --macos or --all");
@@ -470,11 +469,18 @@ fn main() {
 			assert!(finalized_new_version.parse::<semver::Version>().is_ok());
 			debug!("Finalized version for release: {}", finalized_new_version);
 
-			if update {
-				set_current_version(finalized_new_version);
+			set_current_version(&finalized_new_version);
+
+			let release_dir = format!("release/gh-releases/{}", finalized_new_version);
+
+			if windows || all {
+				xtask_exec(["package", "windows"]);
+			}
+			if macos || all {
+				xtask_exec(["package", "macos"]);
 			}
 
-			let release_dir = "release/gh-releases";
+			
 		}
 	}
 }
