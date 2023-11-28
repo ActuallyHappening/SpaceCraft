@@ -124,7 +124,7 @@ fn main() {
 				let release_folder = "release/windows";
 				let release_dir = format!("{}/src", release_folder);
 				if remove_dir_all(PathBuf::from(&release_dir)).is_ok() {
-					println!("Removed old release");
+					info!("Removed old release {}", release_dir);
 				}
 				create_dir_all(&release_dir).unwrap();
 
@@ -149,12 +149,14 @@ fn main() {
 				std::env::set_current_dir(release_dir).unwrap();
 
 				if PathBuf::from(&final_zip).exists() {
-					debug!("Removing old zip: rm \"{}\"", &final_zip);
+					info!("Removing old zip: rm \"{}\"", &final_zip);
 					remove_file(&final_zip).unwrap();
 				}
 				exec("zip", ["-r", &final_zip, "."]);
 
 				std::env::set_current_dir(original_cwd).unwrap();
+
+				info!("Successfully packaged windows application: {}", final_zip);
 			}
 			#[cfg(not(target_os = "macos"))]
 			Platform::MacOS => {

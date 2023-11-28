@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [workspace]
-members = ["xtask", "bevy_xpbd3d_parenting"]
+members = ["xtask"]
 
 # [lints.clippy]
 
@@ -44,7 +44,7 @@ serde = { version = "1.0.192", features = ["derive"] }
 structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
 tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
-winit = "0.28"
+winit = "0.28" # depends on the version bevy is using atm
 
 # hanabi particles
 [dependencies.bevy_hanabi]
@@ -72,13 +72,15 @@ features = ["default_windows"]
 # version = "0.3.2"
 features = ["enhanced-determinism", "serialize", "debug-plugin"]
 # git = "https://github.com/Jondolf/bevy_xpbd.git"
-path = "../bevy_xpbd/crates/bevy_xpbd_3d"
+# path = "../bevy_xpbd/crates/bevy_xpbd_3d"
+git = "https://github.com/ActuallyHappening/bevy_xpbd.git"
 
 [dependencies.bevy_xpbd_3d]
 workspace = true
 
 [dependencies.bevy_xpbd3d_parenting]
-path = "./bevy_xpbd3d_parenting"
+# path = "./bevy_xpbd3d_parenting"
+git = "https://github.com/ActuallyHappening/bevy_xpbd3d_parenting.git"
 
 [dependencies.bevy_timewarp]
 git = "https://github.com/ActuallyHappening/bevy_timewarp.git"
@@ -86,7 +88,7 @@ git = "https://github.com/ActuallyHappening/bevy_timewarp.git"
 [dependencies.uuid]
 version = "1.5.0"
 features = [
-    "v4",                # Lets you generate random UUIDs
-    "fast-rng",          # Use a faster (but still sufficiently random) RNG
-    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+	"v4",                # Lets you generate random UUIDs
+	"fast-rng",          # Use a faster (but still sufficiently random) RNG
+	"macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
