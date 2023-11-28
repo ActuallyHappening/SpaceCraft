@@ -72,12 +72,23 @@ pub fn get_bin_name() -> String {
 	bin_name.to_string()
 }
 
-pub fn get_version_string() -> String {
+pub fn get_current_version() -> String {
 	// parse Cargo.toml for version number
 	let cargo_toml = std::fs::read_to_string("Cargo.toml").unwrap();
 	let cargo_toml: toml::Value = toml::from_str(&cargo_toml).unwrap();
 	let version = cargo_toml["package"]["version"].as_str().unwrap();
 	version.to_string()
+}
+
+pub fn set_current_version(new_version: String) {
+	use toml_edit::{Document, value};
+	// parse Cargo.toml for version number
+	let cargo_toml = std::fs::read_to_string("Cargo.toml").unwrap();
+	let mut cargo_toml = cargo_toml.parse::<Document>().expect("Cargo.toml format is invalid");
+	info!("Updating Cargo.toml version from {} to {}", cargo_toml["package"]["version"], new_version);
+	cargo_toml["package"]["version"] = value(new_version);
+	// write
+	std::fs::write("Cargo.toml", cargo_toml.to_string()).unwrap();
 }
 
 #[cfg(target_os = "macos")]

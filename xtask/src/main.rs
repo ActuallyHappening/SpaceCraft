@@ -1,7 +1,8 @@
 use std::fs::{create_dir, create_dir_all, remove_dir_all, remove_file};
+use semver::{Prerelease, BuildMetadata};
 use tracing::*;
 
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum, error};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use xtask::*;
 
@@ -10,19 +11,23 @@ use xtask::*;
 #[command(author, version, about, long_about = None)]
 enum Cli {
 	/// Builds and packages the application for release.
-	Package(Release),
+	Package(Package),
+
 	/// Updates icons and ensures rustup has targets added.
-	Prepare(Setup),
-	// Dev(Dev),
+	Prepare(Prepare),
+
+	Release(Release),
+
+	/// Updates dependencies like rustup update
 	Update,
 }
 
 #[derive(clap::Args, Debug)]
-struct Release {
-	#[arg(long, short, default_value_t = get_bin_name())]
+struct Package {
+	#[arg(long, default_value_t = get_bin_name())]
 	bin_name: String,
 
-	#[arg(long, short, default_value_t = get_osx_app_name())]
+	#[arg(long, default_value_t = get_osx_app_name())]
 	app_name: String,
 
 	/// Will ln -s the un-compressed package into applications.
@@ -37,7 +42,7 @@ struct Release {
 
 	/// Will automatically call `open` on the package after building.
 	/// Only applicable for MacOS builds
-	#[arg(long, short, default_value_t = false)]
+	#[arg(long, default_value_t = false)]
 	macos_open: bool,
 
 	#[command(subcommand)]
@@ -45,20 +50,42 @@ struct Release {
 }
 
 #[derive(clap::Args, Debug)]
-struct Dev {
+struct Prepare {
 	#[command(subcommand)]
 	platform: Platform,
 }
 
 #[derive(clap::Args, Debug)]
-struct Setup {
-	#[command(subcommand)]
-	platform: Platform,
-	// #[arg(long, short)]
-	// user_name: String,
+struct Release {
+	#[arg(long, default_value_t = false)]
+	all: bool,
+
+	#[arg(long, default_value_t = false)]
+	windows: bool,
+
+	#[arg(long, default_value_t = false)]
+	macos: bool,
+
+	/// Manually specify the exact version
+	#[arg(long, short)]
+	version: Option<String>,
+
+	/// Just bump the current dev-* patch version by one,
+	/// e.g. 0.0.0-dev-1
+	#[arg(long, default_value_t = false)]
+	dev_patch: bool,
+
+	/// Bump the version recorded in Cargo.toml and other places
+	#[arg(long, default_value_t = true)]
+	update: bool,
+
+	title: String,
+
+	#[arg(long, default_value_t = false)]
+	proper_release: bool,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 enum Platform {
 	Windows,
 	#[command(name = "macos")]
@@ -96,7 +123,7 @@ fn main() {
 	trace!("Parsed CLI args: {:?}", args);
 
 	match args {
-		Cli::Package(Release {
+		Cli::Package(Package {
 			platform,
 			bin_name,
 			app_name,
@@ -142,7 +169,7 @@ fn main() {
 				);
 
 				// put into zip
-				let version = get_version_string();
+				let version = get_current_version();
 				let final_zip = format!("{} v{}.zip", app_name, version);
 				// cwd into release_dir
 				let original_cwd = std::env::current_dir().unwrap();
@@ -254,7 +281,7 @@ fn main() {
 				}
 
 				// put into volume
-				let version = get_version_string();
+				let version = get_current_version();
 				let final_dmg = format!("release/macos/{app_name} v{version}.dmg");
 				if PathBuf::from(&final_dmg).is_file() {
 					println!("Removing old dmg: {}", final_dmg);
@@ -294,7 +321,7 @@ fn main() {
 				// eventually, code sign and notarize here
 			}
 		},
-		Cli::Prepare(Setup {
+		Cli::Prepare(Prepare {
 			platform,
 			// user_name,
 		}) => match platform {
@@ -386,6 +413,68 @@ fn main() {
 			#[cfg(target_os = "macos")]
 			exec("brew", ["upgrade"]);
 		}
-		_ => todo!(),
+		Cli::Release(Release {
+			all,
+			windows,
+			macos,
+			title,
+			version,
+			proper_release,
+			dev_patch,
+			update,
+		}) => {
+			if !all && !windows && !macos {
+				error!("You must specify at least one platform to release, e.g. --macos or --all");
+				std::process::exit(1);
+			}
+
+			let current_vers = get_current_version();
+			let current_version = current_vers.parse::<semver::Version>().expect("Current version is not valid");
+
+			let finalized_new_version;
+
+			match (version, dev_patch) {
+				(None, false) => {
+					error!("Must provide either --version 0.1.2-dev.3 or --dev-patch");
+					std::process::exit(1);
+				}
+				(Some(_), true) => {
+					error!("Cannot provide both --version and --dev-patch");
+					std::process::exit(1);
+				}
+				(Some(ver), false) => {
+					let new_version = ver.parse::<semver::Version>().expect("New version is not valid");
+					if new_version <= current_version {
+						error!("Version {} is already the current version or less, please provide a version greater than {}", new_version, current_vers);
+						std::process::exit(1);
+					} else {
+						finalized_new_version = format!("{}", new_version);
+					}
+				}
+				(None, true) => {
+					trace!("Incrementing dev patch version from {}", current_version);
+					assert!(current_version.build.is_empty());
+					if current_version.pre.is_empty() {
+						trace!("Prerelease is empty, adding -dev.1");
+						finalized_new_version = format!("{}-dev.1", current_version);
+					} else {
+						// extract last number after decimal place, increment by one
+						let pre = current_version.pre.as_str();
+						let num = pre.split('.').last().unwrap().parse::<u64>().unwrap();
+						let mut pre = current_version.clone();
+						pre.pre = Prerelease::EMPTY;
+						finalized_new_version = format!("{}-dev.{}", pre, num + 1);
+					}
+				}
+			}
+			assert!(finalized_new_version.parse::<semver::Version>().is_ok());
+			debug!("Finalized version for release: {}", finalized_new_version);
+
+			if update {
+				set_current_version(finalized_new_version);
+			}
+
+			let release_dir = "release/gh-releases";
+		}
 	}
 }
