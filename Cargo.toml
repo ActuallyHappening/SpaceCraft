@@ -37,12 +37,14 @@ bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
 clap = { version = "4.4.8", features = ["derive"] }
 extension-traits = "1.0.1"
+image = "0.24.7"
 # meshtext = "0.3.0"
 rand = "0.8.5"
 serde = { version = "1.0.192", features = ["derive"] }
 structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
 tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
+winit = "0.28"
 
 # hanabi particles
 [dependencies.bevy_hanabi]

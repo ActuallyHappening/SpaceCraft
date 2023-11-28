@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use xtask::*;
 
-#[derive(Parser)] // requires `derive` feature
+#[derive(Parser, Debug)] // requires `derive` feature
 #[command(bin_name = "cargo xtask")]
 #[command(author, version, about, long_about = None)]
 enum Cli {
@@ -17,7 +17,7 @@ enum Cli {
 	Update,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 struct Release {
 	#[arg(long, short, default_value_t = get_bin_name())]
 	bin_name: String,
@@ -44,13 +44,13 @@ struct Release {
 	platform: Platform,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 struct Dev {
 	#[command(subcommand)]
 	platform: Platform,
 }
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug)]
 struct Setup {
 	#[command(subcommand)]
 	platform: Platform,
@@ -58,7 +58,7 @@ struct Setup {
 	// user_name: String,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Platform {
 	Windows,
 	#[command(name = "macos")]
@@ -76,9 +76,24 @@ fn main() {
 		)
 		.init();
 
-		debug!("Initialized tracing");
+	debug!("Initialized tracing");
 
+	let cwd = std::env::current_dir().unwrap();
+	let intended_dir = {
+		let mut d = get_self_manifest_path();
+		d.pop();
+		d
+	};
+	if cwd != intended_dir {
+		debug!("Changing CWD to {:?}", intended_dir);
+		std::env::set_current_dir(intended_dir).unwrap();
+	} else {
+		trace!("In correct CWD");
+	}
+
+	trace!("About to parse CLI args ...");
 	let args = Cli::parse();
+	trace!("Parsed CLI args: {:?}", args);
 
 	match args {
 		Cli::Package(Release {

@@ -7,6 +7,9 @@
 			"path": "src"
 		},
 		{
+			"path": "xtask/src"
+		},
+		{
 			"path": "../creativity-game-0.11"
 		},
 		// {

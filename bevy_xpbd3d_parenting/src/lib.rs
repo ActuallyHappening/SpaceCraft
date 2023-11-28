@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_xpbd_3d::{
-	plugins::integrator::clear_forces_and_impulses, prelude::*, PhysicsSchedule, SubstepSchedule,
+	plugins::integrator::clear_forces_and_impulses, prelude::*, PhysicsSchedule,
 };
 use serde::{Deserialize, Serialize};
 

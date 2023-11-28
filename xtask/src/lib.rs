@@ -10,6 +10,12 @@ pub fn get_cargo_path() -> String {
 	cargo_exec_path
 }
 
+pub fn get_self_manifest_path() -> PathBuf {
+	let cargo_exec_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+	assert!(cargo_exec_path.is_dir());
+	cargo_exec_path
+}
+
 pub fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) {
 	// get cargo executable from env CARGO, and run it with str
 	let cargo_exec_path = get_cargo_path();
