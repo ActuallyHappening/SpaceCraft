@@ -1,8 +1,4 @@
-use bevy::window::PrimaryWindow;
-use bevy::winit::WinitWindows;
 use bevy::{log::LogPlugin, prelude::*, window::WindowMode};
-use std::io::Cursor;
-use winit::window::Icon;
 
 fn main() {
 	let mut app = App::new();
@@ -30,19 +26,22 @@ fn main() {
 				.build(),
 		)
 		.add_plugins((space_craft::MainPlugin,));
+
 	#[cfg(target_os = "windows")]
 	app.add_systems(Startup, set_window_icon);
-	#[cfg(target_os = "windows")]
-	compile_error!("cool");
+
 	app.run();
 }
 
 // copied from https://github.com/NiklasEi/bevy_game_template/blob/d786f979ea023d557373b373edadd3b027451b1a/src/main.rs#L35
 // Sets the icon on windows and X11
+#[cfg(target_os = "windows")]
 fn set_window_icon(
-	windows: NonSend<WinitWindows>,
-	primary_window: Query<Entity, With<PrimaryWindow>>,
+	windows: NonSend<bevy::winit::WinitWindows>,
+	primary_window: Query<Entity, With<bevy::window::PrimaryWindow>>,
 ) {
+	use std::io::Cursor;
+	use winit::window::Icon;
 	let primary_entity = primary_window.single();
 	let primary = windows.get_window(primary_entity).unwrap();
 	let icon_buf = Cursor::new(include_bytes!(
