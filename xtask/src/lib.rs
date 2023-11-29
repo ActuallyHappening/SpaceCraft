@@ -1,5 +1,6 @@
 use camino::{Utf8Path, Utf8PathBuf};
 use convert_case::{Case, Casing};
+use semver::Version;
 pub use std::path::{Path, PathBuf};
 use std::{
 	borrow::Cow,
@@ -88,7 +89,7 @@ pub fn set_current_version(new_version: &str) {
 	std::fs::write("Cargo.toml", cargo_toml.to_string()).unwrap();
 }
 
-#[cfg(target_os = "macos")]
+// #[cfg(target_os = "macos")]
 pub fn get_sdk_root() -> Utf8PathBuf {
 	let str = exec("xcrun", ["-sdk", "macosx", "--show-sdk-path"]);
 	let str = str.trim();
@@ -111,6 +112,65 @@ pub fn get_self_manifest_path() -> Utf8PathBuf {
 	let cargo_exec_path = Utf8PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
 	assert!(cargo_exec_path.is_dir());
 	cargo_exec_path
+}
+
+/// returns (notes, title)
+pub fn get_changelog_notes(version: &str) -> Option<(String, String)> {
+	// parses changelog and extracts the lines between the current version and the previous version
+	let changelog = std::fs::read_to_string("CHANGELOG.md").unwrap();
+	let changelog = changelog.as_str();
+	let current_version = format!("## {}", version);
+
+	let mut current_version_start_line = None;
+	let mut previous_version_start_line = None;
+	for (line_counter, line) in changelog.lines().enumerate() {
+		if line.starts_with(&current_version) {
+			assert!(current_version_start_line.is_none());
+			current_version_start_line = Some(line_counter);
+		} else if line.starts_with("## ") && current_version_start_line.is_some() {
+			assert!(previous_version_start_line.is_none());
+			previous_version_start_line = Some(line_counter);
+		}
+	}
+
+	let current_version_start_line = current_version_start_line?;
+	let previous_version_start_line = previous_version_start_line.unwrap_or_else(|| {
+		#[cfg(test)]
+		println!("Can't find end line");
+		changelog.lines().count()
+	});
+
+	// return the lines between the two
+	let notes = changelog
+		.lines()
+		.skip(current_version_start_line)
+		.take(previous_version_start_line - current_version_start_line)
+		.collect::<Vec<_>>()
+		.join("\n");
+
+	// get the title from the first line, after the version and before the new line character
+	let title = changelog
+		.lines()
+		.nth(current_version_start_line)
+		.unwrap()
+		.trim_start_matches("## ")
+		.trim_end_matches("\n")
+		.to_string();
+
+	Some((notes, format!("v{}", title)))
+}
+
+#[test]
+fn changelog_extraction() {
+	let version = "0.0.1";
+
+	let mut proper_cwd = get_self_manifest_path();
+	proper_cwd.pop();
+
+	std::env::set_current_dir(&proper_cwd).unwrap();
+
+	let notes = get_changelog_notes(version).unwrap();
+	println!("Notes: {:?}", notes);
 }
 
 pub fn cargo_exec<'s>(args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + Clone) {

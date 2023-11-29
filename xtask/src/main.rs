@@ -58,12 +58,6 @@ enum Commands {
 
 		#[command(subcommand)]
 		platforms: Release,
-
-		#[arg(long)]
-		title: String,
-
-		#[arg(long)]
-		notes: String,
 	},
 }
 
@@ -203,6 +197,8 @@ fn main() {
 						debug!("Removing old dmg: {}", final_dmg);
 						remove_file(&final_dmg).unwrap();
 					}
+				} else {
+					debug!("Building macos application since no file was detected at {}", final_dmg);
 				}
 
 				let sdk_root = get_sdk_root();
@@ -354,6 +350,8 @@ fn main() {
 						debug!("Removing old zip: {}", final_zip);
 						remove_file(&final_zip).unwrap();
 					}
+				} else {
+					debug!("Building windows application since no zip was detected at {}", final_zip);
 				}
 
 				cargo_exec([
@@ -506,8 +504,6 @@ fn main() {
 			version,
 			proper_release,
 			platforms,
-			title,
-			notes,
 		} => {
 			let current_version: Version = get_current_version().parse().unwrap();
 			let finalized_new_version;
@@ -528,7 +524,8 @@ fn main() {
 						.expect("New version is not valid");
 					if new_version <= current_version {
 						error!("Version {} is already the current version or less, please provide a version greater than {}", new_version, current_version);
-						std::process::exit(1);
+						// std::process::exit(1);
+						finalized_new_version = format!("{}", new_version);
 					} else {
 						finalized_new_version = format!("{}", new_version);
 					}
@@ -591,6 +588,11 @@ fn main() {
 				exec("cp", [file.as_str(), versioned_release_dir.as_str()]);
 			}
 
+			let Some((notes, title)) = get_changelog_notes(&finalized_new_version) else {
+				error!("Could not find notes for version {} in CHANGELOG.md", finalized_new_version);
+				std::process::exit(1);
+			};
+
 			let formatted_version = format!("v{}", finalized_new_version);
 			let mut gh_args = vec![
 				"release",
@@ -598,8 +600,12 @@ fn main() {
 				&formatted_version,
 				"--notes",
 				&notes,
+				// &notes,
 				"--title",
 				&title,
+				// "-F",
+				// "CHANGELOG.md",
+				// "--generate-notes"
 			]
 			.into_iter()
 			.map(|s| s.to_owned())
@@ -619,73 +625,4 @@ fn main() {
 			std::process::exit(0);
 		}
 	};
-
-	// match args {
-	// 	Cli::Package(Package {
-	// 		platform,
-	// 		bin_name,
-	// 		app_name,
-	// 		macos_link_into_applications: link_into_applications,
-	// 		macos_link_for_bundle: link_for_bundle,
-	// 		macos_open: open,
-	// 	}) => match platform {
-	// 		Platform::Windows => {
-
-	// 		}
-	// 		#[cfg(not(target_os = "macos"))]
-	// 		Platform::MacOS => {
-	// 			unimplemented!("Building for MacOS from a non-macos platform is not supported. Please run this command from a macos machine.")
-	// 		}
-	// 		#[cfg(target_os = "macos")]
-	// 		Platform::MacOS => {
-	// macos packaging
-
-	// }
-	// 	},
-	// 	Cli::Prepare(Prepare {
-	// 		platform,
-	// 		// user_name,
-	// 	}) => match platform {
-	// 		Platform::Windows => {
-
-	// 		}
-	// 		Platform::MacOS => {
-	// 		}
-	// 	},
-	// 	Cli::Update => {
-	// 		cargo_exec(["update"]);
-	// 		exec("rustup", ["update"]);
-	// 		#[cfg(target_os = "macos")]
-	// 		exec("brew", ["update"]);
-	// 		#[cfg(target_os = "macos")]
-	// 		exec("brew", ["upgrade"]);
-	// 	}
-	// 	Cli::Release(Release {
-	// 		all,
-	// 		windows,
-	// 		macos,
-	// 		title,
-	// 		version,
-	// 		proper_release,
-	// 		dev_patch,
-	// 	}) => {
-	// 		if !all && !windows && !macos {
-	// 			error!("You must specify at least one platform to release, e.g. --macos or --all");
-	// 			std::process::exit(1);
-	// 		}
-
-	// 		let current_vers = get_current_version();
-	// 		let current_version = current_vers.parse::<semver::Version>().expect("Current version is not valid");
-
-	// 		let release_dir = format!("release/gh-releases/{}", finalized_new_version);
-
-	// 		if windows || all {
-	// 			xtask_exec(["package", "windows"]);
-	// 		}
-	// 		if macos || all {
-	// 			xtask_exec(["package", "macos"]);
-	// 		}
-
-	// 	}
-	// }
 }

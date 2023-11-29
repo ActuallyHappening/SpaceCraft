@@ -11,6 +11,7 @@
 !MindSpace.code-workspace
 !README.md
 !ARCHITECTURE.md
+!CHANGELOG.md
 !rust-toolchain.toml
 !Trunk.toml
 !xtask
