@@ -86,7 +86,6 @@ enum Package {
 
 #[derive(Subcommand, Debug)]
 enum Prepare {
-	#[cfg(target_os = "macos")]
 	Macos,
 	Windows,
 }
