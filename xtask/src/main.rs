@@ -168,7 +168,147 @@ fn main() {
 				link_into_applications,
 				link_for_bundle,
 				open,
-			} => {}
+			} => {
+				let sdk_root = get_sdk_root();
+				exec_with_envs(
+					&get_cargo_path(),
+					[
+						"build",
+						"--release",
+						"--no-default-features",
+						"--features",
+						"release",
+						"--target=aarch64-apple-darwin",
+					],
+					[("SDKROOT", sdk_root.as_str())],
+				);
+				const SILICON_TRIPLE: &str = "aarch64-apple-darwin";
+				let silicon_build =
+					Utf8PathBuf::from(format!("target/{SILICON_TRIPLE}/release/{bin_name}"));
+				assert!(silicon_build.is_file());
+
+				exec_with_envs(
+					&get_cargo_path(),
+					[
+						"build",
+						"--release",
+						"--no-default-features",
+						"--features",
+						"release",
+						"--target=x86_64-apple-darwin",
+					],
+					[("SDKROOT", sdk_root.as_str())],
+				);
+				const INTEL_TRIPLE: &str = "x86_64-apple-darwin";
+				let intel_build = Utf8PathBuf::from(format!("target/{INTEL_TRIPLE}/release/{bin_name}"));
+				assert!(intel_build.is_file());
+
+				let combined_bin_file =
+					Utf8PathBuf::from(format!("target/release/{bin_name}", bin_name = bin_name));
+				exec(
+					"lipo",
+					[
+						"-create",
+						"-output",
+						combined_bin_file.as_str(),
+						silicon_build.as_str(),
+						intel_build.as_str(),
+					],
+				);
+
+				// prepare package_path
+				let release_dir_macos = Utf8PathBuf::from(format!("{}/macos", release_dir));
+				let release_dir_src = format!("{}/src", release_dir_macos);
+				let release_dir_package = format!("{}/{}.app", release_dir_src, app_name);
+				if remove_dir_all(&release_dir_src).is_ok() {
+					debug!("Removed old package src/ at {}", release_dir_src);
+				}
+				create_dir_all(&release_dir_package).expect("Unable to create package directory");
+
+				// copy assets, binary and eventually credits
+				let macos_contents_dir = Utf8PathBuf::from(format!("{}/Contents", &release_dir_package));
+				{
+					let assets_dir = Utf8PathBuf::from(format!("{}/MacOS/assets", &macos_contents_dir));
+					create_dir_all(&assets_dir).unwrap();
+					// copies assets
+					exec("cp", ["-r", "assets/", assets_dir.as_str()]);
+					let final_bin_file = Utf8PathBuf::from(format!(
+						"{}/MacOS/{}",
+						&macos_contents_dir,
+						bin_name,
+					));
+					exec("cp", [combined_bin_file.as_str(), final_bin_file.as_str()]);
+					exec("strip", [final_bin_file.as_str()]);
+				}
+
+				// copy over contents in build/macos
+				let macos_build_dir = Utf8PathBuf::from(format!("{}/macos.app", build_dir));
+				exec(
+					"cp",
+					[
+						format!("{}/Contents/Info.plist", macos_build_dir).as_str(),
+						format!("{}/Info.plist", macos_contents_dir).as_str(),
+					],
+				);
+				create_dir(format!("{}/Resources", macos_contents_dir)).unwrap();
+				exec(
+					"cp",
+					[
+						format!("{}/Contents/Resources/AppIcon.icns", macos_build_dir).as_str(),
+						format!("{}/Resources/AppIcon.icns", macos_contents_dir).as_str(),
+					],
+				);
+
+				if link_for_bundle {
+					// ln -s /Applications into the bundle
+					exec("ln", ["-s", "/Applications", &release_dir_src]);
+				}
+
+				// put into volume
+				let version = get_current_version();
+				let dmg_name = format!("{} v{}.dmg", app_name, version);
+				let final_dmg = Utf8PathBuf::from(format!("{}/{}", release_dir_macos, dmg_name));
+				if final_dmg.is_file() {
+					debug!("Removing old dmg: {}", final_dmg);
+					remove_file(&final_dmg).unwrap();
+				}
+				exec(
+					"hdiutil",
+					[
+						"create",
+						"-fs",
+						"HFS+",
+						"-volname",
+						&app_name,
+						"-srcfolder",
+						release_dir_src.as_str(),
+						final_dmg.as_str(),
+					],
+				);
+
+				// if link, ln -s into /Applications
+				if link_into_applications {
+					let app_link = Utf8PathBuf::from(format!("/Applications/{}.app", app_name));
+					if app_link.is_symlink() || app_link.is_file() {
+						debug!("Removing old app link: rm -rf \"{}\"", app_link);
+						remove_file(&app_link).unwrap();
+					}
+					exec("ln", ["-s", &release_dir_package, app_link.as_str()]);
+				}
+
+				if open {
+					info!("Opening application ...");
+					exec("open", [release_dir_package.as_str()]);
+				}
+
+				// eventually, code sign and notarize here
+
+				info!("Successfully packaged macos application: {}", final_dmg);
+				
+				if output_final_path {
+					println!("{}", final_dmg);
+				}
+			}
 			Package::Windows => {
 				const TARGET_TRIPLE: &str = "x86_64-pc-windows-gnu";
 				cargo_exec([
@@ -209,17 +349,18 @@ fn main() {
 				// put into zip
 				let version = get_current_version();
 				let final_zip_name = format!("{} v{}.zip", app_name, version);
-				let src_zip = Utf8PathBuf::from(format!(
-					"{}/{}",
-					release_dir_src, final_zip_name
-				));
+				let src_zip = Utf8PathBuf::from(format!("{}/{}", release_dir_src, final_zip_name));
 				// cwd into target/windows/src/
 				{
 					let original_cwd = std::env::current_dir().unwrap();
 					let original_cwd: &Utf8Path = Utf8Path::from_path(original_cwd.as_path()).unwrap();
 					std::env::set_current_dir(&release_dir_src).unwrap();
 
-					trace!("Now in CWD {}, with the zip outputted at {}", release_dir_src, final_zip_name);
+					trace!(
+						"Now in CWD {}, with the zip outputted at {}",
+						release_dir_src,
+						final_zip_name
+					);
 
 					exec("zip", ["-r", &final_zip_name, "."]);
 
@@ -229,12 +370,13 @@ fn main() {
 
 				// mv from src/Space CRaft v0.0.0 to {release_folder}/Space carft v0.0.0
 				exec("mv", [src_zip.as_str(), release_dir_windows.as_str()]);
-				assert!(src_zip.is_file());
+				let final_zip = Utf8PathBuf::from(format!("{}/{}", release_dir_windows, final_zip_name));
+				assert!(final_zip.is_file());
 
-				info!("Successfully packaged windows application: {}", src_zip);
+				info!("Successfully packaged windows application: {}", final_zip);
 
 				if output_final_path {
-					println!("{}", src_zip);
+					println!("{}", final_zip);
 				}
 			}
 		},
@@ -258,135 +400,9 @@ fn main() {
 	// 		}
 	// 		#[cfg(target_os = "macos")]
 	// 		Platform::MacOS => {
-	// 			// macos packaging
+	// macos packaging
 
-	// 			let sdk_root = get_sdk_root();
-	// 			let sdk_root = sdk_root.to_str().unwrap();
-	// 			exec_with_envs(
-	// 				&get_cargo_path(),
-	// 				[
-	// 					"build",
-	// 					"--release",
-	// 					"--no-default-features",
-	// 					"--features",
-	// 					"release",
-	// 					"--target=aarch64-apple-darwin",
-	// 				],
-	// 				[("SDKROOT", sdk_root)],
-	// 			);
-	// 			let silicon_build = format!("target/aarch64-apple-darwin/release/{bin_name}");
-	// 			assert!(PathBuf::from(&silicon_build).is_file());
-
-	// 			exec_with_envs(
-	// 				&get_cargo_path(),
-	// 				[
-	// 					"build",
-	// 					"--release",
-	// 					"--no-default-features",
-	// 					"--features",
-	// 					"release",
-	// 					"--target=x86_64-apple-darwin",
-	// 				],
-	// 				[("SDKROOT", sdk_root)],
-	// 			);
-	// 			let intel_build = format!("target/x86_64-apple-darwin/release/{bin_name}");
-	// 			assert!(PathBuf::from(&intel_build).is_file());
-
-	// 			let bin_file = format!("target/release/{bin_name}", bin_name = bin_name);
-	// 			exec(
-	// 				"lipo",
-	// 				[
-	// 					"-create",
-	// 					"-output",
-	// 					&bin_file,
-	// 					&silicon_build,
-	// 					&intel_build,
-	// 				],
-	// 			);
-
-	// 			// prepare package_path
-	// 			let package_folder = "release/macos/src";
-	// 			let package_dir = format!("{package_folder}/{app_name}.app",);
-	// 			if remove_dir_all(PathBuf::from(&package_folder)).is_ok() {
-	// 				println!("Removed old package");
-	// 			}
-	// 			create_dir_all(Path::new(&package_dir)).expect("Unable to create package directory");
-
-	// 			// copy assets, binary and eventually credits
-	// 			let assets_dir = format!("{}/Contents/MacOS/assets", &package_dir);
-	// 			create_dir_all(&assets_dir).unwrap();
-	// 			exec("cp", ["-r", "assets/", &assets_dir]);
-	// 			let final_bin_file = format!(
-	// 				"{}/Contents/MacOS/{bin_name}",
-	// 				&package_dir,
-	// 				bin_name = bin_name
-	// 			);
-	// 			exec("cp", [&bin_file, final_bin_file.as_str()]);
-	// 			exec("strip", [final_bin_file.as_str()]);
-
-	// 			// copy over contents in build/macos
-	// 			let build_dir = "build/macos.app";
-	// 			exec(
-	// 				"cp",
-	// 				[
-	// 					format!("{build_dir}/Contents/Info.plist").as_str(),
-	// 					format!("{package_dir}/Contents/Info.plist").as_str(),
-	// 				],
-	// 			);
-	// 			create_dir(format!("{package_dir}/Contents/Resources")).unwrap();
-	// 			exec(
-	// 				"cp",
-	// 				[
-	// 					format!("{build_dir}/Contents/Resources/AppIcon.icns").as_str(),
-	// 					format!("{package_dir}/Contents/Resources/AppIcon.icns").as_str(),
-	// 				],
-	// 			);
-
-	// 			if link_for_bundle {
-	// 				// ln -s /Applications into the bundle
-	// 				exec("ln", ["-s", "/Applications", &package_folder]);
-	// 			}
-
-	// 			// put into volume
-	// 			let version = get_current_version();
-	// 			let final_dmg = format!("release/macos/{app_name} v{version}.dmg");
-	// 			if PathBuf::from(&final_dmg).is_file() {
-	// 				println!("Removing old dmg: {}", final_dmg);
-	// 				remove_file(&final_dmg).unwrap();
-	// 			}
-	// 			exec(
-	// 				"hdiutil",
-	// 				[
-	// 					"create",
-	// 					"-fs",
-	// 					"HFS+",
-	// 					"-volname",
-	// 					&app_name,
-	// 					// &bin_name,
-	// 					"-srcfolder",
-	// 					&package_folder,
-	// 					&final_dmg,
-	// 				],
-	// 			);
-
-	// 			// if link, ln -s into /Applications
-	// 			if link_into_applications {
-	// 				let app_link = format!("/Applications/{app_name}.app", app_name = app_name);
-	// 				if PathBuf::from(&app_link).is_symlink() || PathBuf::from(&app_link).is_file() {
-	// 					println!("Removing old app link: rm -rf \"{}\"", app_link);
-	// 					remove_file(&app_link).unwrap();
-	// 				}
-	// 				println!("Linking: ln -s \"{}\" \"{}\"", &package_dir, &app_link);
-	// 				exec("ln", ["-s", &package_dir, &app_link]);
-	// 			}
-
-	// 			if open {
-	// 				println!("Opening: open \"{}\"", package_dir);
-	// 				exec("open", [package_dir.as_str()]);
-	// 			}
-
-	// 			// eventually, code sign and notarize here
-	// 		}
+	// }
 	// 	},
 	// 	Cli::Prepare(Prepare {
 	// 		platform,
