@@ -1749,6 +1749,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "camino"
+version = "1.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c59e92b5a388f549b863a7bea62612c09f24c8393560709a54558a9abdfb3b9c"
+
+[[package]]
 name = "cc"
 version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4495,7 +4501,7 @@ dependencies = [
 
 [[package]]
 name = "space_craft"
-version = "0.0.0-dev.2"
+version = "0.0.0-dev.3"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -5749,6 +5755,7 @@ checksum = "0fcb9cbac069e033553e8bb871be2fbdffcab578eb25bd0f7c508cedc6dcd75a"
 name = "xtask"
 version = "0.0.0"
 dependencies = [
+ "camino",
  "clap",
  "convert_case 0.6.0",
  "semver",
