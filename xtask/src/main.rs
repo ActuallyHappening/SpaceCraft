@@ -11,11 +11,14 @@ use xtask::*;
 #[command(bin_name = "cargo xtask")]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-	#[arg(long, default_value_t = get_default_release_dir())]
-	target_release_dir: Utf8PathBuf,
+	#[arg(long, default_value_t = get_default_target_dir())]
+	target_dir: Utf8PathBuf,
 
 	#[arg(long, default_value_t = get_default_build_dir())]
 	static_build_dir: Utf8PathBuf,
+
+	#[arg(long, default_value_t = get_default_release_dir())]
+	release_dir: Utf8PathBuf,
 
 	#[command(subcommand)]
 	command: Commands,
@@ -88,6 +91,16 @@ enum Release {
 	All,
 	Windows,
 	Macos,
+}
+
+impl Release {
+	fn release_windows(&self) -> bool {
+		matches!(self, Release::All | Release::Windows)
+	}
+
+	fn release_macos(&self) -> bool {
+		matches!(self, Release::All | Release::Macos)
+	}
 }
 
 #[derive(Args, Debug)]
@@ -163,7 +176,7 @@ fn main() {
 	let args = Cli::parse();
 	trace!("Parsed CLI args: {:?}", args);
 
-	let release_dir = args.target_release_dir;
+	let target_dir = args.target_dir;
 	let build_dir = args.static_build_dir;
 
 	match args.command {
@@ -226,16 +239,16 @@ fn main() {
 				);
 
 				// prepare package_path
-				let release_dir_macos = Utf8PathBuf::from(format!("{}/macos", release_dir));
-				let release_dir_src = format!("{}/src", release_dir_macos);
-				let release_dir_package = format!("{}/{}.app", release_dir_src, app_name);
-				if remove_dir_all(&release_dir_src).is_ok() {
-					debug!("Removed old package src/ at {}", release_dir_src);
+				let target_dir_macos = Utf8PathBuf::from(format!("{}/macos", target_dir));
+				let target_dir_src = format!("{}/src", target_dir_macos);
+				let target_dir_package = format!("{}/{}.app", target_dir_src, app_name);
+				if remove_dir_all(&target_dir_src).is_ok() {
+					debug!("Removed old package src/ at {}", target_dir_src);
 				}
-				create_dir_all(&release_dir_package).expect("Unable to create package directory");
+				create_dir_all(&target_dir_package).expect("Unable to create package directory");
 
 				// copy assets, binary and eventually credits
-				let macos_contents_dir = Utf8PathBuf::from(format!("{}/Contents", &release_dir_package));
+				let macos_contents_dir = Utf8PathBuf::from(format!("{}/Contents", &target_dir_package));
 				{
 					let assets_dir = Utf8PathBuf::from(format!("{}/MacOS/assets", &macos_contents_dir));
 					create_dir_all(&assets_dir).unwrap();
@@ -267,13 +280,13 @@ fn main() {
 
 				if link_for_bundle {
 					// ln -s /Applications into the bundle
-					exec("ln", ["-s", "/Applications", &release_dir_src]);
+					exec("ln", ["-s", "/Applications", &target_dir_src]);
 				}
 
 				// put into volume
 				let version = get_current_version();
 				let dmg_name = format!("{} v{}.dmg", app_name, version);
-				let final_dmg = Utf8PathBuf::from(format!("{}/{}", release_dir_macos, dmg_name));
+				let final_dmg = Utf8PathBuf::from(format!("{}/{}", target_dir_macos, dmg_name));
 				if final_dmg.is_file() {
 					debug!("Removing old dmg: {}", final_dmg);
 					remove_file(&final_dmg).unwrap();
@@ -287,7 +300,7 @@ fn main() {
 						"-volname",
 						&app_name,
 						"-srcfolder",
-						release_dir_src.as_str(),
+						target_dir_src.as_str(),
 						final_dmg.as_str(),
 					],
 				);
@@ -299,12 +312,12 @@ fn main() {
 						debug!("Removing old app link: rm -rf \"{}\"", app_link);
 						remove_file(&app_link).unwrap();
 					}
-					exec("ln", ["-s", &release_dir_package, app_link.as_str()]);
+					exec("ln", ["-s", &target_dir_package, app_link.as_str()]);
 				}
 
 				if open {
 					info!("Opening application ...");
-					exec("open", [release_dir_package.as_str()]);
+					exec("open", [target_dir_package.as_str()]);
 				}
 
 				// eventually, code sign and notarize here
@@ -331,12 +344,12 @@ fn main() {
 				));
 				assert!(bin_path.is_file());
 
-				let release_dir_windows = Utf8PathBuf::from(format!("{}/windows", release_dir));
-				let release_dir_src = Utf8PathBuf::from(format!("{}/src", release_dir_windows));
-				if remove_dir_all(PathBuf::from(&release_dir_src)).is_ok() {
-					info!("Removed old release {}", release_dir_src);
+				let target_dir_windows = Utf8PathBuf::from(format!("{}/windows", target_dir));
+				let target_dir_src = Utf8PathBuf::from(format!("{}/src", target_dir_windows));
+				if remove_dir_all(PathBuf::from(&target_dir_src)).is_ok() {
+					info!("Removed old target dir {}", target_dir_src);
 				}
-				create_dir_all(&release_dir_src).unwrap();
+				create_dir_all(&target_dir_src).unwrap();
 
 				// copy assets, binary and eventually credits
 				exec(
@@ -344,26 +357,26 @@ fn main() {
 					[
 						"-r",
 						"assets/",
-						format!("{}/assets", release_dir_src).as_str(),
+						format!("{}/assets", target_dir_src).as_str(),
 					],
 				);
-				let moved_exec = Utf8PathBuf::from(format!("{}/{}.exe", release_dir_src, bin_name));
+				let moved_exec = Utf8PathBuf::from(format!("{}/{}.exe", target_dir_src, bin_name));
 				exec("cp", [bin_path.as_str(), moved_exec.as_str()]);
 				assert!(moved_exec.is_file());
 
 				// put into zip
 				let version = get_current_version();
 				let final_zip_name = format!("{} v{}.zip", app_name, version);
-				let src_zip = Utf8PathBuf::from(format!("{}/{}", release_dir_src, final_zip_name));
+				let src_zip = Utf8PathBuf::from(format!("{}/{}", target_dir_src, final_zip_name));
 				// cwd into target/windows/src/
 				{
 					let original_cwd = std::env::current_dir().unwrap();
 					let original_cwd: &Utf8Path = Utf8Path::from_path(original_cwd.as_path()).unwrap();
-					std::env::set_current_dir(&release_dir_src).unwrap();
+					std::env::set_current_dir(&target_dir_src).unwrap();
 
 					trace!(
 						"Now in CWD {}, with the zip outputted at {}",
-						release_dir_src,
+						target_dir_src,
 						final_zip_name
 					);
 
@@ -373,9 +386,8 @@ fn main() {
 					trace!("Back to normal CWD {}", original_cwd);
 				}
 
-				// mv from src/Space CRaft v0.0.0 to {release_folder}/Space carft v0.0.0
-				exec("mv", [src_zip.as_str(), release_dir_windows.as_str()]);
-				let final_zip = Utf8PathBuf::from(format!("{}/{}", release_dir_windows, final_zip_name));
+				exec("mv", [src_zip.as_str(), target_dir_windows.as_str()]);
+				let final_zip = Utf8PathBuf::from(format!("{}/{}", target_dir_windows, final_zip_name));
 				assert!(final_zip.is_file());
 
 				info!("Successfully packaged windows application: {}", final_zip);
@@ -513,6 +525,29 @@ fn main() {
 			debug!("Finalized version for release: {}", finalized_new_version);
 
 			set_current_version(&finalized_new_version);
+
+			let mut packaged_files = Vec::new();
+			if platforms.release_windows() {
+				packaged_files.push(xtask_exec(["package", "--output-final-path", "windows", ]));
+			}
+			if platforms.release_macos() {
+				packaged_files.push(xtask_exec(["package", "--output-final-path", "macos",]));
+			}
+
+			trace!("About to parse {} files' outputs", packaged_files.len());
+
+			let packaged_files: Vec<Utf8PathBuf> = packaged_files
+				.into_iter()
+				.map(|s| s.lines().last().unwrap().to_owned())
+				.filter_map(|l| l.parse().ok())
+				.collect();
+			
+			debug!("Going to copy files into {}: {:?}", args.release_dir, packaged_files);
+
+			// copy each file into release dir
+			for file in packaged_files {
+				exec("cp", [file.as_str(), args.release_dir.as_str()]);
+			}
 		}
 	}
 

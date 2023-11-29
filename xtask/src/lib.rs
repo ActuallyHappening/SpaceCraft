@@ -32,10 +32,10 @@ fn get_metadata_entry(entry: &str) -> Option<toml::Value> {
 }
 
 /// Reads from Cargo.toml metadata, or returns default value if not found
-pub fn get_default_release_dir() -> Utf8PathBuf {
+pub fn get_default_target_dir() -> Utf8PathBuf {
 	let default: Utf8PathBuf = "target/bevy_package_cli".into();
-	get_metadata_entry("release-dir")
-		.map(|v| v.as_str().expect("release-dir to be string").into())
+	get_metadata_entry("target-dir")
+		.map(|v| v.as_str().expect("target-dir to be string").into())
 		.unwrap_or(default)
 }
 
@@ -44,6 +44,14 @@ pub fn get_default_build_dir() -> Utf8PathBuf {
 	let default: Utf8PathBuf = "build".into();
 	get_metadata_entry("build-dir")
 		.map(|v| v.as_str().expect("build-dir to be string").into())
+		.unwrap_or(default)
+}
+
+/// Reads from Cargo.toml metadata, or returns default value if not found
+pub fn get_default_release_dir() -> Utf8PathBuf {
+	let default: Utf8PathBuf = "release/".into();
+	get_metadata_entry("release-dir")
+		.map(|v| v.as_str().expect("release-dir to be string").into())
 		.unwrap_or(default)
 }
 
@@ -111,7 +119,7 @@ pub fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) {
 pub fn xtask_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) -> String {
 	let cargo_exec_path = get_cargo_path();
 	let mut args = args.into_iter().collect::<Vec<_>>();
-	args.insert(0, "run");
+	args.insert(0, "xtask");
 	exec(&cargo_exec_path, args)
 }
 
