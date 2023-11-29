@@ -1,27 +1,11 @@
 use camino::{Utf8Path, Utf8PathBuf};
-use semver::{BuildMetadata, Prerelease};
+use semver::{BuildMetadata, Prerelease, Version};
 use std::fs::{create_dir, create_dir_all, remove_dir_all, remove_file};
 use tracing::*;
 
 use clap::{error, Args, Parser, Subcommand, ValueEnum};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 use xtask::*;
-
-// #[derive(Parser, Debug)] // requires `derive` feature
-// #[command(bin_name = "cargo xtask")]
-// #[command(author, version, about, long_about = None)]
-// enum Cli {
-// 	/// Builds and packages the application for release.
-// 	Package(Package),
-
-// 	/// Updates icons and ensures rustup has targets added.
-// 	Prepare(Prepare),
-
-// 	Release(Release),
-
-// 	/// Updates dependencies like rustup update
-// 	Update,
-// }
 
 #[derive(Parser, Debug)]
 #[command(bin_name = "cargo xtask")]
@@ -36,14 +20,6 @@ struct Cli {
 	#[command(subcommand)]
 	command: Commands,
 }
-
-// #[derive(clap::Args, Debug)]
-// struct Package {
-
-// 	#[command(subcommand)]
-// 	platform: Platform,
-// }
-
 #[derive(Subcommand, Debug)]
 enum Commands {
 	Package {
@@ -53,7 +29,7 @@ enum Commands {
 		#[arg(long, default_value_t = get_default_osx_app_name())]
 		app_name: String,
 
-		#[arg(long, default_value_t = true)]
+		#[arg(long, default_value_t = false)]
 		output_final_path: bool,
 
 		#[command(subcommand)]
@@ -62,6 +38,17 @@ enum Commands {
 	Prepare {
 		#[command(subcommand)]
 		platform: Prepare,
+	},
+
+	Release {
+		#[command(flatten)]
+		version: ReleaseNewVersion,
+
+		#[arg(long, default_value_t = false)]
+		proper_release: bool,
+
+		#[command(subcommand)]
+		platforms: Release,
 	},
 }
 
@@ -96,8 +83,25 @@ enum Prepare {
 	Windows,
 }
 
+#[derive(Subcommand, Debug)]
+enum Release {
+	All,
+	Windows,
+	Macos,
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+struct ReleaseNewVersion {
+	#[arg(long, value_name = "VER")]
+	version: Option<String>,
+
+	#[arg(long, default_value_t = false)]
+	dev_patch: bool,
+}
+
 #[derive(clap::Args, Debug)]
-struct Release {
+struct _Release {
 	#[arg(long, default_value_t = false)]
 	all: bool,
 
@@ -187,7 +191,7 @@ fn main() {
 					],
 					[("SDKROOT", sdk_root.as_str())],
 				);
-				
+
 				let silicon_build =
 					Utf8PathBuf::from(format!("target/{}/release/{bin_name}", SILICON_TRIPLE));
 				assert!(silicon_build.is_file());
@@ -204,8 +208,8 @@ fn main() {
 					],
 					[("SDKROOT", sdk_root.as_str())],
 				);
-				const INTEL_TRIPLE: &str = "x86_64-apple-darwin";
-				let intel_build = Utf8PathBuf::from(format!("target/{INTEL_TRIPLE}/release/{bin_name}"));
+
+				let intel_build = Utf8PathBuf::from(format!("target/{}/release/{bin_name}", INTEL_TRIPLE));
 				assert!(intel_build.is_file());
 
 				let combined_bin_file =
@@ -312,19 +316,18 @@ fn main() {
 				}
 			}
 			Package::Windows => {
-				const TARGET_TRIPLE: &str = "x86_64-pc-windows-gnu";
 				cargo_exec([
 					"build",
 					"--release",
 					"--target",
-					TARGET_TRIPLE,
+					WINDOWS_TRIPLE,
 					"--no-default-features",
 					"--features",
 					"release",
 				]);
 				let bin_path = Utf8PathBuf::from(format!(
-					"target/{TARGET_TRIPLE}/release/{bin_name}.exe",
-					bin_name = bin_name
+					"target/{}/release/{}.exe",
+					WINDOWS_TRIPLE, bin_name,
 				));
 				assert!(bin_path.is_file());
 
@@ -384,21 +387,18 @@ fn main() {
 		},
 		Commands::Prepare { platform } => match platform {
 			Prepare::Macos => {
-				todo!("TODO")
-				// todo
-				exec("rustup", ["target", "add", "aarch64-apple-darwin"]);
-				exec("rustup", ["target", "add", "x86_64-apple-darwin"]);
+				exec("rustup", ["target", "add", SILICON_TRIPLE]);
+				exec("rustup", ["target", "add", INTEL_TRIPLE]);
 
 				// sort out icons
-				let build_dir = "build/macos.app/Contents";
-				let icon_dir = format!("{}/AppIcon.iconset", build_dir);
+				let macos_build_contents = Utf8PathBuf::from(format!("{}/macos.app/Contents", build_dir));
+				let icon_dir = Utf8PathBuf::from(format!("{}/AppIcon.iconset", macos_build_contents));
 				if remove_dir_all(&icon_dir).is_ok() {
-					println!("Removed old iconset dir");
+					debug!("Removed old iconset dir at {}", icon_dir);
 				}
 				create_dir(&icon_dir).unwrap();
 
-				let base_icon = "assets/images/icon_1024x1024.png";
-				assert!(Path::new(base_icon).exists());
+				assert!(Utf8Path::new(BASE_APP_ICON).exists());
 
 				let sips = |size: u16| {
 					exec(
@@ -407,7 +407,7 @@ fn main() {
 							"-z",
 							size.to_string().as_str(),
 							size.to_string().as_str(),
-							base_icon,
+							BASE_APP_ICON,
 							"--out",
 							format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
 						],
@@ -421,7 +421,7 @@ fn main() {
 							"-z",
 							size.to_string().as_str(),
 							size.to_string().as_str(),
-							base_icon,
+							BASE_APP_ICON,
 							"--out",
 							format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
 						],
@@ -439,15 +439,15 @@ fn main() {
 					[
 						"-c",
 						"icns",
-						&icon_dir,
+						icon_dir.as_str(),
 						"--output",
-						format!("{}/Resources/AppIcon.icns", build_dir).as_str(),
+						format!("{}/Resources/AppIcon.icns", macos_build_contents).as_str(),
 					],
 				);
 			}
 			Prepare::Windows => {
 				// exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
-				exec("rustup", ["target", "add", "x86_64-pc-windows-gnu"]);
+				exec("rustup", ["target", "add", WINDOWS_TRIPLE]);
 				// cargo_exec(["install", "xwin"]);
 				// exec(
 				// 	"xwin",
@@ -459,10 +459,61 @@ fn main() {
 				// 		format!("/Users/{}/.xwin", user_name).as_str(),
 				// 	],
 				// );
+				#[cfg(target_os = "macos")]
 				exec("brew", ["install", "llvm"]);
+				#[cfg(target_os = "macos")]
 				exec("brew", ["install", "mingw-w64"]);
 			}
 		},
+		Commands::Release {
+			version,
+			proper_release,
+			platforms,
+		} => {
+			let current_version: Version = get_current_version().parse().unwrap();
+			let finalized_new_version;
+
+			match (version.version, version.dev_patch) {
+				(None, false) => {
+					error!("Must provide either --version 0.1.2-dev.3 or --dev-patch");
+					std::process::exit(1);
+				}
+				(Some(_), true) => {
+					error!("Cannot provide both --version and --dev-patch");
+					std::process::exit(1);
+				}
+				(Some(ver), false) => {
+					let new_version = ver
+						.parse::<semver::Version>()
+						.expect("New version is not valid");
+					if new_version <= current_version {
+						error!("Version {} is already the current version or less, please provide a version greater than {}", new_version, current_version);
+						std::process::exit(1);
+					} else {
+						finalized_new_version = format!("{}", new_version);
+					}
+				}
+				(None, true) => {
+					trace!("Incrementing dev patch version from {}", current_version);
+					assert!(current_version.build.is_empty());
+					if current_version.pre.is_empty() {
+						trace!("Prerelease is empty, adding -dev.1");
+						finalized_new_version = format!("{}-dev.1", current_version);
+					} else {
+						// extract last number after decimal place, increment by one
+						let pre = current_version.pre.as_str();
+						let num = pre.split('.').last().unwrap().parse::<u64>().unwrap();
+						let mut pre = current_version.clone();
+						pre.pre = Prerelease::EMPTY;
+						finalized_new_version = format!("{}-dev.{}", pre, num + 1);
+					}
+				}
+			}
+			assert!(finalized_new_version.parse::<semver::Version>().is_ok());
+			debug!("Finalized version for release: {}", finalized_new_version);
+
+			set_current_version(&finalized_new_version);
+		}
 	}
 
 	// match args {
@@ -521,47 +572,6 @@ fn main() {
 
 	// 		let current_vers = get_current_version();
 	// 		let current_version = current_vers.parse::<semver::Version>().expect("Current version is not valid");
-
-	// 		let finalized_new_version;
-
-	// 		match (version, dev_patch) {
-	// 			(None, false) => {
-	// 				error!("Must provide either --version 0.1.2-dev.3 or --dev-patch");
-	// 				std::process::exit(1);
-	// 			}
-	// 			(Some(_), true) => {
-	// 				error!("Cannot provide both --version and --dev-patch");
-	// 				std::process::exit(1);
-	// 			}
-	// 			(Some(ver), false) => {
-	// 				let new_version = ver.parse::<semver::Version>().expect("New version is not valid");
-	// 				if new_version <= current_version {
-	// 					error!("Version {} is already the current version or less, please provide a version greater than {}", new_version, current_vers);
-	// 					std::process::exit(1);
-	// 				} else {
-	// 					finalized_new_version = format!("{}", new_version);
-	// 				}
-	// 			}
-	// 			(None, true) => {
-	// 				trace!("Incrementing dev patch version from {}", current_version);
-	// 				assert!(current_version.build.is_empty());
-	// 				if current_version.pre.is_empty() {
-	// 					trace!("Prerelease is empty, adding -dev.1");
-	// 					finalized_new_version = format!("{}-dev.1", current_version);
-	// 				} else {
-	// 					// extract last number after decimal place, increment by one
-	// 					let pre = current_version.pre.as_str();
-	// 					let num = pre.split('.').last().unwrap().parse::<u64>().unwrap();
-	// 					let mut pre = current_version.clone();
-	// 					pre.pre = Prerelease::EMPTY;
-	// 					finalized_new_version = format!("{}-dev.{}", pre, num + 1);
-	// 				}
-	// 			}
-	// 		}
-	// 		assert!(finalized_new_version.parse::<semver::Version>().is_ok());
-	// 		debug!("Finalized version for release: {}", finalized_new_version);
-
-	// 		set_current_version(&finalized_new_version);
 
 	// 		let release_dir = format!("release/gh-releases/{}", finalized_new_version);
 

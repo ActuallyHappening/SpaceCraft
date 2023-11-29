@@ -6,6 +6,9 @@ use tracing::*;
 
 const CLI_NAME: &str = "bevy-package-cli";
 pub const SILICON_TRIPLE: &str = "aarch64-apple-darwin";
+pub const INTEL_TRIPLE: &str = "x86_64-apple-darwin";
+pub const WINDOWS_TRIPLE: &str = "x86_64-pc-windows-gnu";
+pub const BASE_APP_ICON: &str = "assets/image/icon_1024x1024.png";
 
 pub fn get_cargo_path() -> String {
 	// get cargo executable from env CARGO, and run it with str
