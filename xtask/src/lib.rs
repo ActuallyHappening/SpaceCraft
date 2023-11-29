@@ -143,8 +143,8 @@ pub fn get_changelog_notes(version: &str) -> Option<(String, String)> {
 	// return the lines between the two
 	let notes = changelog
 		.lines()
-		.skip(current_version_start_line)
-		.take(previous_version_start_line - current_version_start_line)
+		.skip(current_version_start_line + 1)
+		.take(previous_version_start_line - current_version_start_line - 1)
 		.collect::<Vec<_>>()
 		.join("\n");
 
@@ -154,7 +154,7 @@ pub fn get_changelog_notes(version: &str) -> Option<(String, String)> {
 		.nth(current_version_start_line)
 		.unwrap()
 		.trim_start_matches("## ")
-		.trim_end_matches("\n")
+		.trim_end_matches('\n')
 		.to_string();
 
 	Some((notes, format!("v{}", title)))

@@ -2,5 +2,5 @@
 3D MMO pixel-based resource management tower defence discovery and exploration game
 
 ## Usage: `xtask`
-To prepare, run `cargo xtask prepare macos`.
-To package, run `cargo xtask package macos`.
+To release a new version: `cargo xtask release --version 0.1.0 all`, remember to add a changelog
+To just package a development build: `cargo xtask package macos`
