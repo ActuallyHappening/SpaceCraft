@@ -1,7 +1,10 @@
 use camino::{Utf8Path, Utf8PathBuf};
 use convert_case::{Case, Casing};
 pub use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::{
+	borrow::Cow,
+	process::{Command, Stdio},
+};
 use tracing::*;
 
 const CLI_NAME: &str = "bevy-package-cli";
@@ -110,27 +113,38 @@ pub fn get_self_manifest_path() -> Utf8PathBuf {
 	cargo_exec_path
 }
 
-pub fn cargo_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) {
+pub fn cargo_exec<'s>(args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + Clone) {
 	// get cargo executable from env CARGO, and run it with str
 	let cargo_exec_path = get_cargo_path();
 	exec(&cargo_exec_path, args);
 }
 
-pub fn xtask_exec<'s>(args: impl IntoIterator<Item = &'s str> + Clone) -> String {
+pub fn xtask_exec<'s>(args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + Clone) -> String {
 	let cargo_exec_path = get_cargo_path();
-	let mut args = args.into_iter().collect::<Vec<_>>();
-	args.insert(0, "xtask");
+	let mut args = args
+		.into_iter()
+		.map(|s| s.into().into_owned())
+		.collect::<Vec<String>>();
+	args.insert(0, "xtask".into());
 	exec(&cargo_exec_path, args)
 }
 
-pub fn exec<'a, 's>(exec_str: &'a str, args: impl IntoIterator<Item = &'s str> + Clone) -> String {
+pub fn exec<'a, 's>(
+	exec_str: &'a str,
+	args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + Clone,
+) -> String {
 	debug!(
 		"Running: {} \"{}\"",
 		exec_str,
-		args.clone().into_iter().collect::<Vec<_>>().join("\" \"")
+		args
+			.clone()
+			.into_iter()
+			.map(|s| s.into().into_owned())
+			.collect::<Vec<String>>()
+			.join("\" \"")
 	);
 	let mut exec = std::process::Command::new(exec_str);
-	exec.args(args);
+	exec.args(args.into_iter().map(|s| s.into().into_owned()));
 	exec.stdout(Stdio::piped());
 
 	let exec_output = exec.spawn().unwrap().wait_with_output().unwrap();

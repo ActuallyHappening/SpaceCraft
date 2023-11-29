@@ -1,6 +1,9 @@
 use camino::{Utf8Path, Utf8PathBuf};
 use semver::{BuildMetadata, Prerelease, Version};
-use std::fs::{create_dir, create_dir_all, remove_dir_all, remove_file};
+use std::{
+	convert::Infallible,
+	fs::{create_dir, create_dir_all, remove_dir_all, remove_file},
+};
 use tracing::*;
 
 use clap::{error, Args, Parser, Subcommand, ValueEnum};
@@ -35,6 +38,9 @@ enum Commands {
 		#[arg(long, default_value_t = false)]
 		output_final_path: bool,
 
+		#[arg(long, default_value_t = false)]
+		can_skip_build: bool,
+
 		#[command(subcommand)]
 		platform: Package,
 	},
@@ -64,7 +70,6 @@ enum Commands {
 /// Build and package the application, ready for release
 #[derive(Subcommand, Debug)]
 enum Package {
-	#[cfg(target_os = "macos")]
 	Macos {
 		/// Will ln -s the un-compressed package into applications.
 		/// Only applicable for MacOS <-> MacOS builds.
@@ -110,45 +115,24 @@ impl Release {
 }
 
 #[derive(Args, Debug)]
-#[group(required = true, multiple = false)]
+#[group(required = false, multiple = false)]
 struct ReleaseNewVersion {
 	#[arg(long, value_name = "VER")]
 	version: Option<String>,
 
 	#[arg(long, default_value_t = false)]
 	dev_patch: bool,
-}
 
-#[derive(clap::Args, Debug)]
-struct _Release {
+	/// Whether or not the --can-skip-build flag should be passed to
+	/// the xtask package command. This will skip the build step if
+	/// the final .zip/.dmg already exists
 	#[arg(long, default_value_t = false)]
-	all: bool,
-
-	#[arg(long, default_value_t = false)]
-	windows: bool,
-
-	#[arg(long, default_value_t = false)]
-	macos: bool,
-
-	/// Manually specify the exact version
-	#[arg(long, short)]
-	version: Option<String>,
-
-	/// Just bump the current dev-* patch version by one,
-	/// e.g. 0.0.0-dev-1
-	#[arg(long, default_value_t = false)]
-	dev_patch: bool,
-
-	title: String,
-
-	#[arg(long, default_value_t = false)]
-	proper_release: bool,
+	force_rebuild: bool,
 }
 
 #[derive(Subcommand, Debug, Clone)]
 enum Platform {
 	Windows,
-	#[command(name = "macos")]
 	MacOS,
 	// Web,
 	// Linux,
@@ -191,12 +175,36 @@ fn main() {
 			app_name,
 			output_final_path,
 			platform,
+			can_skip_build,
 		} => match platform {
 			Package::Macos {
 				link_into_applications,
 				link_for_bundle,
 				open,
 			} => {
+				let target_dir_macos = Utf8PathBuf::from(format!("{}/macos", target_dir));
+				let target_dir_src = format!("{}/src", target_dir_macos);
+				let target_dir_package = format!("{}/{}.app", target_dir_src, app_name);
+
+				let version = get_current_version();
+				let dmg_name = format!("{} v{}.dmg", app_name, version);
+				let final_dmg = Utf8PathBuf::from(format!("{}/{}", target_dir_macos, dmg_name));
+				if final_dmg.is_file() {
+					if can_skip_build {
+						info!(
+							"Skipping build for version {}, as {} already exists",
+							version, final_dmg
+						);
+						if output_final_path {
+							println!("{}", final_dmg);
+						}
+						std::process::exit(0);
+					} else {
+						debug!("Removing old dmg: {}", final_dmg);
+						remove_file(&final_dmg).unwrap();
+					}
+				}
+
 				let sdk_root = get_sdk_root();
 				exec_with_envs(
 					&get_cargo_path(),
@@ -245,9 +253,6 @@ fn main() {
 				);
 
 				// prepare package_path
-				let target_dir_macos = Utf8PathBuf::from(format!("{}/macos", target_dir));
-				let target_dir_src = format!("{}/src", target_dir_macos);
-				let target_dir_package = format!("{}/{}.app", target_dir_src, app_name);
 				if remove_dir_all(&target_dir_src).is_ok() {
 					debug!("Removed old package src/ at {}", target_dir_src);
 				}
@@ -290,13 +295,6 @@ fn main() {
 				}
 
 				// put into volume
-				let version = get_current_version();
-				let dmg_name = format!("{} v{}.dmg", app_name, version);
-				let final_dmg = Utf8PathBuf::from(format!("{}/{}", target_dir_macos, dmg_name));
-				if final_dmg.is_file() {
-					debug!("Removing old dmg: {}", final_dmg);
-					remove_file(&final_dmg).unwrap();
-				}
 				exec(
 					"hdiutil",
 					[
@@ -333,8 +331,31 @@ fn main() {
 				if output_final_path {
 					println!("{}", final_dmg);
 				}
+
+				std::process::exit(0);
 			}
 			Package::Windows => {
+				let version = get_current_version();
+				let final_zip_name = format!("{} v{}.zip", app_name, version);
+				let target_dir_windows = Utf8PathBuf::from(format!("{}/windows", target_dir));
+				let final_zip = Utf8PathBuf::from(format!("{}/{}", target_dir_windows, final_zip_name));
+
+				if final_zip.is_file() {
+					if can_skip_build {
+						info!(
+							"Skipping build for version {}, as {} already exists",
+							version, final_zip
+						);
+						if output_final_path {
+							println!("{}", final_zip);
+						}
+						std::process::exit(0);
+					} else {
+						debug!("Removing old zip: {}", final_zip);
+						remove_file(&final_zip).unwrap();
+					}
+				}
+
 				cargo_exec([
 					"build",
 					"--release",
@@ -350,7 +371,6 @@ fn main() {
 				));
 				assert!(bin_path.is_file());
 
-				let target_dir_windows = Utf8PathBuf::from(format!("{}/windows", target_dir));
 				let target_dir_src = Utf8PathBuf::from(format!("{}/src", target_dir_windows));
 				if remove_dir_all(PathBuf::from(&target_dir_src)).is_ok() {
 					info!("Removed old target dir {}", target_dir_src);
@@ -371,8 +391,6 @@ fn main() {
 				assert!(moved_exec.is_file());
 
 				// put into zip
-				let version = get_current_version();
-				let final_zip_name = format!("{} v{}.zip", app_name, version);
 				let src_zip = Utf8PathBuf::from(format!("{}/{}", target_dir_src, final_zip_name));
 				// cwd into target/windows/src/
 				{
@@ -392,8 +410,7 @@ fn main() {
 					trace!("Back to normal CWD {}", original_cwd);
 				}
 
-				exec("mv", [src_zip.as_str(), target_dir_windows.as_str()]);
-				let final_zip = Utf8PathBuf::from(format!("{}/{}", target_dir_windows, final_zip_name));
+				exec("mv", [src_zip.as_str(), final_zip.as_str()]);
 				assert!(final_zip.is_file());
 
 				info!("Successfully packaged windows application: {}", final_zip);
@@ -401,6 +418,8 @@ fn main() {
 				if output_final_path {
 					println!("{}", final_zip);
 				}
+
+				std::process::exit(0);
 			}
 		},
 		Commands::Prepare { platform } => match platform {
@@ -495,8 +514,9 @@ fn main() {
 
 			match (version.version, version.dev_patch) {
 				(None, false) => {
-					error!("Must provide either --version 0.1.2-dev.3 or --dev-patch");
-					std::process::exit(1);
+					// error!("Must provide either --version 0.1.2-dev.3 or --dev-patch");
+					// std::process::exit(1);
+					finalized_new_version = format!("{}", current_version);
 				}
 				(Some(_), true) => {
 					error!("Cannot provide both --version and --dev-patch");
@@ -535,11 +555,20 @@ fn main() {
 			set_current_version(&finalized_new_version);
 
 			let mut packaged_files = Vec::new();
+			let args_for_platform_package = |s: String| -> Vec<String> {
+				let mut args = vec!["package".to_string()];
+				if !version.force_rebuild {
+					args.push("--can-skip-build".to_string());
+				}
+				args.push("--output-final-path".to_string());
+				args.push(s);
+				args
+			};
 			if platforms.release_windows() {
-				packaged_files.push(xtask_exec(["package", "--output-final-path", "windows"]));
+				packaged_files.push(xtask_exec(args_for_platform_package("windows".into())));
 			}
 			if platforms.release_macos() {
-				packaged_files.push(xtask_exec(["package", "--output-final-path", "macos"]));
+				packaged_files.push(xtask_exec(args_for_platform_package("macos".into())));
 			}
 
 			trace!("About to parse {} files' outputs", packaged_files.len());
@@ -558,7 +587,7 @@ fn main() {
 			// copy each file into release dir
 			let versioned_release_dir = format!("{}/{}", args.release_dir, finalized_new_version);
 			create_dir_all(&versioned_release_dir).unwrap();
-			for file in packaged_files {
+			for file in &packaged_files {
 				exec("cp", [file.as_str(), versioned_release_dir.as_str()]);
 			}
 
@@ -571,19 +600,25 @@ fn main() {
 				&notes,
 				"--title",
 				&title,
-			];
+			]
+			.into_iter()
+			.map(|s| s.to_owned())
+			.collect::<Vec<String>>();
 
 			if !proper_release {
-				gh_args.push("--prerelease")
+				gh_args.push("--prerelease".into())
 			}
 
-			for packaged_files in packaged_files {
-				gh_args.push(packaged_files.as_str());
+			for file in &packaged_files {
+				let str = file.as_str();
+				gh_args.push(str.to_string());
 			}
-			
+
 			exec("gh", gh_args);
+
+			std::process::exit(0);
 		}
-	}
+	};
 
 	// match args {
 	// 	Cli::Package(Package {
