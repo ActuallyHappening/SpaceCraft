@@ -29,7 +29,7 @@ enum Commands {
 		#[arg(long, default_value_t = get_default_bin_name())]
 		bin_name: String,
 
-		#[arg(long, default_value_t = get_default_osx_app_name())]
+		#[arg(long, default_value_t = get_default_app_name())]
 		app_name: String,
 
 		#[arg(long, default_value_t = false)]
@@ -52,6 +52,12 @@ enum Commands {
 
 		#[command(subcommand)]
 		platforms: Release,
+
+		#[arg(long)]
+		title: String,
+
+		#[arg(long)]
+		notes: String,
 	},
 }
 
@@ -481,6 +487,8 @@ fn main() {
 			version,
 			proper_release,
 			platforms,
+			title,
+			notes,
 		} => {
 			let current_version: Version = get_current_version().parse().unwrap();
 			let finalized_new_version;
@@ -528,10 +536,10 @@ fn main() {
 
 			let mut packaged_files = Vec::new();
 			if platforms.release_windows() {
-				packaged_files.push(xtask_exec(["package", "--output-final-path", "windows", ]));
+				packaged_files.push(xtask_exec(["package", "--output-final-path", "windows"]));
 			}
 			if platforms.release_macos() {
-				packaged_files.push(xtask_exec(["package", "--output-final-path", "macos",]));
+				packaged_files.push(xtask_exec(["package", "--output-final-path", "macos"]));
 			}
 
 			trace!("About to parse {} files' outputs", packaged_files.len());
@@ -541,13 +549,39 @@ fn main() {
 				.map(|s| s.lines().last().unwrap().to_owned())
 				.filter_map(|l| l.parse().ok())
 				.collect();
-			
-			debug!("Going to copy files into {}: {:?}", args.release_dir, packaged_files);
+
+			debug!(
+				"Going to copy files into {}: {:?}",
+				args.release_dir, packaged_files
+			);
 
 			// copy each file into release dir
+			let versioned_release_dir = format!("{}/{}", args.release_dir, finalized_new_version);
+			create_dir_all(&versioned_release_dir).unwrap();
 			for file in packaged_files {
-				exec("cp", [file.as_str(), args.release_dir.as_str()]);
+				exec("cp", [file.as_str(), versioned_release_dir.as_str()]);
 			}
+
+			let formatted_version = format!("v{}", finalized_new_version);
+			let mut gh_args = vec![
+				"release",
+				"create",
+				&formatted_version,
+				"--notes",
+				&notes,
+				"--title",
+				&title,
+			];
+
+			if !proper_release {
+				gh_args.push("--prerelease")
+			}
+
+			for packaged_files in packaged_files {
+				gh_args.push(packaged_files.as_str());
+			}
+			
+			exec("gh", gh_args);
 		}
 	}
 

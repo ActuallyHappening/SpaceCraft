@@ -96,8 +96,8 @@ pub fn get_sdk_root() -> Utf8PathBuf {
 	path
 }
 
-#[cfg(target_os = "macos")]
-pub fn get_default_osx_app_name() -> String {
+// #[cfg(target_os = "macos")]
+pub fn get_default_app_name() -> String {
 	let default = get_default_bin_name().to_case(Case::Title);
 	get_metadata_entry("osx-app-name")
 		.map(|v| v.as_str().expect("osx-app-name to be string").to_string())
