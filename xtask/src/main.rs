@@ -59,6 +59,10 @@ enum Commands {
 		#[command(subcommand)]
 		platform: Package,
 	},
+	Prepare {
+		#[command(subcommand)]
+		platform: Prepare,
+	},
 }
 
 /// Build and package the application, ready for release
@@ -85,10 +89,11 @@ enum Package {
 	Windows,
 }
 
-#[derive(clap::Args, Debug)]
-struct Prepare {
-	#[command(subcommand)]
-	platform: Platform,
+#[derive(Subcommand, Debug)]
+enum Prepare {
+	#[cfg(target_os = "macos")]
+	Macos,
+	Windows,
 }
 
 #[derive(clap::Args, Debug)]
@@ -182,9 +187,9 @@ fn main() {
 					],
 					[("SDKROOT", sdk_root.as_str())],
 				);
-				const SILICON_TRIPLE: &str = "aarch64-apple-darwin";
+				
 				let silicon_build =
-					Utf8PathBuf::from(format!("target/{SILICON_TRIPLE}/release/{bin_name}"));
+					Utf8PathBuf::from(format!("target/{}/release/{bin_name}", SILICON_TRIPLE));
 				assert!(silicon_build.is_file());
 
 				exec_with_envs(
@@ -232,11 +237,8 @@ fn main() {
 					create_dir_all(&assets_dir).unwrap();
 					// copies assets
 					exec("cp", ["-r", "assets/", assets_dir.as_str()]);
-					let final_bin_file = Utf8PathBuf::from(format!(
-						"{}/MacOS/{}",
-						&macos_contents_dir,
-						bin_name,
-					));
+					let final_bin_file =
+						Utf8PathBuf::from(format!("{}/MacOS/{}", &macos_contents_dir, bin_name,));
 					exec("cp", [combined_bin_file.as_str(), final_bin_file.as_str()]);
 					exec("strip", [final_bin_file.as_str()]);
 				}
@@ -304,7 +306,7 @@ fn main() {
 				// eventually, code sign and notarize here
 
 				info!("Successfully packaged macos application: {}", final_dmg);
-				
+
 				if output_final_path {
 					println!("{}", final_dmg);
 				}
@@ -380,6 +382,87 @@ fn main() {
 				}
 			}
 		},
+		Commands::Prepare { platform } => match platform {
+			Prepare::Macos => {
+				todo!("TODO")
+				// todo
+				exec("rustup", ["target", "add", "aarch64-apple-darwin"]);
+				exec("rustup", ["target", "add", "x86_64-apple-darwin"]);
+
+				// sort out icons
+				let build_dir = "build/macos.app/Contents";
+				let icon_dir = format!("{}/AppIcon.iconset", build_dir);
+				if remove_dir_all(&icon_dir).is_ok() {
+					println!("Removed old iconset dir");
+				}
+				create_dir(&icon_dir).unwrap();
+
+				let base_icon = "assets/images/icon_1024x1024.png";
+				assert!(Path::new(base_icon).exists());
+
+				let sips = |size: u16| {
+					exec(
+						"sips",
+						[
+							"-z",
+							size.to_string().as_str(),
+							size.to_string().as_str(),
+							base_icon,
+							"--out",
+							format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
+						],
+					);
+				};
+				let sips2 = |size: u16| {
+					assert!(size > 16);
+					exec(
+						"sips",
+						[
+							"-z",
+							size.to_string().as_str(),
+							size.to_string().as_str(),
+							base_icon,
+							"--out",
+							format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
+						],
+					);
+				};
+				for size in [16, 32, 128, 256, 512].iter() {
+					sips(*size);
+				}
+				for size in [32, 64, 256, 512].iter() {
+					sips2(*size);
+				}
+
+				exec(
+					"iconutil",
+					[
+						"-c",
+						"icns",
+						&icon_dir,
+						"--output",
+						format!("{}/Resources/AppIcon.icns", build_dir).as_str(),
+					],
+				);
+			}
+			Prepare::Windows => {
+				// exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
+				exec("rustup", ["target", "add", "x86_64-pc-windows-gnu"]);
+				// cargo_exec(["install", "xwin"]);
+				// exec(
+				// 	"xwin",
+				// 	[
+				// 		"--accept-license",
+				// 		"splat",
+				// 		"--disable-symlinks",
+				// 		"--output",
+				// 		format!("/Users/{}/.xwin", user_name).as_str(),
+				// 	],
+				// );
+				exec("brew", ["install", "llvm"]);
+				exec("brew", ["install", "mingw-w64"]);
+			}
+		},
 	}
 
 	// match args {
@@ -409,83 +492,9 @@ fn main() {
 	// 		// user_name,
 	// 	}) => match platform {
 	// 		Platform::Windows => {
-	// 			// exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
-	// 			exec("rustup", ["target", "add", "x86_64-pc-windows-gnu"]);
-	// 			// cargo_exec(["install", "xwin"]);
-	// 			// exec(
-	// 			// 	"xwin",
-	// 			// 	[
-	// 			// 		"--accept-license",
-	// 			// 		"splat",
-	// 			// 		"--disable-symlinks",
-	// 			// 		"--output",
-	// 			// 		format!("/Users/{}/.xwin", user_name).as_str(),
-	// 			// 	],
-	// 			// );
-	// 			#[cfg(target_os = "macos")]
-	// 			exec("brew", ["install", "llvm"]);
-	// 			#[cfg(target_os = "macos")]
-	// 			exec("brew", ["install", "mingw-w64"]);
+
 	// 		}
 	// 		Platform::MacOS => {
-	// 			exec("rustup", ["target", "add", "aarch64-apple-darwin"]);
-	// 			exec("rustup", ["target", "add", "x86_64-apple-darwin"]);
-
-	// 			// sort out icons
-	// 			let build_dir = "build/macos.app/Contents";
-	// 			let icon_dir = format!("{}/AppIcon.iconset", build_dir);
-	// 			if remove_dir_all(&icon_dir).is_ok() {
-	// 				println!("Removed old iconset dir");
-	// 			}
-	// 			create_dir(&icon_dir).unwrap();
-
-	// 			let base_icon = "assets/images/icon_1024x1024.png";
-	// 			assert!(Path::new(base_icon).exists());
-
-	// 			let sips = |size: u16| {
-	// 				exec(
-	// 					"sips",
-	// 					[
-	// 						"-z",
-	// 						size.to_string().as_str(),
-	// 						size.to_string().as_str(),
-	// 						base_icon,
-	// 						"--out",
-	// 						format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
-	// 					],
-	// 				);
-	// 			};
-	// 			let sips2 = |size: u16| {
-	// 				assert!(size > 16);
-	// 				exec(
-	// 					"sips",
-	// 					[
-	// 						"-z",
-	// 						size.to_string().as_str(),
-	// 						size.to_string().as_str(),
-	// 						base_icon,
-	// 						"--out",
-	// 						format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
-	// 					],
-	// 				);
-	// 			};
-	// 			for size in [16, 32, 128, 256, 512].iter() {
-	// 				sips(*size);
-	// 			}
-	// 			for size in [32, 64, 256, 512].iter() {
-	// 				sips2(*size);
-	// 			}
-
-	// 			exec(
-	// 				"iconutil",
-	// 				[
-	// 					"-c",
-	// 					"icns",
-	// 					&icon_dir,
-	// 					"--output",
-	// 					format!("{}/Resources/AppIcon.icns", build_dir).as_str(),
-	// 				],
-	// 			);
 	// 		}
 	// 	},
 	// 	Cli::Update => {

@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 use tracing::*;
 
 const CLI_NAME: &str = "bevy-package-cli";
+pub const SILICON_TRIPLE: &str = "aarch64-apple-darwin";
 
 pub fn get_cargo_path() -> String {
 	// get cargo executable from env CARGO, and run it with str
