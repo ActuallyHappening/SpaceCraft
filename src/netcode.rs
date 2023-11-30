@@ -151,7 +151,7 @@ impl NetcodePlugin {
 				let current_time = SystemTime::now()
 					.duration_since(SystemTime::UNIX_EPOCH)
 					.unwrap();
-				let client_id = current_time.as_millis() as u64;
+				let client_id = ClientId::from_raw(current_time.as_millis() as u64);
 				let server_addr = SocketAddr::new(*ip, *port);
 				let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))
 					.expect("Couldn't bind to (unspecified) socket");
