@@ -24,9 +24,9 @@
 		// {
 		// 	"path": "../bevy_timewarp"
 		// },
-		// {
-		// 	"path": "../bevy_xpbd"
-		// },
+		{
+			"path": "../bevy_xpbd"
+		},
 		// {
 		// 	"path": "../bevy_replicon"
 		// },
@@ -42,12 +42,18 @@
 		// {
 		// 	"path": "../space_editor"
 		// }
+		// {
+		// 	"path": "../cargo-bundle"
+		// },
 		{
 			"path": "../bevy_game_template"
 		},
 		{
 			"path": "../bevy_xpbd3d_parenting"
-		}
+		},
+		// {
+		// 	"path": "../rust-mac-app-examples/3-packaging-a-mac-app"
+		// }
 	],
 	"settings": {
 		"cSpell.words": [
