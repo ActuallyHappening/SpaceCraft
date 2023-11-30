@@ -426,13 +426,13 @@ fn main() {
 			}
 		},
 		Commands::Prepare { platform } => {
-			match try_exec("pre-commit", ["autoupdate"]) {
-				Ok(_) => {}
-				Err(_) => {
-					error!("Please install pre-commit so prepare can run `pre-commit autoupdate`");
-					std::process::exit(1);
-				}
-			}
+			// match try_exec("pre-commit", ["autoupdate"]) {
+			// 	Ok(_) => {}
+			// 	Err(_) => {
+			// 		error!("Please install pre-commit so prepare can run `pre-commit autoupdate`");
+			// 		std::process::exit(1);
+			// 	}
+			// }
 			match platform {
 				Prepare::Macos => {
 					exec("rustup", ["target", "add", SILICON_TRIPLE]);

@@ -49,7 +49,20 @@ fn spawn_default_cameras(mut commands: Commands) {
 /// There is not always a camera with this component,
 /// but there is at most one.
 #[derive(Component, Debug)]
-pub struct PrimaryCamera;
+struct PrimaryCamera;
+
+/// Holds state about the cameras of the game
+#[derive(Resource, Debug)]
+pub struct Cameras {
+	/// If [None], primary camera is not spawned (e.g. at start of the game)
+	primary_cam: Option<CameraConfig>,
+}
+
+/// State of a camera
+#[derive(Debug)]
+pub enum CameraConfig {
+	FollowingCameraBlock(BlockId),
+}
 
 impl PrimaryCamera {
 	fn exists(cams: Query<(), With<PrimaryCamera>>) -> bool {
@@ -69,51 +82,62 @@ impl PrimaryCamera {
 	}
 }
 
-/// Camera block that is spawned into the world
-#[derive(Bundle)]
-pub struct CameraBlockBundle {
-	pbr: PbrBundle,
-	name: Name,
-}
+pub use camera_block::*;
+mod camera_block {
+	use crate::prelude::*;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct CameraBlock;
+	/// Camera block that is spawned into the world
+	#[derive(Bundle)]
+	pub struct CameraBlockBundle {
+		pbr: PbrBundle,
+		name: Name,
+		id: BlockId,
+	}
 
-impl BlockBlueprint<CameraBlock> {
-	pub fn new_camera(
-		position: impl Into<manual_builder::RelativePixel>,
-		facing: impl Into<Quat>,
-	) -> Self {
-		Self {
-			transform: Transform::from_rotation(facing.into())
-				.translate(position.into().into_world_offset()),
-			mesh: OptimizableMesh::None,
-			material: OptimizableMaterial::None,
-			specific_marker: CameraBlock,
+	#[derive(Debug, Serialize, Deserialize, Clone)]
+	pub struct CameraBlock {
+		id: BlockId,
+	}
+
+	impl BlockBlueprint<CameraBlock> {
+		pub fn new_camera(
+			position: impl Into<manual_builder::RelativePixel>,
+			facing: impl Into<Quat>,
+		) -> Self {
+			Self {
+				transform: Transform::from_rotation(facing.into())
+					.translate(position.into().into_world_offset()),
+				mesh: OptimizableMesh::None,
+				material: OptimizableMaterial::None,
+				specific_marker: CameraBlock {
+					id: BlockId::random(),
+				},
+			}
 		}
 	}
-}
 
-impl FromBlueprint for CameraBlockBundle {
-	type Blueprint = BlockBlueprint<CameraBlock>;
+	impl FromBlueprint for CameraBlockBundle {
+		type Blueprint = BlockBlueprint<CameraBlock>;
 
-	fn stamp_from_blueprint(
-		BlockBlueprint {
-			transform,
-			mesh,
-			material,
-			specific_marker: _,
-		}: &Self::Blueprint,
-		mma: &mut MMA,
-	) -> Self {
-		Self {
-			pbr: PbrBundle {
-				transform: *transform,
-				mesh: mesh.get_mesh(mma),
-				material: material.get_material(&mut mma.mats),
-				..default()
-			},
-			name: Name::new("CameraBlock"),
+		fn stamp_from_blueprint(
+			BlockBlueprint {
+				transform,
+				mesh,
+				material,
+				specific_marker,
+			}: &Self::Blueprint,
+			mma: &mut MMA,
+		) -> Self {
+			Self {
+				pbr: PbrBundle {
+					transform: *transform,
+					mesh: mesh.get_mesh(mma),
+					material: material.get_material(&mut mma.mats),
+					..default()
+				},
+				name: Name::new("CameraBlock"),
+				id: specific_marker.id,
+			}
 		}
 	}
 }
