@@ -166,9 +166,7 @@ mod structure_block {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum OptimizableMesh {
 	StandardBlock,
-	CustomRectangularPrism {
-		size: Vec3,
-	},
+	CustomRectangularPrism { size: Vec3 },
 	FromAsset(String),
 }
 
@@ -177,7 +175,9 @@ impl OptimizableMesh {
 		match self {
 			Self::FromAsset(name) => mma.ass.load(name),
 			Self::StandardBlock => mma.meshs.add(shape::Cube { size: PIXEL_SIZE }.into()),
-			Self::CustomRectangularPrism { size } => mma.meshs.add(shape::Box::new(size.x, size.y, size.z).into()),
+			Self::CustomRectangularPrism { size } => mma
+				.meshs
+				.add(shape::Box::new(size.x, size.y, size.z).into()),
 		}
 	}
 }

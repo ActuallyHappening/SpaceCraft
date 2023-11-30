@@ -18,3 +18,4 @@
 !bevy_xpbd3d_parenting
 !build
 !.github
+!.pre-commit-config.yaml

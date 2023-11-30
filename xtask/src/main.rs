@@ -197,7 +197,10 @@ fn main() {
 						remove_file(&final_dmg).unwrap();
 					}
 				} else {
-					debug!("Building macos application since no file was detected at {}", final_dmg);
+					debug!(
+						"Building macos application since no file was detected at {}",
+						final_dmg
+					);
 				}
 
 				let sdk_root = get_sdk_root();
@@ -350,7 +353,10 @@ fn main() {
 						remove_file(&final_zip).unwrap();
 					}
 				} else {
-					debug!("Building windows application since no zip was detected at {}", final_zip);
+					debug!(
+						"Building windows application since no zip was detected at {}",
+						final_zip
+					);
 				}
 
 				cargo_exec([
@@ -419,86 +425,95 @@ fn main() {
 				std::process::exit(0);
 			}
 		},
-		Commands::Prepare { platform } => match platform {
-			Prepare::Macos => {
-				exec("rustup", ["target", "add", SILICON_TRIPLE]);
-				exec("rustup", ["target", "add", INTEL_TRIPLE]);
-
-				// sort out icons
-				let macos_build_contents = Utf8PathBuf::from(format!("{}/macos.app/Contents", build_dir));
-				let icon_dir = Utf8PathBuf::from(format!("{}/AppIcon.iconset", macos_build_contents));
-				if remove_dir_all(&icon_dir).is_ok() {
-					debug!("Removed old iconset dir at {}", icon_dir);
+		Commands::Prepare { platform } => {
+			match try_exec("pre-commit", ["autoupdate"]) {
+				Ok(_) => {}
+				Err(_) => {
+					error!("Please install pre-commit so prepare can run `pre-commit autoupdate`");
+					std::process::exit(1);
 				}
-				create_dir(&icon_dir).unwrap();
+			}
+			match platform {
+				Prepare::Macos => {
+					exec("rustup", ["target", "add", SILICON_TRIPLE]);
+					exec("rustup", ["target", "add", INTEL_TRIPLE]);
 
-				assert!(Utf8Path::new(BASE_APP_ICON).exists());
+					// sort out icons
+					let macos_build_contents = Utf8PathBuf::from(format!("{}/macos.app/Contents", build_dir));
+					let icon_dir = Utf8PathBuf::from(format!("{}/AppIcon.iconset", macos_build_contents));
+					if remove_dir_all(&icon_dir).is_ok() {
+						debug!("Removed old iconset dir at {}", icon_dir);
+					}
+					create_dir(&icon_dir).unwrap();
 
-				let sips = |size: u16| {
+					assert!(Utf8Path::new(BASE_APP_ICON).exists());
+
+					let sips = |size: u16| {
+						exec(
+							"sips",
+							[
+								"-z",
+								size.to_string().as_str(),
+								size.to_string().as_str(),
+								BASE_APP_ICON,
+								"--out",
+								format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
+							],
+						);
+					};
+					let sips2 = |size: u16| {
+						assert!(size > 16);
+						exec(
+							"sips",
+							[
+								"-z",
+								size.to_string().as_str(),
+								size.to_string().as_str(),
+								BASE_APP_ICON,
+								"--out",
+								format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
+							],
+						);
+					};
+					for size in [16, 32, 128, 256, 512].iter() {
+						sips(*size);
+					}
+					for size in [32, 64, 256, 512].iter() {
+						sips2(*size);
+					}
+
 					exec(
-						"sips",
+						"iconutil",
 						[
-							"-z",
-							size.to_string().as_str(),
-							size.to_string().as_str(),
-							BASE_APP_ICON,
-							"--out",
-							format!("{}/icon_{}x{}.png", icon_dir, size, size).as_str(),
+							"-c",
+							"icns",
+							icon_dir.as_str(),
+							"--output",
+							format!("{}/Resources/AppIcon.icns", macos_build_contents).as_str(),
 						],
 					);
-				};
-				let sips2 = |size: u16| {
-					assert!(size > 16);
-					exec(
-						"sips",
-						[
-							"-z",
-							size.to_string().as_str(),
-							size.to_string().as_str(),
-							BASE_APP_ICON,
-							"--out",
-							format!("{}/icon_{}x{}@2x.png", icon_dir, size / 2, size / 2).as_str(),
-						],
-					);
-				};
-				for size in [16, 32, 128, 256, 512].iter() {
-					sips(*size);
 				}
-				for size in [32, 64, 256, 512].iter() {
-					sips2(*size);
+				Prepare::Windows => {
+					// exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
+					exec("rustup", ["target", "add", WINDOWS_TRIPLE]);
+					// cargo_exec(["install", "xwin"]);
+					// exec(
+					// 	"xwin",
+					// 	[
+					// 		"--accept-license",
+					// 		"splat",
+					// 		"--disable-symlinks",
+					// 		"--output",
+					// 		format!("/Users/{}/.xwin", user_name).as_str(),
+					// 	],
+					// );
+					#[cfg(target_os = "macos")]
+					exec("brew", ["install", "llvm"]);
+					#[cfg(target_os = "macos")]
+					exec("brew", ["install", "mingw-w64"]);
 				}
-
-				exec(
-					"iconutil",
-					[
-						"-c",
-						"icns",
-						icon_dir.as_str(),
-						"--output",
-						format!("{}/Resources/AppIcon.icns", macos_build_contents).as_str(),
-					],
-				);
 			}
-			Prepare::Windows => {
-				// exec("rustup", ["target", "add", "x86_64-pc-windows-msvc"]);
-				exec("rustup", ["target", "add", WINDOWS_TRIPLE]);
-				// cargo_exec(["install", "xwin"]);
-				// exec(
-				// 	"xwin",
-				// 	[
-				// 		"--accept-license",
-				// 		"splat",
-				// 		"--disable-symlinks",
-				// 		"--output",
-				// 		format!("/Users/{}/.xwin", user_name).as_str(),
-				// 	],
-				// );
-				#[cfg(target_os = "macos")]
-				exec("brew", ["install", "llvm"]);
-				#[cfg(target_os = "macos")]
-				exec("brew", ["install", "mingw-w64"]);
-			}
-		},
+		}
 		Commands::Release {
 			version,
 			proper_release,
@@ -588,7 +603,10 @@ fn main() {
 			}
 
 			let Some((notes, title)) = get_changelog_notes(&finalized_new_version) else {
-				error!("Could not find notes for version {} in CHANGELOG.md", finalized_new_version);
+				error!(
+					"Could not find notes for version {} in CHANGELOG.md",
+					finalized_new_version
+				);
 				std::process::exit(1);
 			};
 

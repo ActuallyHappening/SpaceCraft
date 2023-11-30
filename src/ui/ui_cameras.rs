@@ -68,13 +68,13 @@ impl UiCamera {
 	/// top left
 	fn get_camera_transform(&self, half_width: f32, half_height: f32) -> Vec2 {
 		let (wf, hf) = match self.variant {
-			UiCameras::TopLeft => (1, -1), // works
-			UiCameras::TopMiddle => (0, -1), // works
-			UiCameras::TopRight => (-1, -1), // works
-			UiCameras::MiddleLeft => (1, 0), // works
-			UiCameras::Center => (0, 0),   // works
+			UiCameras::TopLeft => (1, -1),     // works
+			UiCameras::TopMiddle => (0, -1),   // works
+			UiCameras::TopRight => (-1, -1),   // works
+			UiCameras::MiddleLeft => (1, 0),   // works
+			UiCameras::Center => (0, 0),       // works
 			UiCameras::MiddleRight => (-1, 0), // works
-			UiCameras::BottomLeft => (1, 1), // works
+			UiCameras::BottomLeft => (1, 1),   // works
 			UiCameras::BottomMiddle => (0, 1), //
 			UiCameras::BottomRight => (-1, 1), // works
 		};

@@ -50,20 +50,14 @@ mod player {
 			PlayerBlueprint {
 				network_id,
 				transform,
-				structure_children: vec![BlockBlueprint::new_structure(
-					StructureBlock::Aluminum,
-					IVec3::ZERO,
-				), BlockBlueprint::new_structure(
-					StructureBlock::Aluminum,
-					IVec3::new(0, 0, -1),
-				)],
-				thruster_children: vec![BlockBlueprint::new_thruster(
-					IVec3::new(-1, 0, 0),
-					Facing::Left,
-				), BlockBlueprint::new_thruster(
-					IVec3::new(1, 0, 0),
-					Facing::Right,
-				)],
+				structure_children: vec![
+					BlockBlueprint::new_structure(StructureBlock::Aluminum, IVec3::ZERO),
+					BlockBlueprint::new_structure(StructureBlock::Aluminum, IVec3::new(0, 0, -1)),
+				],
+				thruster_children: vec![
+					BlockBlueprint::new_thruster(IVec3::new(-1, 0, 0), Facing::Left),
+					BlockBlueprint::new_thruster(IVec3::new(1, 0, 0), Facing::Right),
+				],
 			}
 		}
 	}

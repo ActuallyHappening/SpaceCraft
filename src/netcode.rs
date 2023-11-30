@@ -118,7 +118,10 @@ impl NetcodePlugin {
 				commands.spawn(PlayerBlueprint::default_at(SERVER_ID, Transform::default()));
 			}
 			NetcodeConfig::Client { ip, port } => {
-				info!("Setting up as client, connecting to {:?} on port {}", ip, port);
+				info!(
+					"Setting up as client, connecting to {:?} on port {}",
+					ip, port
+				);
 				let server_channels_config = network_channels.get_server_configs();
 				let client_channels_config = network_channels.get_client_configs();
 
@@ -133,7 +136,8 @@ impl NetcodePlugin {
 					.unwrap();
 				let client_id = current_time.as_millis() as u64;
 				let server_addr = SocketAddr::new(*ip, *port);
-				let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).expect("Couldn't bind to (unspecified) socket");
+				let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))
+					.expect("Couldn't bind to (unspecified) socket");
 				let authentication = ClientAuthentication::Unsecure {
 					client_id,
 					protocol_id: PROTOCOL_ID,

@@ -12,7 +12,7 @@ const CLI_NAME: &str = "bevy-package-cli";
 pub const SILICON_TRIPLE: &str = "aarch64-apple-darwin";
 pub const INTEL_TRIPLE: &str = "x86_64-apple-darwin";
 pub const WINDOWS_TRIPLE: &str = "x86_64-pc-windows-gnu";
-pub const BASE_APP_ICON: &str = "assets/image/icon_1024x1024.png";
+pub const BASE_APP_ICON: &str = "assets/images/icon_1024x1024.png";
 
 pub fn get_cargo_path() -> String {
 	// get cargo executable from env CARGO, and run it with str
@@ -189,10 +189,10 @@ pub fn xtask_exec<'s>(args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + 
 	exec(&cargo_exec_path, args)
 }
 
-pub fn exec<'a, 's>(
+pub fn try_exec<'a, 's>(
 	exec_str: &'a str,
 	args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + Clone,
-) -> String {
+) -> Result<String, String> {
 	debug!(
 		"Running: {} \"{}\"",
 		exec_str,
@@ -208,23 +208,33 @@ pub fn exec<'a, 's>(
 	exec.stdout(Stdio::piped());
 
 	let exec_output = exec.spawn().unwrap().wait_with_output().unwrap();
-	assert!(
-		exec_output.status.success(),
-		"Command {} failed: {}",
-		exec_str,
-		exec_output
-			.stderr
-			.clone()
-			.into_iter()
-			.map(|b| b as char)
-			.collect::<String>()
-	);
+	if exec_output.status.success() {
+		Ok(
+			exec_output
+				.stdout
+				.into_iter()
+				.map(|b| b as char)
+				.collect::<String>(),
+		)
+	} else {
+		Err(format!(
+			"Command {} failed: {}",
+			exec_str,
+			exec_output
+				.stderr
+				.clone()
+				.into_iter()
+				.map(|b| b as char)
+				.collect::<String>()
+		))
+	}
+}
 
-	exec_output
-		.stdout
-		.into_iter()
-		.map(|b| b as char)
-		.collect::<String>()
+pub fn exec<'a, 's>(
+	exec_str: &'a str,
+	args: impl IntoIterator<Item = impl Into<Cow<'s, str>>> + Clone,
+) -> String {
+	try_exec(exec_str, args).unwrap()
 }
 
 pub fn exec_with_envs<'a, 's>(

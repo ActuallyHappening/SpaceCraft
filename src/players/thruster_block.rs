@@ -41,7 +41,7 @@ struct Thruster {
 impl Thruster {
 	/// Get the current status of the thruster, i.e. factor between 0..=1 of how strongly it is firing.
 	pub fn current_status(&self) -> f32 {
-		self.current_status.clamp(0., 1.,)
+		self.current_status.clamp(0., 1.)
 	}
 }
 
@@ -63,7 +63,8 @@ impl ThrusterPlugin {
 		for (thrusters, thrust) in thrusters.iter() {
 			for thruster in thrusters {
 				if let Ok((properties, mut spawner)) = particle_effects.get_mut(*thruster) {
-					EffectProperties::set_if_changed(properties,
+					EffectProperties::set_if_changed(
+						properties,
 						Self::LIFETIME_ATTR,
 						thrust.current_status.clamp(0., 1.).into(),
 					);
