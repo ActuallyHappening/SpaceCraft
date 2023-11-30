@@ -1534,7 +1534,7 @@ version = "0.1.0"
 source = "git+https://github.com/ActuallyHappening/bevy_xpbd3d_parenting.git#4606f28241b6aa93841a272a5d8917dad8461d8e"
 dependencies = [
  "bevy",
- "bevy_xpbd_3d",
+ "bevy_xpbd_3d 0.3.2 (git+https://github.com/ActuallyHappening/bevy_xpbd.git)",
  "serde",
 ]
 
@@ -1544,7 +1544,24 @@ version = "0.3.2"
 source = "git+https://github.com/ActuallyHappening/bevy_xpbd.git#504fcab8928bf4a5ef52e6b235cd62c2551bafd2"
 dependencies = [
  "bevy",
- "bevy_xpbd_derive",
+ "bevy_xpbd_derive 0.1.0 (git+https://github.com/ActuallyHappening/bevy_xpbd.git)",
+ "derive_more",
+ "fxhash",
+ "glam",
+ "indexmap 2.1.0",
+ "itertools",
+ "nalgebra",
+ "parry3d",
+ "parry3d-f64",
+]
+
+[[package]]
+name = "bevy_xpbd_3d"
+version = "0.3.2"
+source = "git+https://github.com/Jondolf/bevy_xpbd.git#675ac2ac633b96667fb6b65cd20fde69a6cf4f47"
+dependencies = [
+ "bevy",
+ "bevy_xpbd_derive 0.1.0 (git+https://github.com/Jondolf/bevy_xpbd.git)",
  "derive_more",
  "fxhash",
  "glam",
@@ -1560,6 +1577,15 @@ dependencies = [
 name = "bevy_xpbd_derive"
 version = "0.1.0"
 source = "git+https://github.com/ActuallyHappening/bevy_xpbd.git#504fcab8928bf4a5ef52e6b235cd62c2551bafd2"
+dependencies = [
+ "quote",
+ "syn 2.0.39",
+]
+
+[[package]]
+name = "bevy_xpbd_derive"
+version = "0.1.0"
+source = "git+https://github.com/Jondolf/bevy_xpbd.git#675ac2ac633b96667fb6b65cd20fde69a6cf4f47"
 dependencies = [
  "quote",
  "syn 2.0.39",
@@ -4519,7 +4545,7 @@ dependencies = [
  "bevy_screen_diagnostics",
  "bevy_timewarp",
  "bevy_xpbd3d_parenting",
- "bevy_xpbd_3d",
+ "bevy_xpbd_3d 0.3.2 (git+https://github.com/Jondolf/bevy_xpbd.git)",
  "clap",
  "extension-traits",
  "image",
@@ -4529,7 +4555,6 @@ dependencies = [
  "structstruck",
  "strum",
  "tracing-subscriber",
- "uuid",
  "winit",
 ]
 
@@ -5059,20 +5084,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
 dependencies = [
  "getrandom",
- "rand",
  "serde",
- "uuid-macro-internal",
-]
-
-[[package]]
-name = "uuid-macro-internal"
-version = "1.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f49e7f3f3db8040a100710a11932239fd30697115e2ba4107080d8252939845e"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.39",
 ]
 
 [[package]]

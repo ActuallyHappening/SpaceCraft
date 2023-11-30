@@ -78,27 +78,22 @@ git = "https://github.com/jakobhellermann/bevy_editor_pls.git"
 # version = "0.6"
 features = ["default_windows"]
 
-[workspace.dependencies.bevy_xpbd_3d]
+[dependencies.bevy_xpbd_3d]
 # version = "0.3.2"
 features = ["enhanced-determinism", "serialize", "debug-plugin"]
-# git = "https://github.com/Jondolf/bevy_xpbd.git"
-# path = "../bevy_xpbd/crates/bevy_xpbd_3d"
-git = "https://github.com/ActuallyHappening/bevy_xpbd.git"
-
-[dependencies.bevy_xpbd_3d]
-workspace = true
+git = "https://github.com/Jondolf/bevy_xpbd.git"
+# git = "https://github.com/ActuallyHappening/bevy_xpbd.git"
 
 [dependencies.bevy_xpbd3d_parenting]
-# path = "./bevy_xpbd3d_parenting"
 git = "https://github.com/ActuallyHappening/bevy_xpbd3d_parenting.git"
 
 [dependencies.bevy_timewarp]
 git = "https://github.com/ActuallyHappening/bevy_timewarp.git"
 
-[dependencies.uuid]
-version = "1.5.0"
-features = [
-	"v4",                # Lets you generate random UUIDs
-	"fast-rng",          # Use a faster (but still sufficiently random) RNG
-	"macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
-]
+# [dependencies.uuid]
+# version = "1.5.0"
+# features = [
+# 	"v4",                # Lets you generate random UUIDs
+# 	"fast-rng",          # Use a faster (but still sufficiently random) RNG
+# 	"macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+# ]
