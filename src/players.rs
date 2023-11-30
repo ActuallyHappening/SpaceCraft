@@ -23,6 +23,7 @@ mod player {
 	use crate::blocks::manual_builder::Facing;
 	use crate::blocks::StructureBlockBundle;
 	use crate::blocks::{BlockBlueprint, BlockId, StructureBlock};
+	use crate::cameras::{CameraBlock, CameraBlockBundle};
 	use crate::players::thruster_block::ThrusterBlockBundle;
 	use crate::prelude::*;
 
@@ -43,6 +44,7 @@ mod player {
 		transform: Transform,
 		structure_children: Vec<BlockBlueprint<StructureBlock>>,
 		thruster_children: Vec<BlockBlueprint<ThrusterBlock>>,
+		primary_camera: BlockBlueprint<CameraBlock>,
 	}
 
 	impl PlayerBlueprint {
@@ -58,6 +60,7 @@ mod player {
 					BlockBlueprint::new_thruster(IVec3::new(-1, 0, 0), Facing::Left),
 					BlockBlueprint::new_thruster(IVec3::new(1, 0, 0), Facing::Right),
 				],
+				primary_camera: BlockBlueprint::new_camera(IVec3::new(0, 1, 0), Facing::Forwards),
 			}
 		}
 	}
@@ -111,6 +114,11 @@ mod player {
 								blueprint, &mut mma,
 							));
 						}
+
+						parent.spawn(CameraBlockBundle::stamp_from_blueprint(
+							&player_blueprint.primary_camera,
+							&mut mma,
+						));
 					});
 			}
 		}

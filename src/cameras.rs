@@ -79,7 +79,7 @@ pub struct CameraBlockBundle {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CameraBlock;
 
-impl BlockBlueprint<CameraBlockBundle> {
+impl BlockBlueprint<CameraBlock> {
 	pub fn new_camera(
 		position: impl Into<manual_builder::RelativePixel>,
 		facing: impl Into<Quat>,
@@ -87,7 +87,33 @@ impl BlockBlueprint<CameraBlockBundle> {
 		Self {
 			transform: Transform::from_rotation(facing.into())
 				.translate(position.into().into_world_offset()),
-			..todo!()
+			mesh: OptimizableMesh::None,
+			material: OptimizableMaterial::None,
+			specific_marker: CameraBlock,
+		}
+	}
+}
+
+impl FromBlueprint for CameraBlockBundle {
+	type Blueprint = BlockBlueprint<CameraBlock>;
+
+	fn stamp_from_blueprint(
+		BlockBlueprint {
+			transform,
+			mesh,
+			material,
+			specific_marker: _,
+		}: &Self::Blueprint,
+		mma: &mut MMA,
+	) -> Self {
+		Self {
+			pbr: PbrBundle {
+				transform: *transform,
+				mesh: mesh.get_mesh(mma),
+				material: material.get_material(&mut mma.mats),
+				..default()
+			},
+			name: Name::new("CameraBlock"),
 		}
 	}
 }
