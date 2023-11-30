@@ -16,6 +16,7 @@
 #![windows_subsystem = "windows"]
 
 mod blocks;
+mod cameras;
 mod global;
 mod netcode;
 mod players;
@@ -25,11 +26,6 @@ mod ui;
 mod utils;
 mod world;
 
-use self::netcode::NetcodePlugin;
-use self::players::PlayerPlugins;
-use self::ui::UiPlugins;
-#[allow(unused_imports)]
-use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 #[allow(unused_imports)]
 use bevy_mod_picking::{
 	prelude::{DebugPickingPlugin, DefaultHighlightingPlugin},
@@ -72,7 +68,7 @@ impl Plugin for MainPlugin {
 			),
 		);
 
-		// spawn initial Main Camera
+		// spawn initial light
 		app.add_systems(Startup, |mut commands: Commands| {
 			commands.spawn(DirectionalLightBundle {
 				directional_light: DirectionalLight {
@@ -81,37 +77,6 @@ impl Plugin for MainPlugin {
 				},
 				..default()
 			});
-
-			commands
-				.spawn((
-					Camera3dBundle {
-						transform: Transform::from_translation(Vec3::new(0., 0., 50.)),
-						camera: Camera {
-							hdr: true,
-							..default()
-						},
-						camera_3d: Camera3d {
-							clear_color: ClearColorConfig::Custom(Color::BLACK),
-							..default()
-						},
-						tonemapping: Tonemapping::None,
-						..default()
-					},
-					// BloomSettings {
-					// 	intensity: 1.0,
-					// 	low_frequency_boost: 0.5,
-					// 	low_frequency_boost_curvature: 0.5,
-					// 	high_pass_frequency: 0.5,
-					// 	prefilter_settings: BloomPrefilterSettings {
-					// 		threshold: 3.0,
-					// 		threshold_softness: 0.6,
-					// 	},
-					// 	composite_mode: BloomCompositeMode::Additive,
-					// },
-				))
-				.insert(VisibilityBundle::default())
-				.named("Main Camera")
-				.render_layer(GlobalRenderLayers::InGame);
 		});
 
 		// will take cli inputs, or default to start menu
@@ -152,7 +117,6 @@ impl Plugin for MainPlugin {
 			ReplicationPlugins
 				.build()
 				.set(ServerPlugin::new(TickPolicy::Manual)),
-			NetcodePlugin,
 			TimewarpPlugin::new(TimewarpConfig::new(
 				GlobalSystemSet::GameLogic,
 				GlobalSystemSet::GameLogic,
@@ -163,7 +127,12 @@ impl Plugin for MainPlugin {
 		app.insert_resource(Gravity(Vec3::ZERO));
 
 		// game logic plugins
-		app.add_plugins((UiPlugins, PlayerPlugins));
+		app.add_plugins((
+			self::netcode::NetcodePlugin,
+			self::cameras::CameraPlugin,
+			self::ui::UiPlugins,
+			self::players::PlayerPlugins,
+		));
 		// app.register_type::<BlockId>();
 
 		// network replication

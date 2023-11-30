@@ -45,6 +45,7 @@ impl Thruster {
 	}
 }
 
+/// Thruster that is spawned into the world
 #[derive(Bundle)]
 pub struct ThrusterBlockBundle {
 	pbr: PbrBundle,
@@ -178,6 +179,8 @@ impl ThrusterPlugin {
 
 // #region block
 
+/// Builder for [ThrusterBlockBundle].
+///
 /// Will spawn a particle emitter as a child
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ThrusterBlock {
