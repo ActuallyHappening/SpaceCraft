@@ -56,8 +56,18 @@ default-features = false
 features = ["3d", "2d"]
 
 # bevy_replicon
+
+## Currently patching in PR https://github.com/lucaspoffo/renet/pull/129
 [dependencies.bevy_replicon]
-git = "https://github.com/lifescapegame/bevy_replicon.git"
+git = "https://github.com/ActuallyHappening/bevy_replicon.git"
+
+[patch.crates-io.renet]
+git = "https://github.com/ActuallyHappening/renet.git"
+[patch.crates-io.renetcode]
+git = "https://github.com/ActuallyHappening/renet.git"
+[patch.crates-io.bevy_renet]
+git = "https://github.com/ActuallyHappening/renet.git"
+##
 
 [dependencies.renet]
 version = "*"

@@ -19,18 +19,35 @@ impl Plugin for NetcodePlugin {
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
 			.add_systems(Update, Self::server_event_system.run_if(has_authority()))
-			.add_systems(FixedUpdate, frame_inc_and_replicon_tick_sync);
+			.add_systems(FixedUpdate, Self::frame_inc_and_replicon_tick_sync);
 	}
 }
 
-pub fn frame_inc_and_replicon_tick_sync(
-	mut game_clock: ResMut<GameClock>, // your own tick counter
-	mut replicon_tick: ResMut<RepliconTick>,
-) {
-	// advance your tick and replicon's tick in lockstep
-	game_clock.advance(1);
-	let delta = game_clock.frame().saturating_sub(replicon_tick.get());
-	replicon_tick.increment_by(delta);
+impl NetcodePlugin {
+	fn frame_inc_and_replicon_tick_sync(
+		mut game_clock: ResMut<GameClock>, // your own tick counter
+		mut replicon_tick: ResMut<RepliconTick>,
+	) {
+		// advance your tick and replicon's tick in lockstep
+		game_clock.advance(1);
+		let delta = game_clock.frame().saturating_sub(replicon_tick.get());
+		replicon_tick.increment_by(delta);
+	}
+}
+
+#[derive(SystemParam)]
+pub struct ClientID<'w> {
+	res: Option<Res<'w, NetcodeClientTransport>>,
+}
+
+impl ClientID<'_> {
+	pub fn id(&self) -> ClientId {
+		self
+			.res
+			.as_ref()
+			.map(|client| client.client_id())
+			.unwrap_or(SERVER_ID)
+	}
 }
 
 /// Holds information about what ip and port to connect to, or host on.

@@ -7,8 +7,17 @@ pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(Startup, spawn_default_cameras);
+		// app.add_systems(Startup, spawn_default_cameras);
+		app.init_resource::<Cameras>().register_type::<Cameras>().add_systems(
+			Update,
+			Self::sync_cameras,
+		);
 	}
+}
+
+impl CameraPlugin {
+	/// Syncs the resource [Cameras] with the actual cameras in the world
+	fn sync_cameras(config: Res<Cameras>,) {}
 }
 
 fn spawn_default_cameras(mut commands: Commands) {
@@ -52,15 +61,16 @@ fn spawn_default_cameras(mut commands: Commands) {
 struct PrimaryCamera;
 
 /// Holds state about the cameras of the game
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Default, Reflect)]
 pub struct Cameras {
-	/// If [None], primary camera is not spawned (e.g. at start of the game)
-	primary_cam: Option<CameraConfig>,
+	primary_cam: CameraConfig,
 }
 
 /// State of a camera
-#[derive(Debug)]
+#[derive(Debug, Reflect, Default)]
 pub enum CameraConfig {
+	#[default]
+	FollowLocalPlayer,
 	FollowingCameraBlock(BlockId),
 }
 
