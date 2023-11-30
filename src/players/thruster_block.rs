@@ -236,11 +236,14 @@ impl FromBlueprint for ThrusterBlockBundle {
 }
 
 impl BlockBlueprint<ThrusterBlock> {
-	pub fn new_thruster(location: manual_builder::RelativePixel, facing: impl Into<Quat>) -> Self {
+	pub fn new_thruster(
+		location: impl Into<manual_builder::RelativePixel>,
+		facing: impl Into<Quat>,
+	) -> Self {
 		let rotation = facing.into();
 		BlockBlueprint {
 			transform: Transform {
-				translation: location.as_vec3() * PIXEL_SIZE
+				translation: location.into().into_world_offset()
 					- Transform::from_rotation(rotation).forward() * PIXEL_SIZE / 2.,
 				rotation,
 				..default()

@@ -62,7 +62,19 @@ pub mod manual_builder {
 		}
 	}
 
-	pub type RelativePixel = IVec3;
+	pub struct RelativePixel(pub IVec3);
+
+	impl From<IVec3> for RelativePixel {
+		fn from(vec: IVec3) -> Self {
+			Self(vec)
+		}
+	}
+
+	impl RelativePixel {
+		pub fn into_world_offset(self) -> Vec3 {
+			self.0.as_vec3().mul(PIXEL_SIZE)
+		}
+	}
 
 	#[cfg(test)]
 	mod test {
@@ -151,9 +163,12 @@ mod structure_block {
 	}
 
 	impl BlockBlueprint<StructureBlock> {
-		pub fn new_structure(block: StructureBlock, location: manual_builder::RelativePixel) -> Self {
+		pub fn new_structure(
+			block: StructureBlock,
+			location: impl Into<manual_builder::RelativePixel>,
+		) -> Self {
 			BlockBlueprint {
-				transform: Transform::from_translation(location.as_vec3().mul(PIXEL_SIZE)),
+				transform: Transform::from_translation(location.into().into_world_offset()),
 				mesh: super::OptimizableMesh::StandardBlock,
 				material: super::OptimizableMaterial::OpaqueColour(Color::SILVER),
 				specific_marker: block,

@@ -75,3 +75,19 @@ pub struct CameraBlockBundle {
 	pbr: PbrBundle,
 	name: Name,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CameraBlock;
+
+impl BlockBlueprint<CameraBlockBundle> {
+	pub fn new_camera(
+		position: impl Into<manual_builder::RelativePixel>,
+		facing: impl Into<Quat>,
+	) -> Self {
+		Self {
+			transform: Transform::from_rotation(facing.into())
+				.translate(position.into().into_world_offset()),
+			..todo!()
+		}
+	}
+}
