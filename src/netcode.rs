@@ -35,13 +35,16 @@ impl NetcodePlugin {
 	}
 }
 
+/// Useful for finding the local player's renet id.
 #[derive(SystemParam)]
 pub struct ClientID<'w> {
 	res: Option<Res<'w, NetcodeClientTransport>>,
 }
 
 impl ClientID<'_> {
-	pub fn id(&self) -> ClientId {
+	/// Returns the client_id of the local player, or
+	/// [SERVER_ID] if [None]
+	pub fn client_id(&self) -> ClientId {
 		self
 			.res
 			.as_ref()
@@ -54,11 +57,15 @@ impl ClientID<'_> {
 #[derive(Resource, Debug, clap::Parser)]
 pub enum NetcodeConfig {
 	Server {
-		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
+		#[arg(long, default_value_t = Ipv4Addr::LOCALHOST.into())]
 		ip: IpAddr,
 
 		#[arg(short, long, default_value_t = DEFAULT_PORT)]
 		port: u16,
+
+		/// Whether or not to run the server in headless mode.
+		#[arg(long, default_value_t = false)]
+		headless: bool,
 	},
 	Client {
 		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
@@ -70,18 +77,19 @@ pub enum NetcodeConfig {
 }
 
 impl NetcodeConfig {
-	pub const fn new_hosting_public() -> Self {
-		// TODO: Verify this actually hosts, don't we need 0.0.0.0?
+	pub const fn new_hosting_public(headless: bool) -> Self {
 		NetcodeConfig::Server {
 			ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
 			port: DEFAULT_PORT,
+			headless,
 		}
 	}
 
-	pub const fn new_hosting_machine_local() -> Self {
+	pub const fn new_hosting_machine_local(headless: bool) -> Self {
 		NetcodeConfig::Server {
 			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
 			port: DEFAULT_PORT,
+			headless,
 		}
 	}
 
@@ -89,6 +97,13 @@ impl NetcodeConfig {
 		NetcodeConfig::Client {
 			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
 			port: DEFAULT_PORT,
+		}
+	}
+
+	pub const fn is_headless(&self) -> bool {
+		match self {
+			NetcodeConfig::Server { headless, .. } => *headless,
+			NetcodeConfig::Client { .. } => false,
 		}
 	}
 }
@@ -102,8 +117,8 @@ impl NetcodePlugin {
 		_manual_server_feedback: EventWriter<ServerEvent>,
 	) {
 		match config.into_inner() {
-			NetcodeConfig::Server { ip: addr, port } => {
-				info!("Setting up as server, hosting on {}:{}", addr, port);
+			NetcodeConfig::Server { ip, port, headless } => {
+				info!("Setting up as server, hosting on {}:{}", ip, port);
 				let server_channels_config = network_channels.get_server_configs();
 				let client_channels_config = network_channels.get_client_configs();
 
@@ -116,7 +131,7 @@ impl NetcodePlugin {
 				let current_time = SystemTime::now()
 					.duration_since(SystemTime::UNIX_EPOCH)
 					.unwrap();
-				let public_addr = SocketAddr::new(*addr, *port);
+				let public_addr = SocketAddr::new(*ip, *port);
 
 				let socket = UdpSocket::bind(public_addr).expect("Couldn't bind to UdpSocket");
 
@@ -132,7 +147,9 @@ impl NetcodePlugin {
 				commands.insert_resource(server);
 				commands.insert_resource(transport);
 
-				commands.spawn(PlayerBlueprint::default_at(SERVER_ID, Transform::default()));
+				if !headless {
+					commands.spawn(PlayerBlueprint::default_at(SERVER_ID, Transform::default()));
+				}
 			}
 			NetcodeConfig::Client { ip, port } => {
 				info!(

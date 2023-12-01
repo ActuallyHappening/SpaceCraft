@@ -8,24 +8,50 @@ pub struct CameraPlugin;
 impl Plugin for CameraPlugin {
 	fn build(&self, app: &mut App) {
 		// app.add_systems(Startup, spawn_default_cameras);
-		app.init_resource::<Cameras>().register_type::<Cameras>().add_systems(
-			Update,
-			Self::sync_cameras,
-		);
+		app
+			.init_resource::<Cameras>()
+			.register_type::<Cameras>()
+			.add_systems(Update, Self::sync_cameras);
 	}
 }
 
 impl CameraPlugin {
 	/// Syncs the resource [Cameras] with the actual cameras in the world
-	fn sync_cameras(config: Res<Cameras>,) {}
+	fn sync_cameras(config: Res<Cameras>) {}
 }
 
-fn spawn_default_cameras(mut commands: Commands) {
-	commands
-		.spawn((
-			Camera3dBundle {
+/// Cameras spawned into the world
+#[derive(Bundle)]
+struct CameraBundle {
+	cam: Camera3dBundle,
+	bloom: BloomSettings,
+	render_layer: RenderLayers,
+	name: Name,
+	vis: VisibilityBundle,
+}
+
+impl CameraBundle {
+	/// When bloom is enabled, this is the [BloomSettings] that
+	/// should be used.
+	pub const DEFAULT_BLOOM: BloomSettings = BloomSettings {
+		intensity: 1.0,
+		low_frequency_boost: 0.5,
+		low_frequency_boost_curvature: 0.5,
+		high_pass_frequency: 0.5,
+		prefilter_settings: BloomPrefilterSettings {
+			threshold: 3.0,
+			threshold_softness: 0.6,
+		},
+		composite_mode: BloomCompositeMode::Additive,
+	};
+}
+
+impl Default for CameraBundle {
+	fn default() -> Self {
+		CameraBundle {
+			cam: Camera3dBundle {
 				transform: Transform::from_translation(Vec3::new(0., 0., 50.)),
-				camera: Camera {
+				camera: bevy::prelude::Camera {
 					hdr: true,
 					..default()
 				},
@@ -36,31 +62,31 @@ fn spawn_default_cameras(mut commands: Commands) {
 				tonemapping: Tonemapping::None,
 				..default()
 			},
-			PrimaryCamera,
-			// BloomSettings {
-			// 	intensity: 1.0,
-			// 	low_frequency_boost: 0.5,
-			// 	low_frequency_boost_curvature: 0.5,
-			// 	high_pass_frequency: 0.5,
-			// 	prefilter_settings: BloomPrefilterSettings {
-			// 		threshold: 3.0,
-			// 		threshold_softness: 0.6,
-			// 	},
-			// 	composite_mode: BloomCompositeMode::Additive,
-			// },
-		))
-		.insert(VisibilityBundle::default())
-		.named("Main Camera")
-		.render_layer(GlobalRenderLayers::InGame);
+			name: Name::new("Camera"),
+			render_layer: GlobalRenderLayers::InGame.into(),
+			vis: VisibilityBundle::default(),
+			bloom: Self::DEFAULT_BLOOM,
+		}
+	}
 }
 
 /// Marks the camera that takes center screen.
 /// There is not always a camera with this component,
 /// but there is at most one.
-#[derive(Component, Debug)]
-struct PrimaryCamera;
+#[derive(Component, Debug, Reflect)]
+enum Camera {
+	Primary,
+	Secondary {
+		width: f32,
+		height: f32,
+		anchor: global::UiCameras,
+	},
+}
 
-/// Holds state about the cameras of the game
+/// Holds state about the cameras of the game.
+/// 
+/// Public so that UI can change where camera is pointing
+/// e.g. in load screen point towards highest ranked player
 #[derive(Resource, Debug, Default, Reflect)]
 pub struct Cameras {
 	primary_cam: CameraConfig,
@@ -72,24 +98,6 @@ pub enum CameraConfig {
 	#[default]
 	FollowLocalPlayer,
 	FollowingCameraBlock(BlockId),
-}
-
-impl PrimaryCamera {
-	fn exists(cams: Query<(), With<PrimaryCamera>>) -> bool {
-		let iter = cams.iter();
-		let len = iter.len();
-		match len {
-			0 => false,
-			1 => true,
-			_ => {
-				warn!(
-					"There are {} primary cameras, but there should be at most 1",
-					len
-				);
-				false
-			}
-		}
-	}
 }
 
 pub use camera_block::*;

@@ -74,7 +74,7 @@ pub enum GlobalCameraOrders {
 }
 
 /// Enum of all ui cameras
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, Reflect)]
 pub enum UiCameras {
 	TopLeft,
 	TopMiddle,
