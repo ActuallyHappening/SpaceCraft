@@ -17,10 +17,12 @@ impl Plugin for CameraPlugin {
 
 impl CameraPlugin {
 	/// Syncs the resource [Cameras] with the actual cameras in the world
-	fn sync_cameras(config: Res<Cameras>) {}
+	fn sync_cameras(config: Res<Cameras>, mut cameras: Query<&mut Rig>) {}
 }
 
-/// Cameras spawned into the world
+/// Cameras spawned into the world.
+/// 
+/// A 
 #[derive(Bundle)]
 struct CameraBundle {
 	cam: Camera3dBundle,

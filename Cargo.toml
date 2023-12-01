@@ -33,6 +33,7 @@ opt-level = 3
 [dependencies]
 bevy = { version = "0.12", features = ["serialize"] }
 bevy-inspector-egui = "0.21.0"
+bevy_dolly = "0.0.1"
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
 clap = { version = "4.4.8", features = ["derive"] }
