@@ -1,17 +1,6 @@
-//! How cameras work:
-//!
-//! [self::Cameras] is a resource that can be modified by other systems externally.
-//! It tells use the specification of the UI of the cameras, for example:
-//! - Follow the local player around normally
-//! - Also, show a secondary cameras in the bottom left
-//!
-//! Where cameras are is entirely dependent on the [self::CameraBlock] component,
-//! which is added only through the [CameraBlockBundle] block.
-//! If following a player, it knows through [ControllablePlayer] and looks
-//! for *direct children* with the [self::CameraBlock] component.
-
 use crate::{netcode::ClientID, players::ControllablePlayer, prelude::*};
 
+use bevy_dolly::system::Dolly;
 pub use events::ChangeCameraConfig;
 
 pub struct CameraPlugin;
@@ -30,6 +19,7 @@ impl Plugin for CameraPlugin {
 					Self::handle_fallback_cam,
 					Self::handle_change_camera_events,
 					Self::update_cameras,
+					Dolly::<CameraMarker>::update_active
 				)
 					.in_set(Client),
 			);
@@ -66,6 +56,7 @@ mod camera_bundle {
 		id: CameraMarker,
 	}
 
+	/// Marker for actual cameras, [CameraBundle]
 	#[derive(Component)]
 	pub(super) struct CameraMarker;
 
@@ -121,7 +112,7 @@ mod systems {
 	use bevy_dolly::prelude::*;
 
 	use super::{
-		camera_bundle::CameraBundle,
+		camera_bundle::{CameraBundle, CameraMarker},
 		events::ChangeCameraConfig,
 		resources::{self, BlockEntity, CamerasConfig},
 		CameraBlockMarker, CameraEntity, CameraPlugin,
@@ -165,16 +156,6 @@ mod systems {
 					ChangeCameraConfig::SetPrimaryCamera {
 						follow_camera_block,
 					} => {
-						// removes old cameras
-						if let Some((_, camera_id)) = res.get_primary_cam() {
-							if let Some((e, id)) = cameras.iter().find(|(_, id)| **id == camera_id) {
-								debug!("Despawning old primary camera {:?} {:?}", e, id);
-								commands.entity(e).despawn_recursive();
-							} else {
-								warn!("Can't find old primary camera to despawn");
-							}
-						}
-
 						// spawns new camera
 						let camera_entity = commands.spawn(CameraBundle::default()).id();
 						res.set_primary_cam(
@@ -188,16 +169,28 @@ mod systems {
 		}
 
 		pub(super) fn update_cameras(
-			mut cams: Query<(&CameraEntity, &GlobalTransform, &mut Rig)>,
-			blocks: Query<(&BlockId, &GlobalTransform)>,
+			mut cams: Query<(Entity, &mut Rig), With<CameraMarker>>,
+			blocks: Query<&GlobalTransform, With<CameraBlockMarker>>,
 			config: Res<CamerasConfig>,
 		) {
-			for (id, cam_global_transform, mut rig) in cams.iter_mut() {
-				if let Some(block_entity) = config.get_cam_from_id(*id) {
+			for (camera_entity, mut rig) in cams.iter_mut() {
+				let camera_entity = CameraEntity(camera_entity);
+				if let Some(block_entity) = config.get_cam_from_id(camera_entity) {
+					if let Ok(block_global_transform) = blocks.get(block_entity.0) {
+						let block_transform = block_global_transform.reparented_to(&GlobalTransform::IDENTITY);
+						// sets position to same as the block it is following
+						rig.driver_mut::<bevy_dolly::prelude::Position>().position =
+							block_transform.translation;
+						// sets rotation to same as the parent block it is following is
+						rig.driver_mut::<bevy_dolly::prelude::Rotation>().rotation =
+							block_transform.rotation;
+					} else {
+						warn!("Camera {:?} has no global transform", camera_entity);
+					}
 				} else {
 					warn!(
 						"Camera {:?} has no block entity assigned in CamerasConfig resource",
-						id
+						camera_entity
 					);
 				}
 			}
@@ -309,7 +302,10 @@ mod resources {
 		}
 
 		/// Sets the primary camera to follow the given camera block entity.
-		/// Must have already spawned the camera
+		/// Must have already spawned the camera.
+		///
+		/// Automatically clears up old cameras in the process, like
+		/// fallback and primary.
 		pub fn set_primary_cam(
 			&mut self,
 			block_entity: BlockEntity,
@@ -349,6 +345,8 @@ mod events {
 }
 
 pub use camera_block::*;
+
+use self::camera_bundle::CameraMarker;
 mod camera_block {
 	use crate::prelude::*;
 
@@ -367,6 +365,8 @@ mod camera_block {
 		pub id: BlockId,
 	}
 
+	/// Marker for [BlockBlueprint]s that are [CameraBlockBlueprint]s,
+	/// which spawn [CameraBlockBundle]s.
 	#[derive(Component)]
 	pub(super) struct CameraBlockMarker;
 
