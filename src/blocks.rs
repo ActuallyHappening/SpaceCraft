@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 /// The unique identifier for a persistent block in the world
-#[derive(Reflect, Debug, Clone, Copy, Component, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Reflect, Debug, Clone, Copy, Component, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[reflect(Component)]
 pub struct BlockId(u64);
 

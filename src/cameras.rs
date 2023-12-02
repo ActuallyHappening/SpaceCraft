@@ -21,25 +21,24 @@ impl Plugin for CameraPlugin {
 		// app.add_systems(Startup, spawn_default_cameras);
 		app
 			.register_type::<resources::CamerasConfig>()
-			.register_type::<CameraId>()
+			.register_type::<CameraEntity>()
 			.init_resource::<resources::CamerasConfig>()
 			.add_event::<ChangeCameraConfig>()
 			.add_systems(
 				Update,
-				(Self::handle_fallback_cam, Self::handle_change_camera_events).in_set(Client),
+				(
+					Self::handle_fallback_cam,
+					Self::handle_change_camera_events,
+					Self::update_cameras,
+				)
+					.in_set(Client),
 			);
 	}
 }
 
 /// Marker for a [camera_bundle::CameraBundle].
-#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq)]
-struct CameraId(BlockId);
-
-impl CameraId {
-	fn random() -> Self {
-		Self(BlockId::random())
-	}
-}
+#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct CameraEntity(Entity);
 
 #[derive(Debug, Reflect)]
 pub struct SecondaryCameraConfig {
@@ -53,8 +52,6 @@ mod camera_bundle {
 	use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 	use bevy_dolly::dolly_type::Rig;
 
-	use super::CameraId;
-
 	/// Cameras spawned into the world.
 	/// Is not replicated, is not serialized, and
 	/// is managed by [super::CameraPlugin]
@@ -66,14 +63,11 @@ mod camera_bundle {
 		render_layer: RenderLayers,
 		name: Name,
 		vis: VisibilityBundle,
-		id: super::CameraId,
+		id: CameraMarker,
 	}
 
-	impl CameraBundle {
-		pub fn default_new(id: CameraId) -> Self {
-			Self { id, ..default() }
-		}
-	}
+	#[derive(Component)]
+	pub(super) struct CameraMarker;
 
 	impl CameraBundle {
 		/// When bloom is enabled, this is the [BloomSettings] that
@@ -117,18 +111,22 @@ mod camera_bundle {
 				render_layer: GlobalRenderLayers::InGame.into(),
 				vis: VisibilityBundle::default(),
 				// bloom: Self::DEFAULT_BLOOM,
-				id: super::CameraId::random(),
+				id: CameraMarker,
 			}
 		}
 	}
 }
 
 mod systems {
+	use bevy_dolly::prelude::*;
+
 	use super::{
-		camera_bundle::CameraBundle, events::ChangeCameraConfig, resources::{self, BlockEntity}, CameraBlockMarker,
-		CameraId, CameraPlugin,
+		camera_bundle::CameraBundle,
+		events::ChangeCameraConfig,
+		resources::{self, BlockEntity, CamerasConfig},
+		CameraBlockMarker, CameraEntity, CameraPlugin,
 	};
-	use crate::{netcode::ClientID, players::ControllablePlayer, prelude::*};
+	use crate::prelude::*;
 
 	impl CameraPlugin {
 		/// Spawns the fallback camera if needed
@@ -160,28 +158,47 @@ mod systems {
 			mut res: ResMut<resources::CamerasConfig>,
 
 			blocks: Query<(Entity, &BlockId), With<CameraBlockMarker>>,
-			cameras: Query<(Entity, &CameraId)>,
+			cameras: Query<(Entity, &CameraEntity)>,
 		) {
 			for e in events.read() {
 				match e {
-					ChangeCameraConfig::SetPrimaryCamera { follow_block } => {
-						if let Some((camera_block, _)) = blocks.iter().find(|(_, b)| *b == follow_block) {
-							// removes old cameras
-							if let Some((_, camera_id)) = res.get_primary_cam() {
-								if let Some((e, id)) = cameras.iter().find(|(_, id)| **id == camera_id) {
-									debug!("Despawning old primary camera {:?} {:?}", e, id);
-									commands.entity(e).despawn_recursive();
-								} else {
-									warn!("Can't find old primary camera to despawn");
-								}
+					ChangeCameraConfig::SetPrimaryCamera {
+						follow_camera_block,
+					} => {
+						// removes old cameras
+						if let Some((_, camera_id)) = res.get_primary_cam() {
+							if let Some((e, id)) = cameras.iter().find(|(_, id)| **id == camera_id) {
+								debug!("Despawning old primary camera {:?} {:?}", e, id);
+								commands.entity(e).despawn_recursive();
+							} else {
+								warn!("Can't find old primary camera to despawn");
 							}
-
-							// spawns new camera
-							let camera_id = CameraId::random();
-							commands.spawn(CameraBundle::default_new(camera_id));
-							res.set_primary_cam(BlockEntity(camera_block), camera_id, &mut commands);
 						}
+
+						// spawns new camera
+						let camera_entity = commands.spawn(CameraBundle::default()).id();
+						res.set_primary_cam(
+							BlockEntity(*follow_camera_block),
+							CameraEntity(camera_entity),
+							&mut commands,
+						);
 					}
+				}
+			}
+		}
+
+		pub(super) fn update_cameras(
+			mut cams: Query<(&CameraEntity, &GlobalTransform, &mut Rig)>,
+			blocks: Query<(&BlockId, &GlobalTransform)>,
+			config: Res<CamerasConfig>,
+		) {
+			for (id, cam_global_transform, mut rig) in cams.iter_mut() {
+				if let Some(block_entity) = config.get_cam_from_id(*id) {
+				} else {
+					warn!(
+						"Camera {:?} has no block entity assigned in CamerasConfig resource",
+						id
+					);
 				}
 			}
 		}
@@ -191,7 +208,7 @@ mod systems {
 mod resources {
 	use crate::prelude::*;
 
-	use super::CameraId;
+	use super::CameraEntity;
 
 	#[derive(Debug, Clone, Copy, Reflect)]
 	pub(super) struct BlockEntity(pub Entity);
@@ -217,14 +234,16 @@ mod resources {
 		primary_cam: PrimaryCam,
 
 		/// Pointer to blocks, with extra configuration for the cameras.
-		secondary_cams: Vec<(BlockEntity, CameraId, super::SecondaryCameraConfig)>,
+		secondary_cams: HashMap<CameraEntity, (BlockEntity, super::SecondaryCameraConfig)>,
 	}
 
 	#[derive(Debug, Reflect)]
 	pub(super) enum PrimaryCam {
-		Primary(BlockEntity, CameraId),
-		Fallback(Option<Entity>)
+		Primary(BlockEntity, CameraEntity),
+		Fallback(Option<Entity>),
 	}
+
+	use PrimaryCam::{Fallback, Primary};
 
 	impl PrimaryCam {
 		pub fn get_fallback(&self) -> Option<Option<Entity>> {
@@ -234,7 +253,7 @@ mod resources {
 			}
 		}
 
-		pub fn get_primary(&self) -> Option<(BlockEntity, CameraId)> {
+		pub fn get_primary(&self) -> Option<(BlockEntity, CameraEntity)> {
 			match self {
 				Self::Fallback(_) => None,
 				Self::Primary(b, c) => Some((*b, *c)),
@@ -242,13 +261,11 @@ mod resources {
 		}
 	}
 
-	use PrimaryCam::{Primary, Fallback};
-
 	impl Default for CamerasConfig {
 		fn default() -> Self {
 			CamerasConfig {
 				primary_cam: Fallback(None),
-				secondary_cams: Vec::new(),
+				secondary_cams: HashMap::new(),
 			}
 		}
 	}
@@ -267,6 +284,14 @@ mod resources {
 			}
 		}
 
+		fn clean_primary_cam(&mut self, commands: &mut Commands) {
+			if let Primary(_, e) = &self.primary_cam {
+				debug!("Despawning old primary camera");
+				commands.entity(e.0).despawn_recursive();
+				self.primary_cam = Fallback(None);
+			}
+		}
+
 		/// Assumes you have spawned a camera, and want to set it
 		/// as the primary camera. `entity` is the entity of the [CameraBundle]
 		pub fn set_fallback_cam(&mut self, entity: Entity, commands: &mut Commands) {
@@ -279,7 +304,7 @@ mod resources {
 			}
 		}
 
-		pub fn get_primary_cam(&self) -> Option<(BlockEntity, CameraId)> {
+		pub fn get_primary_cam(&self) -> Option<(BlockEntity, CameraEntity)> {
 			self.primary_cam.get_primary()
 		}
 
@@ -288,26 +313,38 @@ mod resources {
 		pub fn set_primary_cam(
 			&mut self,
 			block_entity: BlockEntity,
-			camera_id: CameraId,
+			camera_entity: CameraEntity,
 			commands: &mut Commands,
 		) {
 			self.clean_fallback_cam(commands);
-			self.primary_cam = Primary(block_entity, camera_id);
+			self.clean_primary_cam(commands);
+			self.primary_cam = Primary(block_entity, camera_entity);
+		}
+
+		/// Returns the camera [BlockEntity] that the camera
+		/// with the given [CameraId] is following.
+		pub fn get_cam_from_id(&self, id: CameraEntity) -> Option<BlockEntity> {
+			if let Some((block_entity, _)) = self.secondary_cams.get(&id) {
+				Some(*block_entity)
+			} else if let Some((block_entity, primary_id)) = self.primary_cam.get_primary() {
+				if primary_id == id {
+					Some(block_entity)
+				} else {
+					None
+				}
+			} else {
+				None
+			}
 		}
 	}
 }
 
 mod events {
-	use bevy::ecs::event::Event;
-
-	use crate::blocks::BlockId;
+	use crate::prelude::*;
 
 	#[derive(Debug, Event)]
 	pub enum ChangeCameraConfig {
-		SetPrimaryCamera {
-			/// Eventually converted into an [Entity]
-			follow_block: BlockId,
-		},
+		SetPrimaryCamera { follow_camera_block: Entity },
 	}
 }
 

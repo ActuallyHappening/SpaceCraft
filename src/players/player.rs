@@ -65,13 +65,12 @@ mod systems {
 							));
 						}
 
-						let primary_camera_id = player_blueprint.primary_camera.specific_marker.id;
-						parent.spawn(CameraBlockBundle::stamp_from_blueprint(
+						let camera_entity = parent.spawn(CameraBlockBundle::stamp_from_blueprint(
 							&player_blueprint.primary_camera,
 							&mut mma,
-						));
+						)).id();
 						set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
-							follow_block: primary_camera_id,
+							follow_camera_block: camera_entity,
 						});
 						debug!("Using player's primary camera block as the primary camera");
 					});
