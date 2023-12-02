@@ -12,16 +12,37 @@
 
 use crate::{netcode::ClientID, players::ControllablePlayer, prelude::*};
 
+pub use events::ChangeCameraConfig;
+
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
 	fn build(&self, app: &mut App) {
 		// app.add_systems(Startup, spawn_default_cameras);
 		app
-			.init_resource::<resources::CamerasConfig>()
-			.register_type::<resources::CamerasConfig>();
-			// .add_systems(Update, Self::sync_cameras.in_set(Client));
+			.register_type::<resources::CamerasConfig>()
+			.add_systems(Update, Self::handle_fallback_cam.in_set(Client));
+
+		let fallback = app.world.spawn(Camera3dBundle::default()).id();
+		app.world.insert_resource(resources::CamerasConfig::new_with_fallback(fallback));
 	}
+}
+
+/// Signifies a [camera_bundle::CameraBundle]
+#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq)]
+struct CameraId(BlockId);
+
+impl CameraId {
+	fn random() -> Self {
+		Self(BlockId::random())
+	}
+}
+
+#[derive(Debug, Reflect)]
+pub struct SecondaryCameraConfig {
+	anchor: global::UiCameras,
+	width: f32,
+	height: f32,
 }
 
 mod camera_bundle {
@@ -33,13 +54,22 @@ mod camera_bundle {
 	/// Is not replicated, is not serialized, and
 	/// is managed by [super::CameraPlugin]
 	#[derive(Bundle)]
-	struct CameraBundle {
+	pub struct CameraBundle {
 		cam: Camera3dBundle,
 		rig: Rig,
 		bloom: BloomSettings,
 		render_layer: RenderLayers,
 		name: Name,
 		vis: VisibilityBundle,
+		id: super::CameraId,
+	}
+
+	impl CameraBundle {
+		pub fn default_new(transform: Transform) -> Self {
+			let mut default = Self::default();
+			default.cam.transform = transform;
+			default
+		}
 	}
 
 	impl CameraBundle {
@@ -82,47 +112,112 @@ mod camera_bundle {
 				render_layer: GlobalRenderLayers::InGame.into(),
 				vis: VisibilityBundle::default(),
 				bloom: Self::DEFAULT_BLOOM,
+				id: super::CameraId::random(),
 			}
 		}
 	}
 }
 
 mod systems {
+	use super::{events::ChangeCameraConfig, resources, CameraPlugin};
 	use crate::prelude::*;
 
+	impl CameraPlugin {
+		pub(super) fn handle_fallback_cam(
+			mut commands: Commands,
+			config: ResMut<resources::CamerasConfig>,
+		) {
+			let config = config.into_inner();
+			match config.get_fallback_cam() {
+				Some(None) => {
+					// spawn a fallback camera
+					let id = commands.spawn(Camera3dBundle::default()).id();
+					debug!("Spawned a fallback camera");
+					config.set_fallback_cam(id);
+				}
+				Some(Some(_)) => {
+					// a fallback camera has already been spawned
+					// and should stay there
+				}
+				None => {
+					// there is already a primary camera
+				}
+			}
+		}
 
+		pub(super) fn handle_change_camera_events(
+			mut commands: Commands,
+			events: EventReader<ChangeCameraConfig>,
+		) {
+		}
+	}
 }
 
 mod resources {
 	use crate::prelude::*;
 
+	use super::CameraId;
+
 	/// Holds state about the cameras of the game.
 	///
 	/// Public so that UI can change where camera is pointing
 	/// e.g. in load screen point towards highest ranked player
-	#[derive(Resource, Debug, Default, Reflect)]
-	pub struct CamerasConfig {
-		/// Pointer to the block
-		primary_cam: Option<Entity>,
-		/// Pointer to blocks, with extra configuration for the cameras
-		secondary_cams: Vec<(Entity, SecondaryCameraConfig)>,
+	#[derive(Resource, Debug, Reflect)]
+	pub(super) struct CamerasConfig {
+		/// Pointer to the block entity the primary camera should
+		/// be following, and the actual ID of the Camera.
+		///
+		/// When [Err], is actually a default camera which should be removed
+		/// when a better primary camera can be spawned.
+		primary_cam: Result<(Entity, CameraId), Option<Entity>>,
+
+		/// Pointer to blocks, with extra configuration for the cameras.
+		secondary_cams: Vec<(Entity, CameraId, super::SecondaryCameraConfig)>,
 	}
 
-	#[derive(Debug, Reflect)]
-	pub struct SecondaryCameraConfig {
-		anchor: global::UiCameras,
-		width: f32,
-		height: f32,
+	impl Default for CamerasConfig {
+		fn default() -> Self {
+			CamerasConfig {
+				primary_cam: Err(None),
+				secondary_cams: Vec::new(),
+			}
+		}
 	}
 
 	impl CamerasConfig {
-		/// BlockId should be valid
-		pub fn set_primary_cam(&mut self, block_id: Entity) {
-			self.primary_cam = Some(block_id);
+		pub fn get_fallback_cam(&self) -> Option<Option<Entity>> {
+			self.primary_cam.err()
 		}
-		pub fn get_primary_cam(&self) -> Option<Entity> {
-			self.primary_cam
+
+		pub fn set_fallback_cam(&mut self, entity: Entity) {
+			match &mut self.primary_cam {
+				Err(e) => {
+					*e = Some(entity);
+				}
+				Ok(_) => error!("Trying to set the fallback cam when a fallback is not needed"),
+			}
 		}
+
+		pub fn new_with_fallback(fallback: Entity) -> Self {
+			CamerasConfig {
+				primary_cam: Err(Some(fallback)),
+				..default()
+			}
+		}
+	}
+}
+
+mod events {
+	use bevy::ecs::event::Event;
+
+	use crate::blocks::BlockId;
+
+	#[derive(Debug, Event)]
+	pub enum ChangeCameraConfig {
+		SetPrimaryCamera {
+			/// Eventually converted into an [Entity]
+			follow_block: BlockId,
+		},
 	}
 }
 
