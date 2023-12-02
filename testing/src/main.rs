@@ -34,7 +34,13 @@ use bevy::{
 
 fn main() {
 	App::new()
-		.add_plugins((DefaultPlugins, PostProcessPlugin))
+		.add_plugins((
+			DefaultPlugins.set(AssetPlugin {
+				mode: AssetMode::Unprocessed,
+				..default()
+			}),
+			PostProcessPlugin,
+		))
 		.add_systems(Startup, setup)
 		.add_systems(Update, (rotate, update_settings))
 		.run();

@@ -14,7 +14,7 @@ members = ["xtask", "testing"]
 [features]
 default = ["dev"]
 ## Only used while developing the game
-dev = ["bevy/dynamic_linking"]
+dev = ["bevy/dynamic_linking", "bevy/file_watcher"]
 
 ## The only feature flag that should be enabled when building this game
 ## in release mode
