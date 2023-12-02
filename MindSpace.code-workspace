@@ -63,14 +63,15 @@
 		// {
 		// 	"path": "../primitive-engineering"
 		// }
-		{
-			"path": "../bevy_dolly"
-		}
+		// {
+		// 	"path": "../bevy_dolly"
+		// }
 	],
 	"settings": {
 		"cSpell.words": [
 			"angvel",
 			"cooldown",
+			"Despawning",
 			"hanabi",
 			"linvel",
 			"picka ble",

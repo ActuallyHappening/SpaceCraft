@@ -21,16 +21,15 @@ impl Plugin for CameraPlugin {
 		// app.add_systems(Startup, spawn_default_cameras);
 		app
 			.register_type::<resources::CamerasConfig>()
-			.add_systems(Update, Self::handle_fallback_cam.in_set(Client));
-
-		let fallback = app.world.spawn(Camera3dBundle::default()).id();
-		app
-			.world
-			.insert_resource(resources::CamerasConfig::new_with_fallback(fallback));
+			.init_resource::<resources::CamerasConfig>()
+			.add_systems(
+				Update,
+				(Self::handle_fallback_cam, Self::handle_change_camera_events).in_set(Client),
+			);
 	}
 }
 
-/// Signifies a [camera_bundle::CameraBundle]
+/// Marker for a [camera_bundle::CameraBundle].
 #[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq)]
 struct CameraId(BlockId);
 
@@ -52,11 +51,13 @@ mod camera_bundle {
 	use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
 	use bevy_dolly::dolly_type::Rig;
 
+	use super::CameraId;
+
 	/// Cameras spawned into the world.
 	/// Is not replicated, is not serialized, and
 	/// is managed by [super::CameraPlugin]
 	#[derive(Bundle)]
-	pub struct CameraBundle {
+	pub(super) struct CameraBundle {
 		cam: Camera3dBundle,
 		rig: Rig,
 		bloom: BloomSettings,
@@ -67,10 +68,8 @@ mod camera_bundle {
 	}
 
 	impl CameraBundle {
-		pub fn default_new(transform: Transform) -> Self {
-			let mut default = Self::default();
-			default.cam.transform = transform;
-			default
+		pub fn default_new(id: CameraId) -> Self {
+			Self { id, ..default() }
 		}
 	}
 
@@ -121,10 +120,14 @@ mod camera_bundle {
 }
 
 mod systems {
-	use super::{events::ChangeCameraConfig, resources, CameraPlugin};
+	use super::{
+		camera_bundle::CameraBundle, events::ChangeCameraConfig, resources, CameraBlockMarker,
+		CameraId, CameraPlugin,
+	};
 	use crate::prelude::*;
 
 	impl CameraPlugin {
+		/// Spawns the fallback camera if needed
 		pub(super) fn handle_fallback_cam(
 			mut commands: Commands,
 			config: ResMut<resources::CamerasConfig>,
@@ -149,8 +152,34 @@ mod systems {
 
 		pub(super) fn handle_change_camera_events(
 			mut commands: Commands,
-			events: EventReader<ChangeCameraConfig>,
+			mut events: EventReader<ChangeCameraConfig>,
+			mut res: ResMut<resources::CamerasConfig>,
+
+			blocks: Query<(Entity, &BlockId), With<CameraBlockMarker>>,
+			cameras: Query<(Entity, &CameraId)>,
 		) {
+			for e in events.read() {
+				match e {
+					ChangeCameraConfig::SetPrimaryCamera { follow_block } => {
+						if let Some((camera_block, _)) = blocks.iter().find(|(_, b)| *b == follow_block) {
+							// removes old cameras
+							if let Some((_, camera_id)) = res.get_primary_cam() {
+								if let Some((e, id)) = cameras.iter().find(|(_, id)| **id == camera_id) {
+									debug!("Despawning old primary camera {:?} {:?}", e, id);
+									commands.entity(e).despawn_recursive();
+								} else {
+									warn!("Can't find old primary camera to despawn");
+								}
+							}
+
+							// spawns new camera
+							let camera_id = CameraId::random();
+							commands.spawn(CameraBundle::default_new(camera_id));
+							res.set_primary_cam(camera_block, camera_id, &mut commands);
+						}
+					}
+				}
+			}
 		}
 	}
 }
@@ -200,11 +229,20 @@ mod resources {
 			}
 		}
 
-		pub fn new_with_fallback(fallback: Entity) -> Self {
-			CamerasConfig {
-				primary_cam: Err(Some(fallback)),
-				..default()
+		pub fn get_primary_cam(&self) -> Option<(Entity, CameraId)> {
+			self.primary_cam.ok()
+		}
+
+		pub fn set_primary_cam(
+			&mut self,
+			block_entity: Entity,
+			camera_id: CameraId,
+			commands: &mut Commands,
+		) {
+			if let Err(Some(e)) = self.primary_cam {
+				commands.entity(e).despawn_recursive()
 			}
+			self.primary_cam = Ok((block_entity, camera_id));
 		}
 	}
 }
@@ -243,7 +281,7 @@ mod camera_block {
 	}
 
 	#[derive(Component)]
-	pub struct CameraBlockMarker;
+	pub(super) struct CameraBlockMarker;
 
 	impl BlockBlueprint<CameraBlock> {
 		pub fn new_camera(
@@ -253,8 +291,10 @@ mod camera_block {
 			Self {
 				transform: Transform::from_rotation(facing.into())
 					.translate(position.into().into_world_offset()),
-				mesh: OptimizableMesh::None,
-				material: OptimizableMaterial::None,
+				mesh: OptimizableMesh::Sphere {
+					radius: PIXEL_SIZE / 2.,
+				},
+				material: OptimizableMaterial::OpaqueColour(Color::BLACK),
 				specific_marker: CameraBlock {
 					id: BlockId::random(),
 				},

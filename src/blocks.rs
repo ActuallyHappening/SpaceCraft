@@ -182,8 +182,8 @@ mod structure_block {
 pub enum OptimizableMesh {
 	StandardBlock,
 	CustomRectangularPrism { size: Vec3 },
+	Sphere { radius: f32 },
 	FromAsset(String),
-	None,
 }
 
 impl OptimizableMesh {
@@ -194,9 +194,10 @@ impl OptimizableMesh {
 			Self::CustomRectangularPrism { size } => mma
 				.meshs
 				.add(shape::Box::new(size.x, size.y, size.z).into()),
-			Self::None => mma.meshs.add(Mesh::new(
-				bevy::render::render_resource::PrimitiveTopology::TriangleList,
-			)),
+			Self::Sphere { radius } => mma.meshs.add(shape::UVSphere {
+				radius: *radius,
+				..default()
+			}.into()),
 		}
 	}
 }
