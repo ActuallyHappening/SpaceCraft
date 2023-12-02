@@ -19,3 +19,4 @@
 !build
 !.github
 !.pre-commit-config.yaml
+!testing

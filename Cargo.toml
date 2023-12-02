@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [workspace]
-members = ["xtask"]
+members = ["xtask", "testing"]
 
 # [lints.clippy]
 
@@ -31,7 +31,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.12", features = ["serialize"] }
+bevy = { workspace = true }
 bevy-inspector-egui = "0.21.0"
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
@@ -45,6 +45,10 @@ structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
 tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
 winit = "0.28" # depends on the version bevy is using atm
+
+[workspace.dependencies.bevy]
+version = "0.12"
+features = ["serialize"]
 
 # hanabi particles
 [dependencies.bevy_hanabi]

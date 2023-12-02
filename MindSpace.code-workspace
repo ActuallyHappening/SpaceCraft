@@ -12,12 +12,15 @@
 		{
 			"path": "../creativity-game-0.11"
 		},
+		{
+			"path": "../bevy"
+		},
 		// {
 		// 	"path": "../bevy_hanabi"
 		// },
-		// {
-		// 	"path": "../bevy_starfield"
-		// }
+		{
+			"path": "../bevy_starfield"
+		}
 		// {
 		// 	"path": "../testing-bug"
 		// },
