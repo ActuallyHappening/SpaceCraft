@@ -37,7 +37,7 @@ mod player {
 		}
 	}
 
-	/// Sent as an event to all clients, then expanded into a full player bundle
+	/// What is used to construct a [PlayerBundle]
 	#[derive(Component, Serialize, Deserialize, Clone, Debug)]
 	pub struct PlayerBlueprint {
 		network_id: ClientId,
@@ -78,7 +78,7 @@ mod player {
 		external_force: ExternalForce,
 	}
 
-	/// The marker component for player entities
+	/// The marker component for player entities.
 	#[derive(Component)]
 	pub struct ControllablePlayer {
 		network_id: ClientId,

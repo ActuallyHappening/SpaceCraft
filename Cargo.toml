@@ -33,7 +33,6 @@ opt-level = 3
 [dependencies]
 bevy = { version = "0.12", features = ["serialize"] }
 bevy-inspector-egui = "0.21.0"
-bevy_dolly = "0.0.1"
 bevy_mod_picking = "0.17"
 bevy_screen_diagnostics = "0.4.0"
 clap = { version = "4.4.8", features = ["derive"] }
@@ -90,6 +89,10 @@ git = "https://github.com/ActuallyHappening/bevy_xpbd3d_parenting.git"
 
 [dependencies.bevy_timewarp]
 git = "https://github.com/ActuallyHappening/bevy_timewarp.git"
+
+[dependencies.bevy_dolly]
+# version = "0.0.2"
+git = "https://github.com/ActuallyHappening/bevy_dolly_cameras.git"
 
 # [dependencies.uuid]
 # version = "1.5.0"

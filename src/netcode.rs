@@ -13,13 +13,34 @@ pub use bevy_replicon::{
 
 pub struct NetcodePlugin;
 
+/// Contains only systems that are relevant to controlling a player.
+/// 
+/// Configured for [Update] and [FixedUpdate] schedules.
+#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
+pub struct Client;
+
+/// Contains only systems that are relevant to the server.
+/// 
+/// Configured ONLY for [FixedUpdate]
+#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
+pub struct Server;
+
 impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
-			.add_systems(Update, Self::server_event_system.run_if(has_authority()))
-			.add_systems(FixedUpdate, Self::frame_inc_and_replicon_tick_sync);
+			.add_systems(Update, Self::server_event_system.in_set(Server))
+			.add_systems(FixedUpdate, Self::frame_inc_and_replicon_tick_sync)
+			.configure_sets(
+				FixedUpdate,
+				Client.run_if(NetcodeConfig::not_headless()),
+			)
+			.configure_sets(
+				Update,
+				Client.run_if(NetcodeConfig::not_headless()),
+			)
+			.configure_sets(FixedUpdate, Server.run_if(has_authority()));
 	}
 }
 
@@ -39,17 +60,33 @@ impl NetcodePlugin {
 #[derive(SystemParam)]
 pub struct ClientID<'w> {
 	res: Option<Res<'w, NetcodeClientTransport>>,
+	is_headless: Res<'w, NetcodeConfig>,
 }
 
 impl ClientID<'_> {
 	/// Returns the client_id of the local player, or
-	/// [SERVER_ID] if [None]
-	pub fn client_id(&self) -> ClientId {
-		self
+	/// [None] if [NetcodeConfig] is configured to be
+	/// [NetcodeConfig::is_headless]
+	pub fn client_id(&self) -> Option<ClientId> {
+		let local_id = self
 			.res
 			.as_ref()
 			.map(|client| client.client_id())
-			.unwrap_or(SERVER_ID)
+			.unwrap_or(SERVER_ID);
+		if self.is_headless.get_headless() {
+			None
+		} else {
+			Some(local_id)
+		}
+	}
+
+	/// See [Self::client_id], [Option::unwrap]s for you.
+	/// Only use in systems that are already gated by
+	/// `.run_if`
+	pub fn assert_client_id(&self) -> ClientId {
+		self
+			.client_id()
+			.expect("ClientID is None, place the system that uses this parameter in a .run_if")
 	}
 }
 
@@ -100,11 +137,17 @@ impl NetcodeConfig {
 		}
 	}
 
-	pub const fn is_headless(&self) -> bool {
+	pub const fn get_headless(&self) -> bool {
 		match self {
 			NetcodeConfig::Server { headless, .. } => *headless,
 			NetcodeConfig::Client { .. } => false,
 		}
+	}
+
+	/// Used in a `.run_if` to signify a system that should only run if
+	/// a client/player is being controlled by the current instance
+	pub fn not_headless() -> impl Fn(Res<NetcodeConfig>) -> bool {
+		|config| !config.into_inner().get_headless()
 	}
 }
 

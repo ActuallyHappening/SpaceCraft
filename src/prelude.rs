@@ -25,6 +25,8 @@ pub use bevy_mod_picking::prelude::*;
 pub use bevy_replicon::{prelude::*, renet::ClientId};
 pub use bevy_timewarp::prelude::*;
 pub use bevy_xpbd_3d::prelude::*;
+// conflicts names like [Transform]
+// pub use bevy_dolly::prelude::*;
 
 // helper deps
 pub use structstruck::strike as nested_structs;
@@ -46,3 +48,5 @@ pub use crate::states::*;
 pub(crate) use crate::states;
 pub use crate::utils::*;
 pub(crate) use crate::utils;
+pub use crate::netcode::{Client, Server};
+pub(crate) use crate::netcode;

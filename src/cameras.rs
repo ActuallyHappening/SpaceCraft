@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{netcode::ClientID, prelude::*, players::ControllablePlayer};
 
 #[allow(unused_imports)]
 use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
@@ -11,21 +11,37 @@ impl Plugin for CameraPlugin {
 		app
 			.init_resource::<Cameras>()
 			.register_type::<Cameras>()
-			.add_systems(Update, Self::sync_cameras);
+			.add_systems(Update, Self::sync_cameras.in_set(Client));
 	}
 }
 
 impl CameraPlugin {
 	/// Syncs the resource [Cameras] with the actual cameras in the world
-	fn sync_cameras(config: Res<Cameras>, mut cameras: Query<&mut Rig>) {}
+	fn sync_cameras(
+		config: Res<Cameras>,
+		mut cameras: Query<&mut Rig>,
+		local_id: ClientID,
+		local_player: Query<&GlobalTransform, With<ControllablePlayer>>,
+	) {
+		let Cameras { primary_cam } = config.into_inner();
+		{
+			let follow_cam_block_id = match primary_cam {
+				CameraConfig::FollowLocalPlayer => {
+					todo!()
+				}
+				CameraConfig::FollowingCameraBlock(id) => id,
+			};
+		}
+	}
 }
 
 /// Cameras spawned into the world.
-/// 
-/// A 
+///
+/// A
 #[derive(Bundle)]
 struct CameraBundle {
 	cam: Camera3dBundle,
+	rig: Rig,
 	bloom: BloomSettings,
 	render_layer: RenderLayers,
 	name: Name,
@@ -64,6 +80,10 @@ impl Default for CameraBundle {
 				tonemapping: Tonemapping::None,
 				..default()
 			},
+			rig: Rig::builder()
+				.with(bevy_dolly::prelude::Position::new(Vec3::ZERO))
+				.with(bevy_dolly::prelude::Rotation::new(Quat::IDENTITY))
+				.build(),
 			name: Name::new("Camera"),
 			render_layer: GlobalRenderLayers::InGame.into(),
 			vis: VisibilityBundle::default(),
@@ -86,7 +106,7 @@ enum Camera {
 }
 
 /// Holds state about the cameras of the game.
-/// 
+///
 /// Public so that UI can change where camera is pointing
 /// e.g. in load screen point towards highest ranked player
 #[derive(Resource, Debug, Default, Reflect)]
@@ -102,6 +122,7 @@ pub enum CameraConfig {
 	FollowingCameraBlock(BlockId),
 }
 
+use bevy_dolly::dolly_type::Rig;
 pub use camera_block::*;
 mod camera_block {
 	use crate::prelude::*;
