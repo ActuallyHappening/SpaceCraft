@@ -45,7 +45,7 @@ pub(crate) use crate::global;
 pub use crate::global::assets::*;
 pub use crate::global::*;
 pub(crate) use crate::netcode;
-pub use crate::netcode::{Client, Server};
+pub use crate::netcode::*;
 pub(crate) use crate::states;
 pub use crate::states::*;
 pub(crate) use crate::utils;

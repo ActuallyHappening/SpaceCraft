@@ -183,12 +183,12 @@ impl ThrusterPlugin {
 ///
 /// Will spawn a particle emitter as a child
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ThrusterBlock {
+pub struct ThrusterBlueprint {
 	id: BlockId,
 	strength: f32,
 }
 
-impl ThrusterBlock {
+impl ThrusterBlueprint {
 	pub fn new() -> Self {
 		Self {
 			id: BlockId::random(),
@@ -197,8 +197,8 @@ impl ThrusterBlock {
 	}
 }
 
-impl From<ThrusterBlock> for Thruster {
-	fn from(ThrusterBlock { id, strength }: ThrusterBlock) -> Self {
+impl From<ThrusterBlueprint> for Thruster {
+	fn from(ThrusterBlueprint { id, strength }: ThrusterBlueprint) -> Self {
 		Thruster {
 			id,
 			strength_factor: strength,
@@ -208,7 +208,7 @@ impl From<ThrusterBlock> for Thruster {
 }
 
 impl FromBlueprint for ThrusterBlockBundle {
-	type Blueprint = BlockBlueprint<ThrusterBlock>;
+	type Blueprint = BlockBlueprint<ThrusterBlueprint>;
 
 	fn stamp_from_blueprint(
 		BlockBlueprint {
@@ -235,7 +235,7 @@ impl FromBlueprint for ThrusterBlockBundle {
 	}
 }
 
-impl BlockBlueprint<ThrusterBlock> {
+impl BlockBlueprint<ThrusterBlueprint> {
 	pub fn new_thruster(
 		location: impl Into<manual_builder::RelativePixel>,
 		facing: impl Into<Quat>,
@@ -252,7 +252,7 @@ impl BlockBlueprint<ThrusterBlock> {
 				size: Vec3::splat(PIXEL_SIZE / 2.),
 			},
 			material: OptimizableMaterial::OpaqueColour(Color::RED),
-			specific_marker: ThrusterBlock::new(),
+			specific_marker: ThrusterBlueprint::new(),
 		}
 	}
 }

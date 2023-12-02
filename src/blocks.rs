@@ -112,7 +112,7 @@ pub mod manual_builder {
 	}
 }
 
-pub use structure_block::{StructureBlock, StructureBlockBundle};
+pub use structure_block::{StructureBlockBlueprint, StructureBlockBundle};
 mod structure_block {
 	use crate::prelude::*;
 
@@ -120,11 +120,11 @@ mod structure_block {
 	use super::BlockBlueprint;
 
 	#[derive(Debug, Serialize, Deserialize, Clone, IntoStaticStr)]
-	pub enum StructureBlock {
+	pub enum StructureBlockBlueprint {
 		Aluminum,
 	}
 
-	impl StructureBlock {
+	impl StructureBlockBlueprint {
 		pub fn name(&self) -> &'static str {
 			self.into()
 		}
@@ -138,7 +138,7 @@ mod structure_block {
 	}
 
 	impl FromBlueprint for StructureBlockBundle {
-		type Blueprint = BlockBlueprint<StructureBlock>;
+		type Blueprint = BlockBlueprint<StructureBlockBlueprint>;
 
 		fn stamp_from_blueprint(
 			BlockBlueprint {
@@ -162,9 +162,9 @@ mod structure_block {
 		}
 	}
 
-	impl BlockBlueprint<StructureBlock> {
+	impl BlockBlueprint<StructureBlockBlueprint> {
 		pub fn new_structure(
-			block: StructureBlock,
+			block: StructureBlockBlueprint,
 			location: impl Into<manual_builder::RelativePixel>,
 		) -> Self {
 			BlockBlueprint {

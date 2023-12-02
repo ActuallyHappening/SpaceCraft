@@ -21,10 +21,16 @@ impl Plugin for CameraPlugin {
 		// app.add_systems(Startup, spawn_default_cameras);
 		app
 			.register_type::<resources::CamerasConfig>()
+			.register_type::<CameraId>()
 			.init_resource::<resources::CamerasConfig>()
+			.add_event::<ChangeCameraConfig>()
 			.add_systems(
 				Update,
-				(Self::handle_fallback_cam, Self::handle_change_camera_events).in_set(Client),
+				(
+					Self::handle_fallback_cam,
+					Self::handle_change_camera_events,
+				)
+					.in_set(Client),
 			);
 	}
 }
@@ -124,7 +130,7 @@ mod systems {
 		camera_bundle::CameraBundle, events::ChangeCameraConfig, resources, CameraBlockMarker,
 		CameraId, CameraPlugin,
 	};
-	use crate::prelude::*;
+	use crate::{netcode::ClientID, prelude::*, players::ControllablePlayer};
 
 	impl CameraPlugin {
 		/// Spawns the fallback camera if needed
@@ -276,14 +282,14 @@ mod camera_block {
 
 	/// Blueprint for [CameraBlockBundle]
 	#[derive(Debug, Serialize, Deserialize, Clone)]
-	pub struct CameraBlock {
+	pub struct CameraBlockBlueprint {
 		id: BlockId,
 	}
 
 	#[derive(Component)]
 	pub(super) struct CameraBlockMarker;
 
-	impl BlockBlueprint<CameraBlock> {
+	impl BlockBlueprint<CameraBlockBlueprint> {
 		pub fn new_camera(
 			position: impl Into<manual_builder::RelativePixel>,
 			facing: impl Into<Quat>,
@@ -295,7 +301,7 @@ mod camera_block {
 					radius: PIXEL_SIZE / 2.,
 				},
 				material: OptimizableMaterial::OpaqueColour(Color::BLACK),
-				specific_marker: CameraBlock {
+				specific_marker: CameraBlockBlueprint {
 					id: BlockId::random(),
 				},
 			}
@@ -303,7 +309,7 @@ mod camera_block {
 	}
 
 	impl FromBlueprint for CameraBlockBundle {
-		type Blueprint = BlockBlueprint<CameraBlock>;
+		type Blueprint = BlockBlueprint<CameraBlockBlueprint>;
 
 		fn stamp_from_blueprint(
 			BlockBlueprint {
