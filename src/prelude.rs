@@ -39,14 +39,14 @@ pub use serde::{Deserialize, Serialize};
 pub use strum::IntoStaticStr;
 
 // internal re-exports
-pub use crate::blocks::*;
 pub(crate) use crate::blocks;
+pub use crate::blocks::*;
+pub(crate) use crate::global;
 pub use crate::global::assets::*;
 pub use crate::global::*;
-pub(crate) use crate::global;
-pub use crate::states::*;
-pub(crate) use crate::states;
-pub use crate::utils::*;
-pub(crate) use crate::utils;
-pub use crate::netcode::{Client, Server};
 pub(crate) use crate::netcode;
+pub use crate::netcode::{Client, Server};
+pub(crate) use crate::states;
+pub use crate::states::*;
+pub(crate) use crate::utils;
+pub use crate::utils::*;

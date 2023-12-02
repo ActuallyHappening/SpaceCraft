@@ -194,7 +194,9 @@ impl OptimizableMesh {
 			Self::CustomRectangularPrism { size } => mma
 				.meshs
 				.add(shape::Box::new(size.x, size.y, size.z).into()),
-			Self::None => mma.meshs.add(Mesh::new(bevy::render::render_resource::PrimitiveTopology::TriangleList))	
+			Self::None => mma.meshs.add(Mesh::new(
+				bevy::render::render_resource::PrimitiveTopology::TriangleList,
+			)),
 		}
 	}
 }

@@ -24,7 +24,9 @@ impl Plugin for CameraPlugin {
 			.add_systems(Update, Self::handle_fallback_cam.in_set(Client));
 
 		let fallback = app.world.spawn(Camera3dBundle::default()).id();
-		app.world.insert_resource(resources::CamerasConfig::new_with_fallback(fallback));
+		app
+			.world
+			.insert_resource(resources::CamerasConfig::new_with_fallback(fallback));
 	}
 }
 

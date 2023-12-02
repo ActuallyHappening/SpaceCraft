@@ -344,7 +344,9 @@ impl StartScreen {
 					local_state.set(StartScreenStates::Initial);
 					commands.insert_resource(match btn {
 						HostGameButtons::HostPublicGame => NetcodeConfig::new_hosting_public(false),
-						HostGameButtons::HostMachineLocalGame => NetcodeConfig::new_hosting_machine_local(false),
+						HostGameButtons::HostMachineLocalGame => {
+							NetcodeConfig::new_hosting_machine_local(false)
+						}
 					});
 				}
 			} else if let Ok((cam, btn)) = client_btns.get(click_event.target) {
