@@ -85,6 +85,12 @@ mod player {
 		movement_input: HashMap<BlockId, f32>,
 	}
 
+	impl ControllablePlayer {
+		pub fn get_id(&self) -> ClientId {
+			self.network_id
+		}
+	}
+
 	impl PlayerPlugin {
 		fn handle_spawn_player_blueprints(
 			player_blueprints: Query<(Entity, &PlayerBlueprint), Added<PlayerBlueprint>>,
