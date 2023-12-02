@@ -25,10 +25,65 @@ impl ControllablePlayer {
 	}
 }
 
+mod systems {
+	use crate::{
+		cameras::{CameraBlockBundle, ChangeCameraConfig},
+		players::{player::player_blueprint::PlayerBundle, thruster_block::ThrusterBlockBundle},
+		prelude::*,
+	};
+
+	use super::{PlayerBlueprint, PlayerPlugin};
+
+	impl PlayerPlugin {
+		pub(super) fn handle_spawn_player_blueprints(
+			player_blueprints: Query<(Entity, &PlayerBlueprint), Added<PlayerBlueprint>>,
+			mut commands: Commands,
+			mut mma: MMA,
+			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
+		) {
+			for (player, player_blueprint) in player_blueprints.iter() {
+				debug!(
+					"Expanding player blueprint for {:?}",
+					player_blueprint.get_network_id()
+				);
+				commands
+					.entity(player)
+					.insert(PlayerBundle::stamp_from_blueprint(
+						player_blueprint,
+						&mut mma,
+					))
+					.with_children(|parent| {
+						for blueprint in &player_blueprint.structure_children {
+							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
+								blueprint, &mut mma,
+							));
+						}
+
+						for blueprint in &player_blueprint.thruster_children {
+							parent.spawn(ThrusterBlockBundle::stamp_from_blueprint(
+								blueprint, &mut mma,
+							));
+						}
+
+						let primary_camera_id = player_blueprint.primary_camera.specific_marker.id;
+						parent.spawn(CameraBlockBundle::stamp_from_blueprint(
+							&player_blueprint.primary_camera,
+							&mut mma,
+						));
+						set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
+							follow_block: primary_camera_id,
+						});
+						debug!("Using player's primary camera block as the primary camera");
+					});
+			}
+		}
+	}
+}
+
 mod player_blueprint {
 	use crate::{
 		blocks::manual_builder::Facing, cameras::CameraBlockBlueprint,
-		players::thruster_block::ThrusterBlueprint, prelude::*,
+		players::thruster_block::ThrusterBlockBlueprint, prelude::*,
 	};
 
 	use super::ControllablePlayer;
@@ -39,7 +94,7 @@ mod player_blueprint {
 		network_id: ClientId,
 		transform: Transform,
 		pub(super) structure_children: Vec<BlockBlueprint<StructureBlockBlueprint>>,
-		pub(super) thruster_children: Vec<BlockBlueprint<ThrusterBlueprint>>,
+		pub(super) thruster_children: Vec<BlockBlueprint<ThrusterBlockBlueprint>>,
 		pub(super) primary_camera: BlockBlueprint<CameraBlockBlueprint>,
 	}
 
@@ -85,6 +140,7 @@ mod player_blueprint {
 			PlayerBlueprint {
 				network_id,
 				transform,
+				// ignores children
 				..
 			}: &PlayerBlueprint,
 			_mma: &mut MMA,
@@ -104,51 +160,6 @@ mod player_blueprint {
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
-			}
-		}
-	}
-}
-
-mod systems {
-	use crate::{prelude::*, players::{player::player_blueprint::PlayerBundle, thruster_block::ThrusterBlockBundle}, cameras::CameraBlockBundle};
-
-	use super::{PlayerBlueprint, PlayerPlugin};
-
-	impl PlayerPlugin {
-		pub(super) fn handle_spawn_player_blueprints(
-			player_blueprints: Query<(Entity, &PlayerBlueprint), Added<PlayerBlueprint>>,
-			mut commands: Commands,
-			mut mma: MMA,
-		) {
-			for (player, player_blueprint) in player_blueprints.iter() {
-				debug!(
-					"Expanding player blueprint for {:?}",
-					player_blueprint.get_network_id()
-				);
-				commands
-					.entity(player)
-					.insert(PlayerBundle::stamp_from_blueprint(
-						player_blueprint,
-						&mut mma,
-					))
-					.with_children(|parent| {
-						for blueprint in &player_blueprint.structure_children {
-							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
-								blueprint, &mut mma,
-							));
-						}
-
-						for blueprint in &player_blueprint.thruster_children {
-							parent.spawn(ThrusterBlockBundle::stamp_from_blueprint(
-								blueprint, &mut mma,
-							));
-						}
-
-						parent.spawn(CameraBlockBundle::stamp_from_blueprint(
-							&player_blueprint.primary_camera,
-							&mut mma,
-						));
-					});
 			}
 		}
 	}
