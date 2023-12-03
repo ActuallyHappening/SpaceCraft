@@ -1,14 +1,21 @@
 use bevy::{prelude::*, render::render_resource::AsBindGroup};
 use bevy::render::render_resource::ShaderRef;
 
+mod post_processing;
+mod instancing;
+
 fn main() {
-	let mut app = App::new();
+	// post_processing::main();
 
-	app.add_plugins((DefaultPlugins, bevy_editor_pls::EditorPlugin::default(), WhiteMaterial {}));
+	instancing::main();
 
-	app.add_systems(Startup, setup);
+	// let mut app = App::new();
 
-	app.run();
+	// app.add_plugins((DefaultPlugins, bevy_editor_pls::EditorPlugin::default(), WhiteMaterial {}));
+
+	// app.add_systems(Startup, setup);
+
+	// app.run();
 }
 
 #[derive(Asset, Debug, AsBindGroup, TypePath, Clone)]
@@ -26,6 +33,10 @@ impl Material for WhiteMaterial {
 	fn fragment_shader() -> ShaderRef {
 		"shaders/white_material.wgsl".into()
 	}
+
+	fn alpha_mode(&self) -> AlphaMode {
+		AlphaMode::Blend
+	}
 }
 
 fn setup(
@@ -39,5 +50,8 @@ fn setup(
 		..default()
 	});
 
-	commands.spawn(Camera3dBundle::default());
+	commands.spawn(Camera3dBundle {
+		transform: Transform::from_translation(Vec3::new(0., 0., 10.)),
+		..default()
+	});
 }

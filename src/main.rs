@@ -13,6 +13,7 @@ fn main() {
 						canvas: Some("#canvas".to_string()),
 						title: "Creativity Game".to_string(),
 						mode: WindowMode::BorderlessFullscreen,
+						visible: false,
 						..default()
 					}),
 					..default()

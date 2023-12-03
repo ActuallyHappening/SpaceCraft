@@ -7,7 +7,7 @@
 
 use bevy::{
 	core_pipeline::{
-		clear_color::ClearColorConfig, core_3d,
+		clear_color::ClearColorConfig, core_3d::{self, Camera3dDepthLoadOp},
 		fullscreen_vertex_shader::fullscreen_shader_vertex_state,
 	},
 	ecs::query::QueryItem,
@@ -32,7 +32,7 @@ use bevy::{
 	},
 };
 
-fn main() {
+pub fn main() {
 	App::new()
 		.add_plugins((
 			DefaultPlugins.set(AssetPlugin {
@@ -40,6 +40,7 @@ fn main() {
 				..default()
 			}),
 			PostProcessPlugin,
+			bevy_editor_pls::EditorPlugin::default(),
 		))
 		.add_systems(Startup, setup)
 		.add_systems(Update, (rotate, update_settings))
@@ -328,7 +329,8 @@ fn setup(
 			transform: Transform::from_translation(Vec3::new(0.0, 0.0, 5.0))
 				.looking_at(Vec3::default(), Vec3::Y),
 			camera_3d: Camera3d {
-				clear_color: ClearColorConfig::Custom(Color::WHITE),
+				clear_color: ClearColorConfig::Custom(Color::BLACK),
+				depth_load_op: Camera3dDepthLoadOp::Clear(0.0),
 				..default()
 			},
 			..default()

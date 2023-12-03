@@ -20,5 +20,9 @@ fn fragment(
     // return material.color * textureSample(base_color_texture, base_color_sampler, mesh.uv);
 		// return vec4<f32>(1.0, 0.0, 0.0, 1.0);
 		// return material.color;
-		return vec4<f32>(1.0, 1.0, 1.0, 1.0);
+
+		let speed = 2;
+		let alpha = sin(globals.time) * 0.5 + 0.5;
+
+		return vec4<f32>(1.0, 1.0, 1.0, alpha);
 }

@@ -26,7 +26,7 @@ use bevy::{
 };
 use bytemuck::{Pod, Zeroable};
 
-fn main() {
+pub fn main() {
     App::new()
         .add_plugins((DefaultPlugins, CustomMaterialPlugin, bevy_editor_pls::EditorPlugin::default()))
         .add_systems(Startup, setup)
