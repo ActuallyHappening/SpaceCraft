@@ -28,7 +28,7 @@ struct PostProcessSettings {
 @group(0) @binding(2) var<uniform> settings: PostProcessSettings;
 
 @fragment
-fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
+fn fragment_entry(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     // Chromatic aberration strength
     let offset_strength = settings.intensity;
 
@@ -40,9 +40,9 @@ fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
     //     1.0
     // );
 		return vec4<f32>(
-			1.0,
 			0.0,
-			offset_strength,
+			0.0,
+			offset_strength * 10.0,
 			1.0
 		);
 }
