@@ -15,6 +15,12 @@
 		{
 			"path": "../bevy"
 		},
+		{
+			"path": "../bevy/examples/shader"
+		},
+		{
+			"path": "../bevy/assets/shaders"
+		},
 		// {
 		// 	"path": "../bevy_hanabi"
 		// },

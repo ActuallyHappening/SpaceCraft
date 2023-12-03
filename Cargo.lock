@@ -691,13 +691,38 @@ dependencies = [
 [[package]]
 name = "bevy_editor_pls"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "170e3ee3293f70be7fa1b82e8ffe52dcb190c68b2f0ef4847afe65626b417ad7"
+dependencies = [
+ "bevy",
+ "bevy_editor_pls_core 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_editor_pls_default_windows 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "egui",
+ "egui-gizmo",
+]
+
+[[package]]
+name = "bevy_editor_pls"
+version = "0.6.0"
 source = "git+https://github.com/jakobhellermann/bevy_editor_pls.git#b2e4306008c6669fdbc6bfa3ffcdcd675e8103b1"
 dependencies = [
  "bevy",
- "bevy_editor_pls_core",
- "bevy_editor_pls_default_windows",
+ "bevy_editor_pls_core 0.6.0 (git+https://github.com/jakobhellermann/bevy_editor_pls.git)",
+ "bevy_editor_pls_default_windows 0.6.0 (git+https://github.com/jakobhellermann/bevy_editor_pls.git)",
  "egui",
  "egui-gizmo",
+]
+
+[[package]]
+name = "bevy_editor_pls_core"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9bab331de653d7d976a1fb0ab3ae8eff1dc821c5991c09bdbe945e70234839c"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "egui_dock",
+ "indexmap 2.1.0",
 ]
 
 [[package]]
@@ -714,11 +739,27 @@ dependencies = [
 [[package]]
 name = "bevy_editor_pls_default_windows"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b833e3b3d5c69b92527e766b470b27cb4745406e2087be19be81b595cc48792c"
+dependencies = [
+ "bevy",
+ "bevy-inspector-egui",
+ "bevy_editor_pls_core 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bevy_mod_debugdump",
+ "egui-gizmo",
+ "indexmap 2.1.0",
+ "opener",
+ "pretty-type-name",
+]
+
+[[package]]
+name = "bevy_editor_pls_default_windows"
+version = "0.6.0"
 source = "git+https://github.com/jakobhellermann/bevy_editor_pls.git#b2e4306008c6669fdbc6bfa3ffcdcd675e8103b1"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
- "bevy_editor_pls_core",
+ "bevy_editor_pls_core 0.6.0 (git+https://github.com/jakobhellermann/bevy_editor_pls.git)",
  "bevy_mod_debugdump",
  "egui-gizmo",
  "indexmap 2.1.0",
@@ -4699,7 +4740,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_dolly",
- "bevy_editor_pls",
+ "bevy_editor_pls 0.6.0 (git+https://github.com/jakobhellermann/bevy_editor_pls.git)",
  "bevy_hanabi",
  "bevy_mod_picking",
  "bevy_replicon",
@@ -4882,6 +4923,7 @@ name = "testing"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_editor_pls 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bytemuck",
 ]
 

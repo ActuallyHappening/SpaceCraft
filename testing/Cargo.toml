@@ -11,3 +11,4 @@ default = ["bevy/dynamic_linking", "bevy/file_watcher"]
 [dependencies]
 bevy = { workspace = true }
 bytemuck = "1"
+bevy_editor_pls = "0.6"
