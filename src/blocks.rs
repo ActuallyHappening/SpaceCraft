@@ -64,6 +64,7 @@ pub mod manual_builder {
 		}
 	}
 
+	#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
 	pub struct RelativePixel(pub IVec3);
 
 	impl From<IVec3> for RelativePixel {

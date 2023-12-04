@@ -2,7 +2,7 @@
 //!
 
 // std
-pub use bevy::utils::HashMap;
+pub use bevy::utils::{HashMap, HashSet};
 pub use std::borrow::Cow;
 pub use std::f32::consts::{PI, TAU};
 pub use std::net::*;
