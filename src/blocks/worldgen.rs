@@ -49,7 +49,7 @@ mod systems {
 			let structures: Vec<TerrainStructureBlueprint> = (0..10)
 				.map(|_| {
 					let pos = vec3_polar_random(&mut rng);
-					let distance = 6.0..40.0;
+					let distance = 6.0..30.0;
 					let pos = pos * rng.gen_range(distance);
 
 					let rot = Quat::from_euler(
@@ -59,9 +59,15 @@ mod systems {
 						rng.gen_range(0. ..=TAU),
 					);
 
+					let mut r = |bound: f32| rng.gen_range(-bound .. bound);
+					let max_linvel = 10.0;
+					let linvel = LinearVelocity(Vec3::new(r(max_linvel), r(max_linvel), r(max_linvel)));
+					let max_angvel = 10.0;
+					let angvel = AngularVelocity(Vec3::new(r(max_angvel), r(max_angvel), r(max_angvel)));
+
 					TerrainStructureBlueprint {
 						transform: Transform::from_translation(pos).with_rotation(rot),
-						initial_velocity: None,
+						initial_velocity: Some((linvel, angvel)),
 						shape: OptimizableDiscreteShape::Sphere(DiscreteSphere {
 							radius: NonZeroU8::new(rng.gen_range(1..=4)).unwrap(),
 						}),
@@ -226,18 +232,36 @@ mod terrain_bundle {
 	pub struct TerrainStructureBundle {
 		spatial: SpatialBundle,
 		name: Name,
+		rigid_body: RigidBody,
+		linvel: LinearVelocity,
+		angvel: AngularVelocity,
+		mass_properties: MassPropertiesBundle,
 	}
 
 	impl FromBlueprint for TerrainStructureBundle {
 		type Blueprint = TerrainStructureBlueprint;
 
 		fn stamp_from_blueprint(
-			TerrainStructureBlueprint { transform, .. }: &Self::Blueprint,
+			TerrainStructureBlueprint { transform, initial_velocity, .. }: &Self::Blueprint,
 			_mma: &mut MMA,
 		) -> Self {
+			let linvel = initial_velocity
+				.as_ref()
+				.map(|(linvel, _)| *linvel)
+				.unwrap_or_default();
+
+			let angvel = initial_velocity
+				.as_ref()
+				.map(|(_, angvel)| *angvel)
+				.unwrap_or_default();
+
 			Self {
 				spatial: SpatialBundle::from_transform(*transform),
 				name: Name::new("TerrainStructure"),
+				rigid_body: RigidBody::Dynamic,
+				linvel,
+				angvel,
+				mass_properties: MassPropertiesBundle::new_computed(&Collider::ball(1.0), 1.0),
 			}
 		}
 	}
