@@ -64,12 +64,12 @@ mod systems {
 	use super::{PlayerBlueprint, PlayerPlugin, ControllablePlayer};
 
 	impl PlayerPlugin {
-		pub(super) fn sync_thruster_data(players: Query<(&ControllablePlayer, &Children)>, mut thrusters: Query<(&BlockId, &mut Thruster)>) {
+		pub(super) fn sync_thruster_data(players: Query<(&ControllablePlayer, &Children)>, mut thrusters: Query<&mut Thruster>) {
 			for (controllable_player, children) in players.iter() {
 				if let Some(movement_input) = &controllable_player.movement_input {
 					for child in children.iter() {
-						if let Ok((id, mut thruster)) = thrusters.get_mut(*child) {
-							if let Some(input) = movement_input.get(id) {
+						if let Ok(mut thruster) = thrusters.get_mut(*child) {
+							if let Some(input) = movement_input.get(&thruster.get_id()) {
 								thruster.set_status(*input);
 							}
 						}

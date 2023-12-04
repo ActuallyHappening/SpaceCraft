@@ -47,6 +47,10 @@ impl Thruster {
 	pub fn set_status(&mut self, status: f32) {
 		self.current_status = status.clamp(0., 1.);
 	}
+
+	pub fn get_id(&self) -> BlockId {
+		self.id
+	}
 }
 
 /// Thruster that is spawned into the world
