@@ -17,7 +17,7 @@ impl Plugin for ThrusterPlugin {
 				FixedUpdate,
 				(
 					(Self::spawn_thruster_visuals).in_set(BlueprintExpansion::Thruster),
-					Self::sync_thruster_with_internal_forces.in_set(GlobalSystemSet::ThrustersSync),
+					Self::sync_thruster_with_internal_forces.in_set(GlobalSystemSet::PlayerMovement(PlayerMovement::EnactThrusters)),
 				),
 			)
 			.add_systems(Update, Self::sync_thruster_with_visuals);
@@ -27,7 +27,7 @@ impl Plugin for ThrusterPlugin {
 /// Component for all thrusters (on a player)
 #[derive(Debug, Component, Reflect, Clone, InspectorOptions)]
 #[reflect(InspectorOptions)]
-struct Thruster {
+pub(super) struct Thruster {
 	id: BlockId,
 
 	#[inspector(min = 0.0)]
@@ -40,8 +40,12 @@ struct Thruster {
 
 impl Thruster {
 	/// Get the current status of the thruster, i.e. factor between 0..=1 of how strongly it is firing.
-	pub fn current_status(&self) -> f32 {
+	pub fn get_status(&self) -> f32 {
 		self.current_status.clamp(0., 1.)
+	}
+
+	pub fn set_status(&mut self, status: f32) {
+		self.current_status = status.clamp(0., 1.);
 	}
 }
 
@@ -81,7 +85,7 @@ impl ThrusterPlugin {
 
 	fn sync_thruster_with_internal_forces(mut thrusters: Query<(&Thruster, &mut InternalForce)>) {
 		for (thruster, mut internal_force) in thrusters.iter_mut() {
-			internal_force.set(Vec3::Z * thruster.current_status() * thruster.strength_factor);
+			internal_force.set(Vec3::Z * thruster.get_status() * thruster.strength_factor);
 		}
 	}
 
@@ -194,6 +198,10 @@ impl ThrusterBlockBlueprint {
 			id: BlockId::random(),
 			strength: 10.,
 		}
+	}
+
+	pub fn get_id(&self) -> BlockId {
+		self.id
 	}
 }
 

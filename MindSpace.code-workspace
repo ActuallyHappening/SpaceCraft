@@ -51,9 +51,9 @@
 		// {
 		// 	"path": "../bevy_game_template"
 		// },
-		// {
-		// 	"path": "../bevy_xpbd3d_parenting"
-		// },
+		{
+			"path": "../bevy_xpbd3d_parenting"
+		},
 		// {
 		// 	"path": "../rust-mac-app-examples/3-packaging-a-mac-app"
 		// }

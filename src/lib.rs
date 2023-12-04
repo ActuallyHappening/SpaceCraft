@@ -54,7 +54,8 @@ impl Plugin for MainPlugin {
 					.in_set(GlobalSystemSet::BlueprintExpansion),
 				(
 					GlobalSystemSet::BlueprintExpansion,
-					GlobalSystemSet::ThrustersSync,
+					GlobalSystemSet::PlayerMovement(PlayerMovement::SyncThrustersData),
+					GlobalSystemSet::PlayerMovement(PlayerMovement::EnactThrusters),
 					GlobalSystemSet::RawPhysics,
 					GlobalSystemSet::GameLogic,
 				)
@@ -123,6 +124,7 @@ impl Plugin for MainPlugin {
 				GlobalSystemSet::GameLogic,
 			)),
 			crate::utils::scenes::HelperScene,
+			bevy_starfield::StarfieldPlugin::default(),
 		));
 		// dep configuration
 		app.insert_resource(Gravity(Vec3::ZERO));

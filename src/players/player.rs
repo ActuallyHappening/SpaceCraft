@@ -3,38 +3,83 @@ use crate::prelude::*;
 pub use player_blueprint::PlayerBlueprint;
 
 pub struct PlayerPlugin;
+
+#[derive(Hash, Debug, PartialEq, Eq, Clone, Copy)]
+pub enum PlayerMovement {
+	/// Syncs controllable player's thruster inputs
+	/// with the data in each thruster
+	SyncThrustersData,
+
+	/// Applies the forces from the thruster's data
+	/// into actual forces
+	EnactThrusters,
+}
+
 impl Plugin for PlayerPlugin {
 	fn build(&self, app: &mut App) {
-		app.replicate::<PlayerBlueprint>().add_systems(
-			FixedUpdate,
-			Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),
-		);
+		app
+			.replicate::<PlayerBlueprint>()
+			.add_systems(
+				FixedUpdate,
+				(
+					Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),
+					Self::sync_thruster_data.in_set(GlobalSystemSet::PlayerMovement(
+						PlayerMovement::SyncThrustersData,
+					)),
+				),
+			)
+			.register_type::<ControllablePlayer>();
 	}
 }
 
 /// The marker component for player entities.
-#[derive(Component)]
+#[derive(Component, Reflect)]
+#[reflect(from_reflect = false)]
 pub struct ControllablePlayer {
+	#[reflect(ignore)]
 	network_id: ClientId,
-	movement_input: HashMap<BlockId, f32>,
+
+	movement_input: Option<HashMap<BlockId, f32>>,
 }
 
 impl ControllablePlayer {
 	pub fn get_id(&self) -> ClientId {
 		self.network_id
 	}
+
+	fn with_thruster_mapping(mut self, thruster_ids: Vec<BlockId>) -> Self {
+		assert!(self.movement_input.is_none());
+		self.movement_input = Some(thruster_ids.into_iter().map(|id| (id, 0.)).collect());
+		self
+	}
 }
 
 mod systems {
 	use crate::{
 		cameras::{CameraBlockBundle, ChangeCameraConfig},
-		players::{player::player_blueprint::PlayerBundle, thruster_block::ThrusterBlockBundle},
+		players::{player::player_blueprint::PlayerBundle, thruster_block::{ThrusterBlockBundle, Thruster}},
 		prelude::*,
 	};
 
-	use super::{PlayerBlueprint, PlayerPlugin};
+	use super::{PlayerBlueprint, PlayerPlugin, ControllablePlayer};
 
 	impl PlayerPlugin {
+		pub(super) fn sync_thruster_data(players: Query<(&ControllablePlayer, &Children)>, mut thrusters: Query<(&BlockId, &mut Thruster)>) {
+			for (controllable_player, children) in players.iter() {
+				if let Some(movement_input) = &controllable_player.movement_input {
+					for child in children.iter() {
+						if let Ok((id, mut thruster)) = thrusters.get_mut(*child) {
+							if let Some(input) = movement_input.get(id) {
+								thruster.set_status(*input);
+							}
+						}
+					}
+				} else {
+					warn!("Player is spawned but without an input_map");
+				}
+			}
+		}
+
 		pub(super) fn handle_spawn_player_blueprints(
 			player_blueprints: Query<(Entity, &PlayerBlueprint), Added<PlayerBlueprint>>,
 			mut commands: Commands,
@@ -65,10 +110,12 @@ mod systems {
 							));
 						}
 
-						let camera_entity = parent.spawn(CameraBlockBundle::stamp_from_blueprint(
-							&player_blueprint.primary_camera,
-							&mut mma,
-						)).id();
+						let camera_entity = parent
+							.spawn(CameraBlockBundle::stamp_from_blueprint(
+								&player_blueprint.primary_camera,
+								&mut mma,
+							))
+							.id();
 						set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
 							follow_camera_block: camera_entity,
 						});
@@ -139,11 +186,19 @@ mod player_blueprint {
 			PlayerBlueprint {
 				network_id,
 				transform,
-				// ignores children
+				// ignores most
+				thruster_children,
 				..
 			}: &PlayerBlueprint,
 			_mma: &mut MMA,
 		) -> Self {
+			let thruster_ids: Vec<BlockId> = thruster_children
+				.iter()
+				.map(|blueprint| blueprint.specific_marker.get_id())
+				.collect();
+
+			// trace!("Spawned player has {} thrusters registered", thruster_ids.len());
+
 			Self {
 				spatial: SpatialBundle {
 					transform: *transform,
@@ -153,13 +208,21 @@ mod player_blueprint {
 				controllable_player: ControllablePlayer {
 					network_id: *network_id,
 					movement_input: Default::default(),
-				},
+				}
+				.with_thruster_mapping(thruster_ids),
 				// collider: Collider::ball(0.1),
 				mass: MassPropertiesBundle::new_computed(&Collider::ball(PIXEL_SIZE), 10.),
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
 			}
+		}
+	}
+
+	impl PlayerBundle {
+		fn with_thruster_mapping(mut self, thruster_ids: Vec<BlockId>) -> Self {
+			self.controllable_player = self.controllable_player.with_thruster_mapping(thruster_ids);
+			self
 		}
 	}
 }

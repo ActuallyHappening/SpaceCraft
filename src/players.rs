@@ -16,6 +16,6 @@ impl PluginGroup for PlayerPlugins {
 	}
 }
 
-pub use player::PlayerBlueprint;
+pub use player::{PlayerBlueprint, PlayerMovement};
 
 mod player;
