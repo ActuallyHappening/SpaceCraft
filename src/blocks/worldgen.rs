@@ -9,9 +9,7 @@ impl Plugin for WorldGenPlugin {
 }
 
 mod systems {
-	use bevy::winit::WinitPlugin;
-
-	use crate::{blocks::manual_builder::RelativePixel, prelude::*};
+	use crate::prelude::*;
 
 	use super::{
 		terrain_blueprint::TerrainStructureBlueprint,
@@ -42,13 +40,11 @@ mod systems {
 
 	#[test]
 	fn test_world_gen_expands() {
-		let mut app = App::new();
+		use crate::manual_builder::RelativePixel;
 
-		app.add_plugins((
-			DefaultPlugins.build().disable::<WinitPlugin>(),
-			// MinimalPlugins,
-			super::WorldGenPlugin,
-		));
+		let mut app = test_app();
+
+		app.add_plugins(super::WorldGenPlugin);
 
 		let spawn_location = RelativePixel(IVec3::new(0, 0, 0));
 

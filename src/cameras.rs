@@ -1,4 +1,4 @@
-use crate::{netcode::ClientID, players::ControllablePlayer, prelude::*};
+use crate::prelude::*;
 
 use bevy_dolly::system::Dolly;
 pub use events::ChangeCameraConfig;
@@ -20,7 +20,7 @@ impl Plugin for CameraPlugin {
 					Self::handle_change_camera_events,
 					Self::update_cameras,
 					Dolly::<CameraMarker>::update_active
-				)
+				).chain()
 					.in_set(Client),
 			);
 	}
@@ -147,9 +147,6 @@ mod systems {
 			mut commands: Commands,
 			mut events: EventReader<ChangeCameraConfig>,
 			mut res: ResMut<resources::CamerasConfig>,
-
-			blocks: Query<(Entity, &BlockId), With<CameraBlockMarker>>,
-			cameras: Query<(Entity, &CameraEntity)>,
 		) {
 			for e in events.read() {
 				match e {
