@@ -1,8 +1,8 @@
-use bevy::{prelude::*, render::render_resource::AsBindGroup};
 use bevy::render::render_resource::ShaderRef;
+use bevy::{prelude::*, render::render_resource::AsBindGroup};
 
-mod post_processing;
 mod instancing;
+mod post_processing;
 
 fn main() {
 	// post_processing::main();
@@ -19,9 +19,7 @@ fn main() {
 }
 
 #[derive(Asset, Debug, AsBindGroup, TypePath, Clone)]
-struct WhiteMaterial {
-
-}
+struct WhiteMaterial {}
 
 impl Plugin for WhiteMaterial {
 	fn build(&self, app: &mut App) {
@@ -45,7 +43,10 @@ fn setup(
 	mut materials: ResMut<Assets<WhiteMaterial>>,
 ) {
 	commands.spawn(MaterialMeshBundle {
-		mesh: meshes.add(Mesh::from(shape::UVSphere { radius: 2.0, ..default() })),
+		mesh: meshes.add(Mesh::from(shape::UVSphere {
+			radius: 2.0,
+			..default()
+		})),
 		material: materials.add(WhiteMaterial {}),
 		..default()
 	});

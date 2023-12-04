@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+mod worldgen;
+
 /// The unique identifier for a persistent block in the world
 #[derive(Reflect, Debug, Clone, Copy, Component, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[reflect(Component)]
@@ -119,6 +121,7 @@ mod structure_block {
 	use super::manual_builder;
 	use super::BlockBlueprint;
 
+	/// Used for building structures
 	#[derive(Debug, Serialize, Deserialize, Clone, IntoStaticStr)]
 	pub enum StructureBlockBlueprint {
 		Aluminum,
@@ -181,8 +184,13 @@ mod structure_block {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum OptimizableMesh {
 	StandardBlock,
-	CustomRectangularPrism { size: Vec3 },
-	Sphere { radius: f32 },
+	CustomRectangularPrism {
+		/// Lengths of each side
+		size: Vec3,
+	},
+	Sphere {
+		radius: f32,
+	},
 	FromAsset(String),
 }
 
@@ -194,10 +202,13 @@ impl OptimizableMesh {
 			Self::CustomRectangularPrism { size } => mma
 				.meshs
 				.add(shape::Box::new(size.x, size.y, size.z).into()),
-			Self::Sphere { radius } => mma.meshs.add(shape::UVSphere {
-				radius: *radius,
-				..default()
-			}.into()),
+			Self::Sphere { radius } => mma.meshs.add(
+				shape::UVSphere {
+					radius: *radius,
+					..default()
+				}
+				.into(),
+			),
 		}
 	}
 }

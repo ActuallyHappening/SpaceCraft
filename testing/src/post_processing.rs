@@ -7,7 +7,8 @@
 
 use bevy::{
 	core_pipeline::{
-		clear_color::ClearColorConfig, core_3d::{self, Camera3dDepthLoadOp},
+		clear_color::ClearColorConfig,
+		core_3d::{self, Camera3dDepthLoadOp},
 		fullscreen_vertex_shader::fullscreen_shader_vertex_state,
 	},
 	ecs::query::QueryItem,
@@ -19,11 +20,11 @@ use bevy::{
 		render_graph::{NodeRunError, RenderGraphApp, RenderGraphContext, ViewNode, ViewNodeRunner},
 		render_resource::{
 			BindGroupEntries, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-			BindingType, CachedRenderPipelineId, ColorTargetState, ColorWrites, FragmentState,
-			MultisampleState, Operations, PipelineCache, PrimitiveState, RenderPassColorAttachment,
-			RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerBindingType,
-			SamplerDescriptor, ShaderStages, ShaderType, TextureFormat, TextureSampleType,
-			TextureViewDimension, BlendState,
+			BindingType, BlendState, CachedRenderPipelineId, ColorTargetState, ColorWrites,
+			FragmentState, MultisampleState, Operations, PipelineCache, PrimitiveState,
+			RenderPassColorAttachment, RenderPassDescriptor, RenderPipelineDescriptor, Sampler,
+			SamplerBindingType, SamplerDescriptor, ShaderStages, ShaderType, TextureFormat,
+			TextureSampleType, TextureViewDimension,
 		},
 		renderer::{RenderContext, RenderDevice},
 		texture::BevyDefault,
