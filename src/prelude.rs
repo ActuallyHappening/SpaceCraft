@@ -37,6 +37,8 @@ pub use clap::Parser;
 pub use rand::random;
 pub use serde::{Deserialize, Serialize};
 pub use strum::IntoStaticStr;
+pub use rand::Rng;
+pub use rand::rngs::ThreadRng;
 
 // internal re-exports
 pub(crate) use crate::blocks;

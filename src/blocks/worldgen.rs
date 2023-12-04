@@ -4,16 +4,21 @@ pub struct WorldGenPlugin;
 
 impl Plugin for WorldGenPlugin {
 	fn build(&self, app: &mut App) {
-		app.add_systems(FixedUpdate, Self::expand_terrain_structure);
+		app
+			.add_systems(FixedUpdate, Self::expand_terrain_structure)
+			.add_systems(WorldCreation, Self::creation_spawn_random_world);
 	}
 }
 
 mod systems {
+
 	use crate::prelude::*;
 
 	use super::{
+		discrete_shapes::{DiscreteSphere, OptimizableDiscreteShape},
 		terrain_blueprint::TerrainStructureBlueprint,
 		terrain_bundle::{TerrainItemBundle, TerrainStructureBundle},
+		terrain_type::TerrainType,
 		WorldGenPlugin,
 	};
 
@@ -30,42 +35,61 @@ mod systems {
 						blueprint, &mut mma,
 					))
 					.with_children(|parent| {
-						for child in blueprint.children.iter() {
+						for child in blueprint.clone().into_children().iter() {
 							parent.spawn(TerrainItemBundle::stamp_from_blueprint(child, &mut mma));
 						}
 					});
 			}
 		}
+
+		pub(super) fn creation_spawn_random_world(mut commands: Commands) {
+			debug!("Spawning initial asteroids");
+
+			let mut rng = rand::thread_rng();
+			let structures: Vec<TerrainStructureBlueprint> = (0..10)
+				.map(|_| {
+					let pos = vec3_polar_random(&mut rng);
+					let distance = 6.0..40.0;
+					let pos = pos * rng.gen_range(distance);
+
+					let rot = Quat::from_euler(
+						EulerRot::XYZ,
+						rng.gen_range(0. ..=TAU),
+						rng.gen_range(0. ..=TAU),
+						rng.gen_range(0. ..=TAU),
+					);
+
+					TerrainStructureBlueprint {
+						transform: Transform::from_translation(pos).with_rotation(rot),
+						initial_velocity: None,
+						shape: OptimizableDiscreteShape::Sphere(DiscreteSphere {
+							radius: NonZeroU8::new(rng.gen_range(1..=4)).unwrap(),
+						}),
+						terrain_type: TerrainType::SilicateRock,
+					}
+				})
+				.collect();
+
+			commands.spawn_batch(structures);
+		}
 	}
 
 	#[test]
 	fn test_world_gen_expands() {
-		use crate::manual_builder::RelativePixel;
-
 		let mut app = test_app();
-
 		app.add_plugins(super::WorldGenPlugin);
 
-		let spawn_location = RelativePixel(IVec3::new(0, 0, 0));
-
-		app.world.spawn(TerrainStructureBlueprint::new_homogenous(
-			Transform::default(),
-			super::discrete_shapes::OptimizableDiscreteShape::Dot {
-				pos: spawn_location,
-			},
-			super::terrain_type::TerrainType::SilicateRock,
-		));
-
+		app.world.spawn(TerrainStructureBlueprint::default());
+		fn assert_0_item(items: Query<(), (With<Name>, With<Transform>, With<Handle<Mesh>>)>) {
+			assert_eq!(items.iter().count(), 0);
+		}
 		app.world.run_system_once(assert_0_item);
+
 		app.world.run_schedule(FixedUpdate);
 
 		fn assert_1_item(items: Query<(), (With<Name>, With<Transform>, With<Handle<Mesh>>)>) {
 			assert_eq!(items.iter().count(), 1);
 		}
-		fn assert_0_item(items: Query<(), (With<Name>, With<Transform>, With<Handle<Mesh>>)>) {
-			assert_eq!(items.iter().count(), 0);
-		}
-
 		app.world.run_system_once(assert_1_item);
 	}
 }
@@ -79,38 +103,33 @@ mod terrain_blueprint {
 	};
 
 	/// Blueprint for [TerrainItemBundle]
-	#[derive(Serialize, Deserialize, Debug, Reflect)]
+	#[derive(Serialize, Deserialize, Debug, Reflect, Clone)]
 	pub struct TerrainItemBlueprint {
 		pub terrain_type: TerrainType,
 		pub location: RelativePixel,
 	}
 
 	/// Blueprint for [TerrainStructureBundle]
-	#[derive(Component, Serialize, Deserialize, Debug, Default, Reflect)]
+	#[derive(Component, Serialize, Deserialize, Debug, Default, Reflect, Clone)]
 	#[reflect(Component)]
 	pub struct TerrainStructureBlueprint {
 		pub transform: Transform,
-		pub(super) children: Vec<TerrainItemBlueprint>,
+		pub initial_velocity: Option<(LinearVelocity, AngularVelocity)>,
+		pub shape: OptimizableDiscreteShape,
+		pub terrain_type: TerrainType,
 	}
 
 	impl TerrainStructureBlueprint {
-		pub fn new_homogenous(
-			transform: Transform,
-			shape: OptimizableDiscreteShape,
-			terrain_type: TerrainType,
-		) -> Self {
-			let children = shape
+		pub(super) fn into_children(self) -> Vec<TerrainItemBlueprint> {
+			self
+				.shape
 				.get_locations()
 				.into_iter()
 				.map(|location| TerrainItemBlueprint {
-					terrain_type: terrain_type.clone(),
+					terrain_type: self.terrain_type.clone(),
 					location,
 				})
-				.collect();
-			Self {
-				transform,
-				children,
-			}
+				.collect()
 		}
 	}
 }
@@ -121,13 +140,14 @@ mod discrete_shapes {
 
 	use crate::blocks::manual_builder::RelativePixel;
 
-	#[derive(Debug, Serialize, Deserialize)]
+	#[derive(Debug, Serialize, Deserialize, Reflect, Default, Clone)]
 	pub enum OptimizableDiscreteShape {
 		Sphere(DiscreteSphere),
-		Dot { pos: RelativePixel },
+		#[default]
+		Dot,
 	}
 
-	#[derive(Debug, Serialize, Deserialize)]
+	#[derive(Debug, Serialize, Deserialize, Reflect, Clone)]
 	pub struct DiscreteSphere {
 		pub radius: NonZeroU8,
 	}
@@ -158,7 +178,7 @@ mod discrete_shapes {
 	impl DiscreteLocations for OptimizableDiscreteShape {
 		fn get_locations(self) -> HashSet<RelativePixel> {
 			match self {
-				Self::Dot { pos } => [pos].into_iter().collect(),
+				Self::Dot => [RelativePixel::default()].into_iter().collect(),
 				Self::Sphere(sphere) => sphere.get_locations(),
 			}
 		}
@@ -226,8 +246,11 @@ mod terrain_bundle {
 mod terrain_type {
 	use crate::{blocks::manual_builder::RelativePixel, prelude::*};
 
-	#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, IntoStaticStr, Reflect, Clone)]
+	#[derive(
+		Debug, Serialize, Deserialize, PartialEq, Eq, Hash, IntoStaticStr, Reflect, Clone, Default,
+	)]
 	pub enum TerrainType {
+		#[default]
 		SilicateRock,
 	}
 

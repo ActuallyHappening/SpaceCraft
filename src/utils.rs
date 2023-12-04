@@ -32,6 +32,24 @@ impl &mut App {
 	}
 }
 
+pub fn vec3_polar(theta: f32, phi: f32) -> Vec3 {
+	Vec3 {
+		x: theta.sin() * phi.cos(),
+		y: theta.sin() * phi.sin(),
+		z: theta.cos(),
+	}
+}
+
+pub fn vec3_polar_random(rng: &mut ThreadRng) -> Vec3 {
+	let phi = rng.gen_range(0. ..TAU);
+	let z: f32 = rng.gen_range(-1. ..1.);
+	let theta = z.acos();
+
+	let ret = vec3_polar(theta, phi);
+
+	ret.normalize()
+}
+
 pub trait FromBlueprint {
 	type Blueprint;
 

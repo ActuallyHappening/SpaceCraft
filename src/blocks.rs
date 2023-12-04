@@ -2,6 +2,14 @@ use crate::prelude::*;
 
 mod worldgen;
 
+pub struct BlockPlugins;
+
+impl PluginGroup for BlockPlugins {
+	fn build(self) -> PluginGroupBuilder {
+		PluginGroupBuilder::start::<Self>().add(worldgen::WorldGenPlugin)
+	}
+}
+
 /// The unique identifier for a persistent block in the world
 #[derive(Reflect, Debug, Clone, Copy, Component, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[reflect(Component)]
@@ -64,7 +72,7 @@ pub mod manual_builder {
 		}
 	}
 
-	#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy, Reflect)]
+	#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy, Reflect)]
 	pub struct RelativePixel(pub IVec3);
 
 	impl From<IVec3> for RelativePixel {

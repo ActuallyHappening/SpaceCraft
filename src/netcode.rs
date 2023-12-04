@@ -1,5 +1,6 @@
 use crate::{players::PlayerBlueprint, prelude::*};
 
+use bevy::ecs::schedule::ScheduleLabel;
 pub use bevy_replicon::{
 	prelude::*,
 	renet::{
@@ -25,6 +26,12 @@ pub struct Client;
 #[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
 pub struct Server;
 
+#[derive(ScheduleLabel, Hash, Debug, Clone, Eq, PartialEq)]
+pub struct WorldCreation;
+
+#[derive(Resource)]
+struct WorldCreationRunSystem(SystemId);
+
 impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut App) {
 		app
@@ -35,10 +42,21 @@ impl Plugin for NetcodePlugin {
 			.configure_sets(FixedUpdate, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(FixedUpdate, Server.run_if(has_authority()));
+
+		let system_id = app.world.register_system(WorldCreation::run_schedule);
+		app.world.insert_resource(WorldCreationRunSystem(system_id));
+	}
+}
+
+impl WorldCreation {
+	fn run_schedule(world: &mut World) {
+		info!("Running WorldCreation schedule");
+		world.try_run_schedule(WorldCreation).ok();
 	}
 }
 
 impl NetcodePlugin {
+	// todo add tests
 	fn frame_inc_and_replicon_tick_sync(
 		mut game_clock: ResMut<GameClock>, // your own tick counter
 		mut replicon_tick: ResMut<RepliconTick>,
@@ -151,7 +169,7 @@ impl NetcodePlugin {
 		mut commands: Commands,
 		network_channels: Res<NetworkChannels>,
 		config: Res<NetcodeConfig>,
-		_manual_server_feedback: EventWriter<ServerEvent>,
+		run_creation_schedule: Res<WorldCreationRunSystem>,
 	) {
 		match config.into_inner() {
 			NetcodeConfig::Server { ip, port, headless } => {
@@ -185,7 +203,7 @@ impl NetcodePlugin {
 				commands.insert_resource(transport);
 
 				if !headless {
-					commands.spawn(PlayerBlueprint::default_at(SERVER_ID, Transform::default()));
+					commands.run_system(run_creation_schedule.0);
 				}
 			}
 			NetcodeConfig::Client { ip, port } => {
@@ -253,7 +271,7 @@ impl NetcodePlugin {
 				ServerEvent::ClientConnected { client_id } => {
 					info!("New player with id {client_id} connected");
 
-					commands.spawn(PlayerBlueprint::default_at(
+					commands.spawn(PlayerBlueprint::new(
 						*client_id,
 						Transform::default(),
 					));

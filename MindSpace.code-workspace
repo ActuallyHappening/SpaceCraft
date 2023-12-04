@@ -15,9 +15,9 @@
 		// {
 		// 	"path": "../bevy_hanabi"
 		// },
-		// {
-		// 	"path": "../bevy_starfield2"
-		// },
+		{
+			"path": "../bevy_starfield2"
+		},
 		// {
 		// 	"path": "../testing-bug"
 		// },
@@ -91,6 +91,7 @@
 			"replicon",
 			"Substep",
 			"Timewarp",
+			"worldgen",
 			"xpbd"
 		]
 	}

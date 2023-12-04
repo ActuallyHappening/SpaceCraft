@@ -73,12 +73,17 @@ impl Plugin for MainPlugin {
 
 		// spawn initial light
 		app.add_systems(Startup, |mut commands: Commands| {
-			commands.spawn(DirectionalLightBundle {
-				directional_light: DirectionalLight {
-					shadows_enabled: true,
-					..default()
-				},
-				..default()
+			// commands.spawn(DirectionalLightBundle {
+			// 	directional_light: DirectionalLight {
+			// 		shadows_enabled: true,
+			// 		..default()
+			// 	},
+			// 	..default()
+			// });
+
+			commands.insert_resource(AmbientLight {
+				color: Color::WHITE,
+				brightness: 0.1,
 			});
 		});
 
@@ -136,6 +141,7 @@ impl Plugin for MainPlugin {
 			self::cameras::CameraPlugin,
 			self::ui::UiPlugins,
 			self::players::PlayerPlugins,
+			self::blocks::BlockPlugins,
 		));
 		app.register_type::<BlockId>();
 

@@ -31,6 +31,7 @@ impl Plugin for PlayerPlugin {
 					)),
 				),
 			)
+			.add_systems(WorldCreation, Self::creation_spawn_initial)
 			.register_type::<ControllablePlayer>();
 	}
 }
@@ -132,6 +133,10 @@ mod systems {
 					});
 			}
 		}
+
+		pub(super) fn creation_spawn_initial(mut commands: Commands) {
+			commands.spawn(PlayerBlueprint::new(SERVER_ID, Transform::IDENTITY));
+		}
 	}
 
 	#[test]
@@ -142,7 +147,7 @@ mod systems {
 
 		const ID: ClientId = ClientId::from_raw(69);
 		let transform = Transform::from_xyz(random(), random(), random());
-		app.world.spawn(PlayerBlueprint::default_at(ID, transform));
+		app.world.spawn(PlayerBlueprint::new(ID, transform));
 
 		app.world.run_schedule(FixedUpdate);
 
@@ -177,7 +182,7 @@ mod player_blueprint {
 	}
 
 	impl PlayerBlueprint {
-		pub fn default_at(network_id: ClientId, transform: Transform) -> Self {
+		pub fn new(network_id: ClientId, transform: Transform) -> Self {
 			PlayerBlueprint {
 				network_id,
 				transform,
