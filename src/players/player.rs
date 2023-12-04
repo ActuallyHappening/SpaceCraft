@@ -17,6 +17,9 @@ pub enum PlayerMovement {
 
 impl Plugin for PlayerPlugin {
 	fn build(&self, app: &mut App) {
+		app.depends_on::<RepliconCorePlugin, _>(ReplicationPlugins);
+		app.depends_on::<crate::cameras::CameraPlugin, _>(crate::cameras::CameraPlugin);
+
 		app
 			.replicate::<PlayerBlueprint>()
 			.add_systems(
@@ -57,14 +60,20 @@ impl ControllablePlayer {
 mod systems {
 	use crate::{
 		cameras::{CameraBlockBundle, ChangeCameraConfig},
-		players::{player::player_blueprint::PlayerBundle, thruster_block::{ThrusterBlockBundle, Thruster}},
+		players::{
+			player::player_blueprint::PlayerBundle,
+			thruster_block::{Thruster, ThrusterBlockBundle},
+		},
 		prelude::*,
 	};
 
-	use super::{PlayerBlueprint, PlayerPlugin, ControllablePlayer};
+	use super::{ControllablePlayer, PlayerBlueprint, PlayerPlugin};
 
 	impl PlayerPlugin {
-		pub(super) fn sync_thruster_data(players: Query<(&ControllablePlayer, &Children)>, mut thrusters: Query<&mut Thruster>) {
+		pub(super) fn sync_thruster_data(
+			players: Query<(&ControllablePlayer, &Children)>,
+			mut thrusters: Query<&mut Thruster>,
+		) {
 			for (controllable_player, children) in players.iter() {
 				if let Some(movement_input) = &controllable_player.movement_input {
 					for child in children.iter() {
@@ -123,6 +132,29 @@ mod systems {
 					});
 			}
 		}
+	}
+
+	#[test]
+	fn player_blueprint_expands() {
+		let mut app = test_app();
+
+		app.add_plugins(PlayerPlugin);
+
+		const ID: ClientId = ClientId::from_raw(69);
+		let transform = Transform::from_xyz(random(), random(), random());
+		app.world.spawn(PlayerBlueprint::default_at(ID, transform));
+
+		app.world.run_schedule(FixedUpdate);
+
+		app
+			.world
+			.run_system_once(|players: Query<(EntityRef, &ControllablePlayer)>| {
+				let (player, control) = players
+					.get_single()
+					.expect("Only one controllable player expanded");
+				assert_eq!(control.get_id(), ID);
+				assert!(player.get::<PlayerBlueprint>().is_some());
+			});
 	}
 }
 

@@ -7,6 +7,30 @@ use extension_traits::extension;
 // mod text;
 
 pub mod scenes;
+#[cfg(test)]
+mod testing;
+#[cfg(test)]
+pub use testing::*;
+
+#[extension(pub trait AppExt)]
+impl &mut App {
+	#[allow(unused_variables)]
+	fn depends_on<T: Plugin, M>(self, plugin_group: impl Plugins<M>) -> Self {
+		if self.is_plugin_added::<T>() {
+			self
+		} else {
+			#[cfg(not(test))]
+			panic!("Plugin {:?} is already added", std::any::type_name::<T>());
+
+			#[cfg(test)]
+			self.add_plugins(plugin_group);
+			// #[cfg(test)]
+			// debug!("Adding plugin group {:?} because .depends_on was called", std::any::type_name::<U>());
+			#[cfg(test)]
+			self
+		}
+	}
+}
 
 pub trait FromBlueprint {
 	type Blueprint;

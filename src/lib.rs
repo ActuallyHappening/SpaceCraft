@@ -15,6 +15,7 @@
 // )]
 #![windows_subsystem = "windows"]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::type_complexity)]
 
 mod blocks;
 mod cameras;

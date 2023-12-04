@@ -44,14 +44,8 @@ mod systems {
 	fn test_world_gen_expands() {
 		let mut app = App::new();
 
-		app
-			.add_plugins(DefaultPlugins.build().disable::<WinitPlugin>())
-			.add_plugins(ScheduleRunnerPlugin::run_loop(Duration::from_secs_f64(
-				1.0 / 60.0,
-			)));
-
 		app.add_plugins((
-			// DefaultPlugins.build().disable::<WinitPlugin>(),
+			DefaultPlugins.build().disable::<WinitPlugin>(),
 			// MinimalPlugins,
 			super::WorldGenPlugin,
 		));
@@ -66,11 +60,14 @@ mod systems {
 			super::terrain_type::TerrainType::SilicateRock,
 		));
 
-		app.update();
+		app.world.run_system_once(assert_0_item);
 		app.world.run_schedule(FixedUpdate);
 
-		fn assert_1_item(items: Query<(), (With<Name>, With<Transform>)>) {
+		fn assert_1_item(items: Query<(), (With<Name>, With<Transform>, With<Handle<Mesh>>)>) {
 			assert_eq!(items.iter().count(), 1);
+		}
+		fn assert_0_item(items: Query<(), (With<Name>, With<Transform>, With<Handle<Mesh>>)>) {
+			assert_eq!(items.iter().count(), 0);
 		}
 
 		app.world.run_system_once(assert_1_item);
