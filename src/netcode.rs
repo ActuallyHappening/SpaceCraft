@@ -210,7 +210,7 @@ impl NetcodePlugin {
 				let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))
 					.expect("Couldn't bind to (unspecified) socket");
 				let authentication = ClientAuthentication::Unsecure {
-					client_id,
+					client_id: client_id.raw(),
 					protocol_id: PROTOCOL_ID,
 					server_addr,
 					user_data: None,
