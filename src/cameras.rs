@@ -404,8 +404,8 @@ mod camera_block {
 			Self {
 				pbr: PbrBundle {
 					transform: *transform,
-					mesh: mesh.get_mesh(mma),
-					material: material.get_material(&mut mma.mats),
+					mesh: mesh.clone().into_mesh(mma),
+					material: material.clone().into_material(&mut mma.mats),
 					..default()
 				},
 				name: Name::new("CameraBlock"),

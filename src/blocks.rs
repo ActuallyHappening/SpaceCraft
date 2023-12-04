@@ -64,7 +64,7 @@ pub mod manual_builder {
 		}
 	}
 
-	#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy)]
+	#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Copy, Reflect)]
 	pub struct RelativePixel(pub IVec3);
 
 	impl From<IVec3> for RelativePixel {
@@ -156,8 +156,8 @@ mod structure_block {
 			Self {
 				pbr: PbrBundle {
 					transform: *transform,
-					mesh: mesh.get_mesh(mma),
-					material: material.get_material(&mut mma.mats),
+					mesh: mesh.clone().into_mesh(mma),
+					material: material.clone().into_material(&mut mma.mats),
 					..default()
 				},
 				collider: AsyncCollider(ComputedCollider::ConvexHull),
@@ -196,7 +196,7 @@ pub enum OptimizableMesh {
 }
 
 impl OptimizableMesh {
-	pub fn get_mesh(&self, mma: &mut MMA) -> Handle<Mesh> {
+	pub fn into_mesh(self, mma: &mut MMA) -> Handle<Mesh> {
 		match self {
 			Self::FromAsset(name) => mma.ass.load(name),
 			Self::StandardBlock => mma.meshs.add(shape::Cube { size: PIXEL_SIZE }.into()),
@@ -205,7 +205,7 @@ impl OptimizableMesh {
 				.add(shape::Box::new(size.x, size.y, size.z).into()),
 			Self::Sphere { radius } => mma.meshs.add(
 				shape::UVSphere {
-					radius: *radius,
+					radius,
 					..default()
 				}
 				.into(),
@@ -221,9 +221,9 @@ pub enum OptimizableMaterial {
 }
 
 impl OptimizableMaterial {
-	pub fn get_material(&self, mat: &mut Assets<StandardMaterial>) -> Handle<StandardMaterial> {
+	pub fn into_material(self, mat: &mut Assets<StandardMaterial>) -> Handle<StandardMaterial> {
 		match self {
-			Self::OpaqueColour(col) => mat.add((*col).into()),
+			Self::OpaqueColour(col) => mat.add(col.into()),
 			Self::None => mat.add(Color::WHITE.with_a(0.).into()),
 		}
 	}
