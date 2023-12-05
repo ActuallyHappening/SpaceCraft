@@ -49,7 +49,7 @@ mod systems {
 			let structures: Vec<TerrainStructureBlueprint> = (0..10)
 				.map(|_| {
 					let pos = vec3_polar_random(&mut rng);
-					let distance = 6.0..30.0;
+					let distance = 20.0..30.0;
 					let pos = pos * rng.gen_range(distance);
 
 					let rot = Quat::from_euler(
@@ -60,9 +60,9 @@ mod systems {
 					);
 
 					let mut r = |bound: f32| rng.gen_range(-bound .. bound);
-					let max_linvel = 10.0;
+					let max_linvel = 1.0;
 					let linvel = LinearVelocity(Vec3::new(r(max_linvel), r(max_linvel), r(max_linvel)));
-					let max_angvel = 10.0;
+					let max_angvel = 0.5;
 					let angvel = AngularVelocity(Vec3::new(r(max_angvel), r(max_angvel), r(max_angvel)));
 
 					TerrainStructureBlueprint {

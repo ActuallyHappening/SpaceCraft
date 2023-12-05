@@ -97,16 +97,16 @@ mod systems {
 			for strip_height_n in -NUM_STRIPS_MAGNITUDE..=NUM_STRIPS_MAGNITUDE {
 				let phi = phi_per_strip_n(strip_height_n);
 				for theta in thetas_per_strip_n(strip_height_n) {
-					trace!("Adding vector with theta: {}, phi: {}", theta, phi);
+					// trace!("Adding vector with theta: {}, phi: {}", theta, phi);
 					starting_positions.push(vec3_polar(theta, phi) * CIRCLE_RADIUS);
 				}
 			}
 
 			// trace!("Starting positions: {:?}", starting_positions);
 
-			let spawn_points: Vec<SpawnPointBundle> = (0..8)
-				.map(|n| {
-					let transform = Transform::from_translation(starting_positions[n]);
+			let spawn_points: Vec<SpawnPointBundle> = starting_positions.iter()
+				.map(|pos| {
+					let transform = Transform::from_translation(*pos);
 					let blueprint = SpawnPointBlueprint::new(transform, None);
 					SpawnPointBundle::stamp_from_blueprint(&blueprint, &mut mma)
 				})
@@ -204,7 +204,7 @@ mod bundle {
 				},
 				name: Name::new("SpawnPoint"),
 				spawn_point: SpawnPoint::new(*initial_occupation),
-				rigid_body: RigidBody::Dynamic,
+				rigid_body: RigidBody::Kinematic,
 				collider: AsyncCollider::default(),
 			}
 		}
