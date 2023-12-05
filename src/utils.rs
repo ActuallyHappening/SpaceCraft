@@ -32,11 +32,38 @@ impl &mut App {
 	}
 }
 
-pub fn vec3_polar(theta: f32, phi: f32) -> Vec3 {
+pub fn vec3_polar(horizontal_xz: f32, altitude_y: f32) -> Vec3 {
 	Vec3 {
-		x: theta.sin() * phi.cos(),
-		y: theta.sin() * phi.sin(),
-		z: theta.cos(),
+		x: altitude_y.cos() * horizontal_xz.cos(),
+		y: altitude_y.sin(),
+		z: altitude_y.cos() * horizontal_xz.sin(),
+	}.normalize()
+}
+
+#[cfg(test)]
+mod polar_tests {
+	use std::f32::consts::TAU;
+
+	use bevy::math::Vec3;
+	use rand::random;
+	use assert_float_eq::*;
+
+	use crate::prelude::vec3_polar;
+
+	macro_rules! assert_vec3_near {
+		// delegates each component to assert_f32_near
+		($a:expr, $b:expr) => {
+			assert_float_absolute_eq!($a.x, $b.x, 0.01);
+			assert_float_absolute_eq!($a.y, $b.y, 0.01);
+			assert_float_absolute_eq!($a.z, $b.z, 0.01);
+		};
+	}
+
+	#[test]
+	fn edges() {
+		assert_eq!(vec3_polar(0.0, 0.0), Vec3::X);
+		assert_vec3_near!(vec3_polar(random(), TAU / 4.), Vec3::Y);
+		assert_vec3_near!(vec3_polar(random(), -TAU / 4.), -Vec3::Y);
 	}
 }
 

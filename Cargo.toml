@@ -44,7 +44,10 @@ serde = { version = "1.0.192", features = ["derive"] }
 structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive"] }
 tracing-subscriber = { version = "0.3.18", features = ["fmt"] }
-winit = "0.28" # depends on the version bevy is using atm
+winit = "*" # depends on the version bevy is using atm
+
+[dev-dependencies]
+assert_float_eq = "1.1.3"
 
 [workspace.dependencies.bevy]
 version = "0.12"

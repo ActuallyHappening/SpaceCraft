@@ -57,11 +57,56 @@ mod systems {
 		}
 
 		pub(super) fn creation_spawn_points(mut commands: Commands, mut mma: MMA) {
+			const CIRCLE_RADIUS: f32 = SpawnPointBlueprint::DEFAULT_SIZE * 4.0;
+			const NUM_STRIPS_MAGNITUDE: isize = 2; // 5 total layers
+
+			// altitudes
+			let phi_per_strip_n = |strip_height_n: isize| -> f32 {
+				match strip_height_n {
+					2 => TAU / 4.,
+					1 => TAU / 8.,
+					0 => 0.0,
+					-1 => -TAU / 8.,
+					-2 => -TAU / 4.,
+					_ => unreachable!(),
+				}
+			};
+
+			// rotations along xz axis
+			let num_thetas_per_strip_n = |strip_height_n: isize| -> usize {
+				match strip_height_n {
+					2 | -2 => 1,
+					1 | -1 => 4,
+					0 => 8,
+					_ => unreachable!(),
+				}
+			};
+
+			let thetas_per_strip_n = |strip_height_n: isize| -> Vec<f32> {
+				let num_thetas = num_thetas_per_strip_n(strip_height_n);
+				let mut thetas = Vec::with_capacity(num_thetas);
+				for theta_n in 0..num_thetas {
+					let theta = theta_n as f32 * TAU / num_thetas as f32;
+					thetas.push(theta);
+				}
+				thetas
+			};
+
+			let mut starting_positions = Vec::new();
+
+			for strip_height_n in -NUM_STRIPS_MAGNITUDE..=NUM_STRIPS_MAGNITUDE {
+				let phi = phi_per_strip_n(strip_height_n);
+				for theta in thetas_per_strip_n(strip_height_n) {
+					trace!("Adding vector with theta: {}, phi: {}", theta, phi);
+					starting_positions.push(vec3_polar(theta, phi) * CIRCLE_RADIUS);
+				}
+			}
+
+			// trace!("Starting positions: {:?}", starting_positions);
+
 			let spawn_points: Vec<SpawnPointBundle> = (0..8)
 				.map(|n| {
-					// 8 corners of a cube
-					let pos: Vec3 = vec3_polar(n as f32 * TAU / 8., n as f32 * TAU / 8.);
-					let transform = Transform::from_translation(pos * 10.);
+					let transform = Transform::from_translation(starting_positions[n]);
 					let blueprint = SpawnPointBlueprint::new(transform, None);
 					SpawnPointBundle::stamp_from_blueprint(&blueprint, &mut mma)
 				})
@@ -91,6 +136,8 @@ mod blueprint {
 				..default()
 			}
 		}
+
+		pub const DEFAULT_SIZE: f32 = 3.0;
 	}
 
 	impl Default for SpawnPointBlueprint {
