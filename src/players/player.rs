@@ -31,43 +31,11 @@ impl Plugin for PlayerPlugin {
 					)),
 				),
 			)
-			.add_systems(WorldCreation, Self::creation_spawn_initial)
+			.add_systems(
+				WorldCreation,
+				Self::creation_spawn_initial.in_set(WorldCreationSet::InitialPlayer),
+			)
 			.register_type::<ControllablePlayer>();
-	}
-}
-
-pub use components::ControllablePlayer;
-mod components {
-	use crate::prelude::*;
-
-	/// The marker component for player entities.
-	#[derive(Component, Reflect)]
-	#[reflect(from_reflect = false)]
-	pub struct ControllablePlayer {
-		#[reflect(ignore)]
-		network_id: ClientId,
-
-		movement_input: HashMap<BlockId, f32>,
-	}
-
-	impl ControllablePlayer {
-		pub fn get_id(&self) -> ClientId {
-			self.network_id
-		}
-
-		pub(super) fn get_movement_inputs(&self) -> &HashMap<BlockId, f32> {
-			&self.movement_input
-		}
-
-		pub(super) fn new_with_thruster_mapping(
-			network_id: ClientId,
-			thruster_ids: Vec<BlockId>,
-		) -> Self {
-			Self {
-				network_id,
-				movement_input: thruster_ids.into_iter().map(|id| (id, 0.)).collect(),
-			}
-		}
 	}
 }
 
@@ -76,6 +44,7 @@ mod systems {
 		cameras::{CameraBlockBundle, ChangeCameraConfig},
 		players::{
 			player::player_blueprint::PlayerBundle,
+			spawn_points::AvailableSpawnPoints,
 			thruster_block::{Thruster, ThrusterBlockBundle},
 		},
 		prelude::*,
@@ -144,8 +113,18 @@ mod systems {
 			}
 		}
 
-		pub(super) fn creation_spawn_initial(mut commands: Commands) {
-			commands.spawn(PlayerBlueprint::new(SERVER_ID, Transform::IDENTITY));
+		pub(super) fn creation_spawn_initial(
+			mut commands: Commands,
+			spawn_point: AvailableSpawnPoints,
+		) {
+			// commands.spawn(PlayerBlueprint::new(SERVER_ID, Transform::IDENTITY));
+			let spawn_point = spawn_point
+				.try_get_spawn_location(SERVER_ID)
+				.expect("No more spawn points left!");
+			commands.spawn(PlayerBlueprint::new(
+				SERVER_ID,
+				spawn_point.reparented_to(&GlobalTransform::IDENTITY),
+			));
 		}
 	}
 
@@ -170,6 +149,41 @@ mod systems {
 				assert_eq!(control.get_id(), ID);
 				assert!(player.get::<PlayerBlueprint>().is_some());
 			});
+	}
+}
+
+pub use components::ControllablePlayer;
+mod components {
+	use crate::prelude::*;
+
+	/// The marker component for player entities.
+	#[derive(Component, Reflect)]
+	#[reflect(from_reflect = false)]
+	pub struct ControllablePlayer {
+		#[reflect(ignore)]
+		network_id: ClientId,
+
+		movement_input: HashMap<BlockId, f32>,
+	}
+
+	impl ControllablePlayer {
+		pub fn get_id(&self) -> ClientId {
+			self.network_id
+		}
+
+		pub(super) fn get_movement_inputs(&self) -> &HashMap<BlockId, f32> {
+			&self.movement_input
+		}
+
+		pub(super) fn new_with_thruster_mapping(
+			network_id: ClientId,
+			thruster_ids: Vec<BlockId>,
+		) -> Self {
+			Self {
+				network_id,
+				movement_input: thruster_ids.into_iter().map(|id| (id, 0.)).collect(),
+			}
+		}
 	}
 }
 

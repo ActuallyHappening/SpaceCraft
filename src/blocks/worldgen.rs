@@ -6,7 +6,7 @@ impl Plugin for WorldGenPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.add_systems(FixedUpdate, Self::expand_terrain_structure)
-			.add_systems(WorldCreation, Self::creation_spawn_random_world);
+			.add_systems(WorldCreation, Self::creation_spawn_random_world.in_set(WorldCreationSet::Asteroids));
 	}
 }
 

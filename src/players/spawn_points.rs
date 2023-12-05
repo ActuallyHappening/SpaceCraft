@@ -9,7 +9,10 @@ impl Plugin for SpawnPointsPlugin {
 		app
 			.register_type::<SpawnPoint>()
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
-			.add_systems(WorldCreation, Self::creation_spawn_points);
+			.add_systems(
+				WorldCreation,
+				Self::creation_spawn_points.in_set(WorldCreationSet::SpawnPoints),
+			);
 	}
 }
 
@@ -104,7 +107,8 @@ mod systems {
 
 			// trace!("Starting positions: {:?}", starting_positions);
 
-			let spawn_points: Vec<SpawnPointBundle> = starting_positions.iter()
+			let spawn_points: Vec<SpawnPointBundle> = starting_positions
+				.iter()
 				.map(|pos| {
 					let transform = Transform::from_translation(*pos);
 					let blueprint = SpawnPointBlueprint::new(transform, None);
@@ -211,6 +215,7 @@ mod bundle {
 	}
 }
 
+pub use components::AvailableSpawnPoints;
 mod components {
 	use crate::prelude::*;
 
@@ -230,6 +235,41 @@ mod components {
 
 		pub(super) fn get_id(&self) -> Option<ClientId> {
 			self.player_occupation
+		}
+
+		fn set_id(&mut self, id: ClientId) {
+			self.player_occupation = Some(id);
+		}
+	}
+
+	#[derive(SystemParam)]
+	// #[system_param(mutable)]
+	pub struct AvailableSpawnPoints<'w, 's> {
+		spawn_points: Query<'w, 's, (&'static mut SpawnPoint, &'static GlobalTransform)>,
+		state: Res<'w, NetcodeConfig>,
+	}
+
+	impl AvailableSpawnPoints<'_, '_> {
+		/// Returns a valid spawn location, handling side effects.
+		///
+		/// Maybe: Handle spawning a new spawn location in the future?
+		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<GlobalTransform> {
+			if self.state.is_authoritative() {
+				error!("Cannot assign spawn points from a non-authoritative state");
+			}
+
+			let mut available_points = self
+				.spawn_points
+				.iter_mut()
+				.filter(|(sp, _)| sp.player_occupation.is_some());
+
+			let Some((mut spawn_point, global_transform)) = available_points.next() else {
+				return None;
+			};
+
+			spawn_point.set_id(player_occupying);
+
+			Some(*global_transform)
 		}
 	}
 }

@@ -1,6 +1,5 @@
 use crate::{players::PlayerBlueprint, prelude::*};
 
-use bevy::ecs::schedule::ScheduleLabel;
 pub use bevy_replicon::{
 	prelude::*,
 	renet::{
@@ -26,12 +25,6 @@ pub struct Client;
 #[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
 pub struct Server;
 
-#[derive(ScheduleLabel, Hash, Debug, Clone, Eq, PartialEq)]
-pub struct WorldCreation;
-
-#[derive(Resource)]
-struct WorldCreationRunSystem(SystemId);
-
 impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut App) {
 		app
@@ -41,17 +34,70 @@ impl Plugin for NetcodePlugin {
 			.add_systems(FixedUpdate, Self::frame_inc_and_replicon_tick_sync)
 			.configure_sets(FixedUpdate, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
-			.configure_sets(FixedUpdate, Server.run_if(has_authority()));
-
-		let system_id = app.world.register_system(WorldCreation::run_schedule);
-		app.world.insert_resource(WorldCreationRunSystem(system_id));
+			.configure_sets(FixedUpdate, Server.run_if(NetcodeConfig::has_authority()))
+			.add_plugins(self::world_creation::WorldCreationPlugin);
 	}
 }
 
-impl WorldCreation {
-	fn run_schedule(world: &mut World) {
-		info!("Running WorldCreation schedule");
-		world.try_run_schedule(WorldCreation).ok();
+use self::world_creation::CreateWorldEvent;
+pub use self::world_creation::{WorldCreation, WorldCreationSet};
+mod world_creation {
+	use crate::prelude::*;
+	use bevy::ecs::schedule::ScheduleLabel;
+
+	pub(super) struct WorldCreationPlugin;
+
+	impl Plugin for WorldCreationPlugin {
+		fn build(&self, app: &mut App) {
+			app
+				.configure_sets(
+					WorldCreation,
+					(WCS::SpawnPoints, WCS::FlushSpawnPoints, WCS::InitialPlayer).chain(),
+				)
+				.add_systems(WorldCreation, apply_deferred.before(WCS::FlushSpawnPoints))
+				.add_event::<CreateWorldEvent>();
+
+			let system_id = app.world.register_system(WorldCreation::run_schedule);
+			app.world.insert_resource(WorldCreationRunSystem(system_id));
+		}
+	}
+
+	#[derive(ScheduleLabel, Hash, Debug, Clone, Eq, PartialEq)]
+	pub struct WorldCreation;
+
+	#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
+	pub enum WorldCreationSet {
+		SpawnPoints,
+		Asteroids,
+
+		FlushSpawnPoints,
+		/// Must be done after spawn points
+		InitialPlayer,
+	}
+
+	type WCS = WorldCreationSet;
+
+	#[derive(Resource)]
+	struct WorldCreationRunSystem(SystemId);
+
+	#[derive(Event)]
+	pub struct CreateWorldEvent;
+
+	fn handle_world_creation_events(
+		mut events: EventReader<CreateWorldEvent>,
+		mut commands: Commands,
+		system: Res<WorldCreationRunSystem>,
+	) {
+		for _ in events.read() {
+			commands.run_system(system.0);
+		}
+	}
+
+	impl WorldCreation {
+		fn run_schedule(world: &mut World) {
+			info!("Running WorldCreation schedule");
+			world.try_run_schedule(WorldCreation).ok();
+		}
 	}
 }
 
@@ -161,6 +207,19 @@ impl NetcodeConfig {
 	pub fn not_headless() -> impl Fn(Res<NetcodeConfig>) -> bool {
 		|config| !config.into_inner().get_headless()
 	}
+
+	pub fn is_authoritative(&self) -> bool {
+		match self {
+			NetcodeConfig::Server { .. } => true,
+			NetcodeConfig::Client { .. } => false,
+		}
+	}
+
+	/// Used in a `.run_if` to signify a system that should only run if
+	/// the current instance is the authoritative server
+	pub fn has_authority() -> impl Fn(Res<NetcodeConfig>) -> bool {
+		|config| config.is_authoritative()
+	}
 }
 
 impl NetcodePlugin {
@@ -169,7 +228,7 @@ impl NetcodePlugin {
 		mut commands: Commands,
 		network_channels: Res<NetworkChannels>,
 		config: Res<NetcodeConfig>,
-		run_creation_schedule: Res<WorldCreationRunSystem>,
+		mut creation_event: EventWriter<CreateWorldEvent>,
 	) {
 		match config.into_inner() {
 			NetcodeConfig::Server { ip, port, headless } => {
@@ -203,7 +262,7 @@ impl NetcodePlugin {
 				commands.insert_resource(transport);
 
 				if !headless {
-					commands.run_system(run_creation_schedule.0);
+					creation_event.send(CreateWorldEvent);
 				}
 			}
 			NetcodeConfig::Client { ip, port } => {
@@ -271,10 +330,7 @@ impl NetcodePlugin {
 				ServerEvent::ClientConnected { client_id } => {
 					info!("New player with id {client_id} connected");
 
-					commands.spawn(PlayerBlueprint::new(
-						*client_id,
-						Transform::default(),
-					));
+					commands.spawn(PlayerBlueprint::new(*client_id, Transform::default()));
 				}
 				ServerEvent::ClientDisconnected { client_id, reason } => {
 					info!("Client {client_id} disconnected because: {reason}");
