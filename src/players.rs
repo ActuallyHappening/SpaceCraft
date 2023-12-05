@@ -1,9 +1,11 @@
 use crate::prelude::*;
 
-pub use player::ControllablePlayer;
-
+pub use player::{PlayerBlueprint, PlayerMovement, ControllablePlayer};
 mod player;
+
+pub use spawn_points::AvailableSpawnPoints;
 mod spawn_points;
+
 mod thruster_block;
 
 /// Plugin Group
@@ -19,4 +21,3 @@ impl PluginGroup for PlayerPlugins {
 	}
 }
 
-pub use player::{PlayerBlueprint, PlayerMovement};

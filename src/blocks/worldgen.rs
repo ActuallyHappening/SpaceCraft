@@ -46,7 +46,8 @@ mod systems {
 			debug!("Spawning initial asteroids");
 
 			let mut rng = rand::thread_rng();
-			let structures: Vec<TerrainStructureBlueprint> = (0..10)
+			const NUM: usize = 0;
+			let structures: Vec<TerrainStructureBlueprint> = (0..NUM)
 				.map(|_| {
 					let pos = vec3_polar_random(&mut rng);
 					let distance = 20.0..30.0;

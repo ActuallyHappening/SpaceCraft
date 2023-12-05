@@ -111,6 +111,7 @@ mod systems {
 				.iter()
 				.map(|pos| {
 					let transform = Transform::from_translation(*pos);
+					trace!("Spawning spawn point at: {:?}", transform.translation);
 					let blueprint = SpawnPointBlueprint::new(transform, None);
 					SpawnPointBundle::stamp_from_blueprint(&blueprint, &mut mma)
 				})
@@ -137,22 +138,22 @@ mod blueprint {
 			Self {
 				at,
 				initial_occupation: initially_occupied,
-				..default()
+				size: SpawnPointBlueprint::DEFAULT_SIZE,
 			}
 		}
 
 		pub const DEFAULT_SIZE: f32 = 3.0;
 	}
 
-	impl Default for SpawnPointBlueprint {
-		fn default() -> Self {
-			Self {
-				at: Transform::default(),
-				size: 3.0,
-				initial_occupation: None,
-			}
-		}
-	}
+	// impl Default for SpawnPointBlueprint {
+	// 	fn default() -> Self {
+	// 		Self {
+	// 			at: Transform::default(),
+	// 			size: 3.0,
+	// 			initial_occupation: None,
+	// 		}
+	// 	}
+	// }
 }
 
 mod bundle {
@@ -180,6 +181,7 @@ mod bundle {
 			}: &Self::Blueprint,
 			mma: &mut MMA,
 		) -> Self {
+			trace!("Spawn point at: {:?}", at.translation);
 			SpawnPointBundle {
 				pbr: PbrBundle {
 					transform: *at,
@@ -193,8 +195,8 @@ mod bundle {
 					material: mma.mats.add(StandardMaterial {
 						base_color: Color::BLUE,
 						emissive: Color::BLUE,
-						specular_transmission: 0.7,
-						thickness: 0.7,
+						specular_transmission: 0.9,
+						thickness: 5.0,
 						ior: 1.33,
 						// attenuation_distance: 0.0,
 						// attenuation_color: (),
@@ -245,7 +247,7 @@ mod components {
 	#[derive(SystemParam)]
 	// #[system_param(mutable)]
 	pub struct AvailableSpawnPoints<'w, 's> {
-		spawn_points: Query<'w, 's, (&'static mut SpawnPoint, &'static GlobalTransform)>,
+		spawn_points: Query<'w, 's, (&'static mut SpawnPoint, &'static Transform)>,
 		state: Res<'w, NetcodeConfig>,
 	}
 
@@ -253,15 +255,15 @@ mod components {
 		/// Returns a valid spawn location, handling side effects.
 		///
 		/// Maybe: Handle spawning a new spawn location in the future?
-		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<GlobalTransform> {
-			if self.state.is_authoritative() {
-				error!("Cannot assign spawn points from a non-authoritative state");
+		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<Transform> {
+			if !self.state.is_authoritative() {
+				error!("Cannot assign spawn points from a non-authoritative state: {:?}", self.state);
 			}
 
 			let mut available_points = self
 				.spawn_points
 				.iter_mut()
-				.filter(|(sp, _)| sp.player_occupation.is_some());
+				.filter(|(sp, _)| sp.player_occupation.is_none());
 
 			let Some((mut spawn_point, global_transform)) = available_points.next() else {
 				return None;

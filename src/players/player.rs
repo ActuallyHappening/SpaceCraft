@@ -118,12 +118,13 @@ mod systems {
 			spawn_point: AvailableSpawnPoints,
 		) {
 			// commands.spawn(PlayerBlueprint::new(SERVER_ID, Transform::IDENTITY));
-			let spawn_point = spawn_point
+			let transform = spawn_point
 				.try_get_spawn_location(SERVER_ID)
 				.expect("No more spawn points left!");
+
 			commands.spawn(PlayerBlueprint::new(
 				SERVER_ID,
-				spawn_point.reparented_to(&GlobalTransform::IDENTITY),
+				transform,
 			));
 		}
 	}
