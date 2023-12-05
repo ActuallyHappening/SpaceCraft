@@ -111,7 +111,6 @@ mod systems {
 				.iter()
 				.map(|pos| {
 					let transform = Transform::from_translation(*pos);
-					trace!("Spawning spawn point at: {:?}", transform.translation);
 					let blueprint = SpawnPointBlueprint::new(transform, None);
 					SpawnPointBundle::stamp_from_blueprint(&blueprint, &mut mma)
 				})
@@ -181,7 +180,6 @@ mod bundle {
 			}: &Self::Blueprint,
 			mma: &mut MMA,
 		) -> Self {
-			trace!("Spawn point at: {:?}", at.translation);
 			SpawnPointBundle {
 				pbr: PbrBundle {
 					transform: *at,
