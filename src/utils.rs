@@ -56,6 +56,14 @@ pub trait FromBlueprint {
 	fn stamp_from_blueprint(blueprint: &Self::Blueprint, mma: &mut MMA) -> Self;
 }
 
+pub trait GetNetworkId {
+	fn get_network_id(&self) -> ClientId;
+}
+
+pub trait GetBlockId {
+	fn get_block_id(&self) -> BlockId;
+}
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(SystemParam)]
 pub struct MMA<'w> {

@@ -2,6 +2,8 @@ use crate::prelude::*;
 
 pub use player::ControllablePlayer;
 
+mod player;
+mod spawn_points;
 mod thruster_block;
 
 /// Plugin Group
@@ -12,10 +14,9 @@ impl PluginGroup for PlayerPlugins {
 		PluginGroupBuilder::start::<Self>()
 			.add(player::PlayerPlugin)
 			.add(thruster_block::ThrusterPlugin)
+			.add(self::spawn_points::SpawnPointsPlugin)
 			.build()
 	}
 }
 
 pub use player::{PlayerBlueprint, PlayerMovement};
-
-mod player;

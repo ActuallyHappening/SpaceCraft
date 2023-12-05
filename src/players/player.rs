@@ -36,25 +36,38 @@ impl Plugin for PlayerPlugin {
 	}
 }
 
-/// The marker component for player entities.
-#[derive(Component, Reflect)]
-#[reflect(from_reflect = false)]
-pub struct ControllablePlayer {
-	#[reflect(ignore)]
-	network_id: ClientId,
+pub use components::ControllablePlayer;
+mod components {
+	use crate::prelude::*;
 
-	movement_input: Option<HashMap<BlockId, f32>>,
-}
+	/// The marker component for player entities.
+	#[derive(Component, Reflect)]
+	#[reflect(from_reflect = false)]
+	pub struct ControllablePlayer {
+		#[reflect(ignore)]
+		network_id: ClientId,
 
-impl ControllablePlayer {
-	pub fn get_id(&self) -> ClientId {
-		self.network_id
+		movement_input: HashMap<BlockId, f32>,
 	}
 
-	fn with_thruster_mapping(mut self, thruster_ids: Vec<BlockId>) -> Self {
-		assert!(self.movement_input.is_none());
-		self.movement_input = Some(thruster_ids.into_iter().map(|id| (id, 0.)).collect());
-		self
+	impl ControllablePlayer {
+		pub fn get_id(&self) -> ClientId {
+			self.network_id
+		}
+
+		pub(super) fn get_movement_inputs(&self) -> &HashMap<BlockId, f32> {
+			&self.movement_input
+		}
+
+		pub(super) fn new_with_thruster_mapping(
+			network_id: ClientId,
+			thruster_ids: Vec<BlockId>,
+		) -> Self {
+			Self {
+				network_id,
+				movement_input: thruster_ids.into_iter().map(|id| (id, 0.)).collect(),
+			}
+		}
 	}
 }
 
@@ -76,16 +89,13 @@ mod systems {
 			mut thrusters: Query<&mut Thruster>,
 		) {
 			for (controllable_player, children) in players.iter() {
-				if let Some(movement_input) = &controllable_player.movement_input {
-					for child in children.iter() {
-						if let Ok(mut thruster) = thrusters.get_mut(*child) {
-							if let Some(input) = movement_input.get(&thruster.get_id()) {
-								thruster.set_status(*input);
-							}
+				let movement_input = &controllable_player.get_movement_inputs();
+				for child in children.iter() {
+					if let Ok(mut thruster) = thrusters.get_mut(*child) {
+						if let Some(input) = movement_input.get(&thruster.get_id()) {
+							thruster.set_status(*input);
 						}
 					}
-				} else {
-					warn!("Player is spawned but without an input_map");
 				}
 			}
 		}
@@ -242,24 +252,15 @@ mod player_blueprint {
 					..default()
 				},
 				name: Name::new(format!("Player {}", network_id)),
-				controllable_player: ControllablePlayer {
-					network_id: *network_id,
-					movement_input: Default::default(),
-				}
-				.with_thruster_mapping(thruster_ids),
-				// collider: Collider::ball(0.1),
-				mass: MassPropertiesBundle::new_computed(&Collider::ball(PIXEL_SIZE), 10.),
+				controllable_player: ControllablePlayer::new_with_thruster_mapping(
+					*network_id,
+					thruster_ids,
+				),
+				mass: MassPropertiesBundle::new_computed(&Collider::ball(1.0), 1.0),
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
 			}
-		}
-	}
-
-	impl PlayerBundle {
-		fn with_thruster_mapping(mut self, thruster_ids: Vec<BlockId>) -> Self {
-			self.controllable_player = self.controllable_player.with_thruster_mapping(thruster_ids);
-			self
 		}
 	}
 }
