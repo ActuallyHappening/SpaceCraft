@@ -11,6 +11,10 @@ pub use bevy_replicon::{
 	},
 };
 
+use self::world_creation::CreateWorldEvent;
+pub use self::world_creation::{WorldCreation, WorldCreationSet};
+mod world_creation;
+
 pub struct NetcodePlugin;
 
 /// Contains only systems that are relevant to controlling a player.
@@ -36,68 +40,6 @@ impl Plugin for NetcodePlugin {
 			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(FixedUpdate, Server.run_if(NetcodeConfig::has_authority()))
 			.add_plugins(self::world_creation::WorldCreationPlugin);
-	}
-}
-
-use self::world_creation::CreateWorldEvent;
-pub use self::world_creation::{WorldCreation, WorldCreationSet};
-mod world_creation {
-	use crate::prelude::*;
-	use bevy::ecs::schedule::ScheduleLabel;
-
-	pub(super) struct WorldCreationPlugin;
-
-	impl Plugin for WorldCreationPlugin {
-		fn build(&self, app: &mut App) {
-			app
-				.configure_sets(
-					WorldCreation,
-					(WCS::SpawnPoints, WCS::FlushSpawnPoints, WCS::InitialPlayer).chain(),
-				)
-				.add_systems(WorldCreation, apply_deferred.before(WCS::FlushSpawnPoints))
-				.add_event::<CreateWorldEvent>();
-
-			let system_id = app.world.register_system(WorldCreation::run_schedule);
-			app.world.insert_resource(WorldCreationRunSystem(system_id));
-		}
-	}
-
-	#[derive(ScheduleLabel, Hash, Debug, Clone, Eq, PartialEq)]
-	pub struct WorldCreation;
-
-	#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
-	pub enum WorldCreationSet {
-		SpawnPoints,
-		Asteroids,
-
-		FlushSpawnPoints,
-		/// Must be done after spawn points
-		InitialPlayer,
-	}
-
-	type WCS = WorldCreationSet;
-
-	#[derive(Resource)]
-	struct WorldCreationRunSystem(SystemId);
-
-	#[derive(Event)]
-	pub struct CreateWorldEvent;
-
-	fn handle_world_creation_events(
-		mut events: EventReader<CreateWorldEvent>,
-		mut commands: Commands,
-		system: Res<WorldCreationRunSystem>,
-	) {
-		for _ in events.read() {
-			commands.run_system(system.0);
-		}
-	}
-
-	impl WorldCreation {
-		fn run_schedule(world: &mut World) {
-			info!("Running WorldCreation schedule");
-			world.try_run_schedule(WorldCreation).ok();
-		}
 	}
 }
 
