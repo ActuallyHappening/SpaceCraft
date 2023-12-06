@@ -12,7 +12,8 @@ members = ["xtask", "testing"]
 
 
 [features]
-default = ["dev"]
+default = ["dev", "debug"]
+debug = []
 ## Only used while developing the game
 dev = ["bevy/dynamic_linking", "bevy/file_watcher"]
 

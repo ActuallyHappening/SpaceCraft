@@ -109,16 +109,22 @@ impl Plugin for MainPlugin {
 					.chain(),
 			);
 
+		let picking_plugins = DefaultPickingPlugins
+			.build()
+			// .disable::<DebugPickingPlugin>()
+			.disable::<DefaultHighlightingPlugin>();
+		#[cfg(not(feature = "debug"))]
+		let picking_plugins = picking_plugins.disable::<DebugPickingPlugin>();
+
 		// dep plugins
 		app.add_plugins((
+			#[cfg(feature = "debug")]
 			bevy_editor_pls::EditorPlugin::default(),
 			ScreenDiagnosticsPlugin::default(),
 			ScreenFrameDiagnosticsPlugin,
-			DefaultPickingPlugins
-				.build()
-				// .disable::<DebugPickingPlugin>()
-				.disable::<DefaultHighlightingPlugin>(),
+			picking_plugins,
 			PhysicsPlugins::new(FixedUpdate),
+			#[cfg(feature = "debug")]
 			PhysicsDebugPlugin::default(),
 			bevy_xpbd3d_parenting::PhysicsParentingPlugin,
 			HanabiPlugin,
@@ -143,7 +149,6 @@ impl Plugin for MainPlugin {
 			self::players::PlayerPlugins,
 			self::blocks::BlockPlugins,
 		));
-		app.register_type::<BlockId>();
 
 		// network replication
 		app.replicate::<Position>().replicate::<Rotation>();
