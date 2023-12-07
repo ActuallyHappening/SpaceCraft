@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub use player::{ControllablePlayer, PlayerBlueprint, PlayerMovement};
+pub use player::PlayerBlueprint;
 mod player;
 
 pub use spawn_points::AvailableSpawnPoints;

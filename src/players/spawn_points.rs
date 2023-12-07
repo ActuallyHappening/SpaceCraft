@@ -19,7 +19,7 @@ impl Plugin for SpawnPointsPlugin {
 }
 
 mod systems {
-	use crate::{players::ControllablePlayer, prelude::*};
+	use crate::{prelude::*, players::player::ControllablePlayer};
 
 	use super::{
 		blueprint::SpawnPointBlueprint, bundle::SpawnPointBundle, components::SpawnPoint,
@@ -45,7 +45,7 @@ mod systems {
 								if let Ok(player) = players.get(e1) {
 									// e1 is player, e2 is spawn point, and spawn point is occupied
 									// if the spawn point is occupied by the player, then ignore the collision
-									if id == player.get_id() {
+									if id == player.get_network_id() {
 										// reject self-collision
 										true
 									} else {
@@ -56,7 +56,7 @@ mod systems {
 									if let Ok(player_of_child_block) = players.get(player_block.get()) {
 										// if the player of the child block is the same as the spawn point
 										// then ignore the collision
-										if id == player_of_child_block.get_id() {
+										if id == player_of_child_block.get_network_id() {
 											true // block of a player that is occupying this spawn point, ignore
 										} else {
 											false

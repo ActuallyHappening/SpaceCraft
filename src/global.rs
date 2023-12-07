@@ -7,8 +7,6 @@ use crate::prelude::*;
 
 pub mod assets;
 
-pub use crate::players::PlayerMovement;
-
 pub const DEFAULT_PORT: u16 = 5069;
 pub const PROTOCOL_ID: u64 = 0;
 pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
@@ -18,8 +16,12 @@ pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
 pub enum GlobalSystemSet {
 	BlueprintExpansion,
 
-	/// Player's movement
-	PlayerMovement(PlayerMovement),
+	/// Player's movement, set in [crate::players::player_movement]
+	PlayerMovement,
+
+	/// Player's thrusters syncing, set in
+	/// [crate::players::player]
+	PlayerThrusters,
 
 	/// Runs physics simulation
 	/// Note: Thrusters sync their data with external force just before this
