@@ -17,7 +17,9 @@ impl Plugin for ThrusterPlugin {
 				FixedUpdate,
 				(
 					(Self::spawn_thruster_visuals).in_set(BlueprintExpansion::Thruster),
-					Self::sync_thruster_with_internal_forces.in_set(GlobalSystemSet::PlayerMovement(PlayerMovement::EnactThrusters)),
+					Self::sync_thruster_with_internal_forces.in_set(GlobalSystemSet::PlayerMovement(
+						PlayerMovement::EnactThrusters,
+					)),
 				),
 			)
 			.add_systems(Update, Self::sync_thruster_with_visuals);
@@ -219,19 +221,21 @@ impl From<ThrusterBlockBlueprint> for Thruster {
 	}
 }
 
-impl FromBlueprint for ThrusterBlockBundle {
-	type Blueprint = BlockBlueprint<ThrusterBlockBlueprint>;
+impl Blueprint for BlockBlueprint<ThrusterBlockBlueprint> {
+	type Bundle = ThrusterBlockBundle;
+	type StampSystemParam<'w, 's> = MMA<'w>;
 
-	fn stamp_from_blueprint(
-		BlockBlueprint {
+	fn stamp<'w, 's>(
+		&self,
+		mma: &mut Self::StampSystemParam<'w, 's>,
+	) -> Self::Bundle {
+		let BlockBlueprint {
 			transform,
 			mesh,
 			material,
 			specific_marker,
-		}: &Self::Blueprint,
-		mma: &mut MMA,
-	) -> Self {
-		Self {
+		} = self;
+		Self::Bundle {
 			pbr: PbrBundle {
 				transform: *transform,
 				mesh: mesh.clone().into_mesh(mma),
@@ -246,7 +250,6 @@ impl FromBlueprint for ThrusterBlockBundle {
 		}
 	}
 }
-
 impl BlockBlueprint<ThrusterBlockBlueprint> {
 	pub fn new_thruster(
 		location: impl Into<manual_builder::RelativePixel>,

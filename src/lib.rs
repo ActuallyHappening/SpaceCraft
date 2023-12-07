@@ -118,7 +118,7 @@ impl Plugin for MainPlugin {
 
 		// dep plugins
 		app.add_plugins((
-			#[cfg(feature = "debug")]
+			#[cfg(feature = "editor")]
 			bevy_editor_pls::EditorPlugin::default(),
 			ScreenDiagnosticsPlugin::default(),
 			ScreenFrameDiagnosticsPlugin,

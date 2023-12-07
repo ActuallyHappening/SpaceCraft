@@ -82,28 +82,18 @@ mod systems {
 				);
 				commands
 					.entity(player)
-					.insert(PlayerBundle::stamp_from_blueprint(
-						player_blueprint,
-						&mut mma,
-					))
+					.insert(player_blueprint.stamp(&mut ()))
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
-							parent.spawn(StructureBlockBundle::stamp_from_blueprint(
-								blueprint, &mut mma,
-							));
+							parent.spawn(blueprint.stamp(&mut mma));
 						}
 
 						for blueprint in &player_blueprint.thruster_children {
-							parent.spawn(ThrusterBlockBundle::stamp_from_blueprint(
-								blueprint, &mut mma,
-							));
+							parent.spawn(blueprint.stamp(&mut mma));
 						}
 
 						let camera_entity = parent
-							.spawn(CameraBlockBundle::stamp_from_blueprint(
-								&player_blueprint.primary_camera,
-								&mut mma,
-							))
+							.spawn(player_blueprint.primary_camera.stamp(&mut mma))
 							.id();
 						set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
 							follow_camera_block: camera_entity,
@@ -122,10 +112,7 @@ mod systems {
 				.try_get_spawn_location(SERVER_ID)
 				.expect("No more spawn points left!");
 
-			commands.spawn(PlayerBlueprint::new(
-				SERVER_ID,
-				transform,
-			));
+			commands.spawn(PlayerBlueprint::new(SERVER_ID, transform));
 		}
 	}
 
@@ -231,7 +218,7 @@ mod player_blueprint {
 	/// Parent entity of a player.
 	/// Doesn't actually have its own mesh
 	#[derive(Bundle)]
-	pub(super) struct PlayerBundle {
+	pub struct PlayerBundle {
 		spatial: SpatialBundle,
 		replication: Replication,
 		mass: MassPropertiesBundle,
@@ -241,19 +228,15 @@ mod player_blueprint {
 		external_force: ExternalForce,
 	}
 
-	impl FromBlueprint for PlayerBundle {
-		type Blueprint = PlayerBlueprint;
+	impl Blueprint for PlayerBlueprint {
+		type Bundle = PlayerBundle;
+		type StampSystemParam<'w, 's> = ();
 
-		fn stamp_from_blueprint(
-			PlayerBlueprint {
-				network_id,
-				transform,
-				// ignores most
-				thruster_children,
-				..
-			}: &PlayerBlueprint,
-			_mma: &mut MMA,
-		) -> Self {
+		fn stamp<'w, 's>(
+			&self,
+			system_param: &mut Self::StampSystemParam<'w, 's>,
+		) -> Self::Bundle {
+			let PlayerBlueprint { network_id, transform, structure_children, thruster_children, primary_camera } = self;
 			let thruster_ids: Vec<BlockId> = thruster_children
 				.iter()
 				.map(|blueprint| blueprint.specific_marker.get_id())
@@ -261,7 +244,7 @@ mod player_blueprint {
 
 			// trace!("Spawned player has {} thrusters registered", thruster_ids.len());
 
-			Self {
+			Self::Bundle {
 				spatial: SpatialBundle {
 					transform: *transform,
 					..default()

@@ -112,7 +112,7 @@ mod systems {
 				.map(|pos| {
 					let transform = Transform::from_translation(*pos);
 					let blueprint = SpawnPointBlueprint::new(transform, None);
-					SpawnPointBundle::stamp_from_blueprint(&blueprint, &mut mma)
+					blueprint.stamp(&mut mma)
 				})
 				.collect();
 			commands.spawn_batch(spawn_points);
@@ -169,18 +169,17 @@ mod bundle {
 		collider: AsyncCollider,
 	}
 
-	impl FromBlueprint for SpawnPointBundle {
-		type Blueprint = SpawnPointBlueprint;
+	impl Blueprint for SpawnPointBlueprint {
+		type Bundle = SpawnPointBundle;
+		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp_from_blueprint(
-			SpawnPointBlueprint {
+		fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+			let SpawnPointBlueprint {
 				at,
 				size,
 				initial_occupation,
-			}: &Self::Blueprint,
-			mma: &mut MMA,
-		) -> Self {
-			SpawnPointBundle {
+			} = self;
+			let mut bundle = SpawnPointBundle {
 				pbr: PbrBundle {
 					transform: *at,
 					mesh: mma.meshs.add(
@@ -200,7 +199,7 @@ mod bundle {
 						// attenuation_color: (),
 						// normal_map_texture: (),
 						// flip_normal_map_y: (),
-						// alpha_mode: (),
+						alpha_mode: AlphaMode::Blend,
 						// opaque_render_method: (),
 						..default()
 					}),
@@ -210,7 +209,9 @@ mod bundle {
 				spawn_point: SpawnPoint::new(*initial_occupation),
 				rigid_body: RigidBody::Kinematic,
 				collider: AsyncCollider::default(),
-			}
+			};
+
+			bundle
 		}
 	}
 }
@@ -255,7 +256,10 @@ mod components {
 		/// Maybe: Handle spawning a new spawn location in the future?
 		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<Transform> {
 			if !self.state.is_authoritative() {
-				error!("Cannot assign spawn points from a non-authoritative state: {:?}", self.state);
+				error!(
+					"Cannot assign spawn points from a non-authoritative state: {:?}",
+					self.state
+				);
 			}
 
 			let mut available_points = self

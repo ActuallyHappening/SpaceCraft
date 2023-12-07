@@ -6,8 +6,7 @@ pub struct BlockPlugins;
 
 impl PluginGroup for BlockPlugins {
 	fn build(self) -> PluginGroupBuilder {
-		PluginGroupBuilder::start::<Self>()
-			.add(worldgen::WorldGenPlugin)
+		PluginGroupBuilder::start::<Self>().add(worldgen::WorldGenPlugin)
 	}
 }
 
@@ -150,19 +149,18 @@ mod structure_block {
 		name: Name,
 	}
 
-	impl FromBlueprint for StructureBlockBundle {
-		type Blueprint = BlockBlueprint<StructureBlockBlueprint>;
+	impl Blueprint for BlockBlueprint<StructureBlockBlueprint> {
+		type Bundle = StructureBlockBundle;
+		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp_from_blueprint(
-			BlockBlueprint {
+		fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+			let BlockBlueprint {
 				transform,
 				mesh,
 				material,
 				specific_marker,
-			}: &Self::Blueprint,
-			mma: &mut MMA,
-		) -> Self {
-			Self {
+			} = self;
+			Self::Bundle {
 				pbr: PbrBundle {
 					transform: *transform,
 					mesh: mesh.clone().into_mesh(mma),

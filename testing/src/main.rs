@@ -1,58 +1,46 @@
-use bevy::render::render_resource::ShaderRef;
-use bevy::{prelude::*, render::render_resource::AsBindGroup};
+use bevy::{prelude::*, ecs::system::SystemParam};
 
-mod instancing;
-mod post_processing;
+#[allow(clippy::upper_case_acronyms)]
+#[derive(SystemParam)]
+pub struct MMA<'w> {
+	pub meshs: ResMut<'w, Assets<Mesh>>,
+	pub mats: ResMut<'w, Assets<StandardMaterial>>,
+	pub ass: Res<'w, AssetServer>,
+}
+
+trait Blueprint: Clone {
+	type For: bevy::ecs::bundle::Bundle;
+	type StampSystemParam<'w, 's>: bevy::ecs::system::SystemParam;
+
+	fn stamp<'w, 's>(&self, system_param: &mut Self::StampSystemParam<'w, 's>) -> Self::For;
+}
+
+#[derive(Clone)]
+struct PBlueprint {
+	f: f32
+}
+
+#[derive(bevy::ecs::bundle::Bundle)]
+struct PBundle {
+	pbr: PbrBundle,
+}
+
+impl Blueprint for PBlueprint {
+	type For = PBundle;
+	type StampSystemParam<'w, 's> = MMA<'w>;
+
+	fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::For {
+		PBundle {
+			pbr: PbrBundle {
+				material: mma.mats.add(StandardMaterial {
+					..default()
+				}),
+				..default()
+			}
+		}
+	}
+}
 
 fn main() {
-	// post_processing::main();
-
-	instancing::main();
-
-	// let mut app = App::new();
-
-	// app.add_plugins((DefaultPlugins, bevy_editor_pls::EditorPlugin::default(), WhiteMaterial {}));
-
-	// app.add_systems(Startup, setup);
-
-	// app.run();
-}
-
-#[derive(Asset, Debug, AsBindGroup, TypePath, Clone)]
-struct WhiteMaterial {}
-
-impl Plugin for WhiteMaterial {
-	fn build(&self, app: &mut App) {
-		app.add_plugins(MaterialPlugin::<WhiteMaterial>::default());
-	}
-}
-
-impl Material for WhiteMaterial {
-	fn fragment_shader() -> ShaderRef {
-		"shaders/white_material.wgsl".into()
-	}
-
-	fn alpha_mode(&self) -> AlphaMode {
-		AlphaMode::Blend
-	}
-}
-
-fn setup(
-	mut commands: Commands,
-	mut meshes: ResMut<Assets<Mesh>>,
-	mut materials: ResMut<Assets<WhiteMaterial>>,
-) {
-	commands.spawn(MaterialMeshBundle {
-		mesh: meshes.add(Mesh::from(shape::UVSphere {
-			radius: 2.0,
-			..default()
-		})),
-		material: materials.add(WhiteMaterial {}),
-		..default()
-	});
-
-	commands.spawn(Camera3dBundle {
-		transform: Transform::from_translation(Vec3::new(0., 0., 10.)),
-		..default()
-	});
+	
 }

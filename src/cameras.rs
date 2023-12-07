@@ -19,8 +19,9 @@ impl Plugin for CameraPlugin {
 					Self::handle_fallback_cam,
 					Self::handle_change_camera_events,
 					Self::update_cameras,
-					Dolly::<CameraMarker>::update_active
-				).chain()
+					Dolly::<CameraMarker>::update_active,
+				)
+					.chain()
 					.in_set(Client),
 			);
 	}
@@ -179,8 +180,7 @@ mod systems {
 						rig.driver_mut::<bevy_dolly::prelude::Position>().position =
 							block_transform.translation;
 						// sets rotation to same as the parent block it is following is
-						rig.driver_mut::<bevy_dolly::prelude::Rotation>().rotation =
-							block_transform.rotation;
+						rig.driver_mut::<bevy_dolly::prelude::Rotation>().rotation = block_transform.rotation;
 					} else {
 						warn!("Camera {:?} has no global transform", camera_entity);
 					}
@@ -386,19 +386,18 @@ mod camera_block {
 		}
 	}
 
-	impl FromBlueprint for CameraBlockBundle {
-		type Blueprint = BlockBlueprint<CameraBlockBlueprint>;
+	impl Blueprint for BlockBlueprint<CameraBlockBlueprint> {
+		type Bundle = CameraBlockBundle;
+		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp_from_blueprint(
-			BlockBlueprint {
+		fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+			let BlockBlueprint {
 				transform,
 				mesh,
 				material,
 				specific_marker,
-			}: &Self::Blueprint,
-			mma: &mut MMA,
-		) -> Self {
-			Self {
+			} = self;
+			Self::Bundle {
 				pbr: PbrBundle {
 					transform: *transform,
 					mesh: mesh.clone().into_mesh(mma),

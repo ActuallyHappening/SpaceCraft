@@ -11,11 +11,12 @@ pub use std::ops::{Add as _, Div as _, Mul as _};
 pub use std::time::*; // is this better than std library?
 
 // bevy
+pub use bevy::prelude::*;
+pub use bevy::prelude::AlphaMode;
 pub use bevy::app::*;
 pub use bevy::core_pipeline::clear_color::ClearColorConfig;
 pub use bevy::core_pipeline::tonemapping::Tonemapping;
 pub use bevy::ecs::system::*;
-pub use bevy::prelude::*;
 pub use bevy::render::view::RenderLayers;
 
 // bevy_* deps

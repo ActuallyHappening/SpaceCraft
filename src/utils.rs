@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use crate::prelude::*;
 
 use extension_traits::extension;
+use serde::de::DeserializeOwned;
 
 // mod text;
 
@@ -11,6 +12,22 @@ pub mod scenes;
 mod testing;
 #[cfg(test)]
 pub use testing::*;
+
+/// Represents a type [Blueprint] that can be [Blueprint::stamp]ed into
+/// a bundle that can be spawned, i.e., a [Bundle] that is specifically
+/// [Blueprint::For]
+pub trait Blueprint: Clone {
+	type Bundle: Bundle;
+	type StampSystemParam<'w, 's>: SystemParam;
+
+	fn stamp<'w, 's>(&self, system_param: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle;
+}
+
+pub trait ExpandableBlueprint: Blueprint + Component + Clone + Serialize + DeserializeOwned  {
+	type SpawnSystemParam: SystemParam;
+
+	fn expand_system(instances: Query<&Self, Changed<Self>>, system_param: &mut Self::SpawnSystemParam);
+}
 
 #[extension(pub trait AppExt)]
 impl &mut App {
@@ -75,12 +92,6 @@ pub fn vec3_polar_random(rng: &mut ThreadRng) -> Vec3 {
 	let ret = vec3_polar(theta, phi);
 
 	ret.normalize()
-}
-
-pub trait FromBlueprint {
-	type Blueprint;
-
-	fn stamp_from_blueprint(blueprint: &Self::Blueprint, mma: &mut MMA) -> Self;
 }
 
 pub trait GetNetworkId {

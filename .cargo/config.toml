@@ -1,6 +1,7 @@
 [alias]
 xtask = "run -p xtask --"
 rs = "r -- server"
+rrs = "r --no-default-features --features dev,editor -- server"
 
 [target.x86_64-pc-windows-gnu]
 linker = "x86_64-w64-mingw32-gcc"

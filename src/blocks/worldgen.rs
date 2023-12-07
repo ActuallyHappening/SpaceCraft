@@ -6,7 +6,10 @@ impl Plugin for WorldGenPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.add_systems(FixedUpdate, Self::expand_terrain_structure)
-			.add_systems(WorldCreation, Self::creation_spawn_random_world.in_set(WorldCreationSet::Asteroids));
+			.add_systems(
+				WorldCreation,
+				Self::creation_spawn_random_world.in_set(WorldCreationSet::Asteroids),
+			);
 	}
 }
 
@@ -17,7 +20,6 @@ mod systems {
 	use super::{
 		discrete_shapes::{DiscreteSphere, OptimizableDiscreteShape},
 		terrain_blueprint::TerrainStructureBlueprint,
-		terrain_bundle::{TerrainItemBundle, TerrainStructureBundle},
 		terrain_type::TerrainType,
 		WorldGenPlugin,
 	};
@@ -31,12 +33,10 @@ mod systems {
 			for (entity, blueprint) in blueprints.iter_mut() {
 				commands
 					.entity(entity)
-					.insert(TerrainStructureBundle::stamp_from_blueprint(
-						blueprint, &mut mma,
-					))
+					.insert(blueprint.stamp(&mut mma))
 					.with_children(|parent| {
 						for child in blueprint.clone().into_children().iter() {
-							parent.spawn(TerrainItemBundle::stamp_from_blueprint(child, &mut mma));
+							parent.spawn(child.stamp(&mut mma));
 						}
 					});
 			}
@@ -60,7 +60,7 @@ mod systems {
 						rng.gen_range(0. ..=TAU),
 					);
 
-					let mut r = |bound: f32| rng.gen_range(-bound .. bound);
+					let mut r = |bound: f32| rng.gen_range(-bound..bound);
 					let max_linvel = 1.0;
 					let linvel = LinearVelocity(Vec3::new(r(max_linvel), r(max_linvel), r(max_linvel)));
 					let max_angvel = 0.5;
@@ -205,25 +205,24 @@ mod terrain_bundle {
 		collider: AsyncCollider,
 	}
 
-	impl FromBlueprint for TerrainItemBundle {
-		type Blueprint = TerrainItemBlueprint;
+	impl Blueprint for TerrainItemBlueprint {
+		type Bundle = TerrainItemBundle;
+		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp_from_blueprint(
-			TerrainItemBlueprint {
-				terrain_type,
-				location,
-			}: &Self::Blueprint,
-			mma: &mut MMA,
-		) -> Self {
-			Self {
+		fn stamp<'w, 's>(
+			&self,
+			mma: &mut Self::StampSystemParam<'w, 's>,
+		) -> Self::Bundle {
+			let TerrainItemBlueprint { terrain_type, location } = self;
+			Self::Bundle {
 				pbr: PbrBundle {
 					transform: Transform::from_translation(location.into_world_offset()),
 					mesh: terrain_type.mesh().into_mesh(mma),
 					material: terrain_type.material().into_material(&mut mma.mats),
 					..default()
 				},
-				name: Name::new(terrain_type.name()),
-				collider: AsyncCollider(ComputedCollider::TriMesh),
+				name: Name::new(format!("Terrain: {}", terrain_type.name())),
+				collider: AsyncCollider(ComputedCollider::default()),
 			}
 		}
 	}
@@ -239,13 +238,17 @@ mod terrain_bundle {
 		mass_properties: MassPropertiesBundle,
 	}
 
-	impl FromBlueprint for TerrainStructureBundle {
-		type Blueprint = TerrainStructureBlueprint;
+	impl Blueprint for TerrainStructureBlueprint {
+		type Bundle = TerrainStructureBundle;
+		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp_from_blueprint(
-			TerrainStructureBlueprint { transform, initial_velocity, .. }: &Self::Blueprint,
-			_mma: &mut MMA,
-		) -> Self {
+		fn stamp<'w, 's>(&self, system_param: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+			let TerrainStructureBlueprint {
+				transform,
+				initial_velocity,
+				shape,
+				terrain_type,
+			} = self;
 			let linvel = initial_velocity
 				.as_ref()
 				.map(|(linvel, _)| *linvel)
@@ -256,7 +259,7 @@ mod terrain_bundle {
 				.map(|(_, angvel)| *angvel)
 				.unwrap_or_default();
 
-			Self {
+			Self::Bundle {
 				spatial: SpatialBundle::from_transform(*transform),
 				name: Name::new("TerrainStructure"),
 				rigid_body: RigidBody::Dynamic,
