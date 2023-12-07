@@ -220,8 +220,8 @@ mod bundle {
 
 		pub fn get_default_material() -> StandardMaterial {
 			StandardMaterial {
-				base_color: Color::BLUE,
-				emissive: Color::BLUE,
+				base_color: Color::BLUE.with_a(0.5),
+				emissive: Color::BLUE.with_a(0.2),
 				specular_transmission: 0.9,
 				thickness: 5.0,
 				ior: 1.33,
@@ -240,8 +240,8 @@ mod bundle {
 
 		pub fn get_active_material() -> StandardMaterial {
 			StandardMaterial {
-				base_color: Color::GREEN,
-				emissive: Color::GREEN,
+				base_color: Color::GREEN.with_a(0.2),
+				emissive: Color::GREEN.with_a(0.2),
 				specular_transmission: 0.9,
 				thickness: 5.0,
 				ior: 1.33,

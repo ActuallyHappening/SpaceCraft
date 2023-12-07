@@ -175,7 +175,9 @@ mod components {
 }
 
 mod player_blueprint {
-	use crate::{
+	use bevy::render::view::NoFrustumCulling;
+
+use crate::{
 		blocks::manual_builder::Facing, cameras::CameraBlockBlueprint,
 		players::thruster_block::ThrusterBlockBlueprint, prelude::*,
 	};
@@ -225,6 +227,9 @@ mod player_blueprint {
 		name: Name,
 		controllable_player: ControllablePlayer,
 		external_force: ExternalForce,
+
+		/// Stops the player from disappearing when inside a spawn point
+		no_frustum: NoFrustumCulling,
 	}
 
 	impl Blueprint for PlayerBlueprint {
@@ -260,6 +265,7 @@ mod player_blueprint {
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
+				no_frustum: NoFrustumCulling,
 			}
 		}
 	}

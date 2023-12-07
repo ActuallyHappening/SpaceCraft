@@ -140,6 +140,8 @@ impl Plugin for MainPlugin {
 		));
 		// dep configuration
 		app.insert_resource(Gravity(Vec3::ZERO));
+		#[cfg(feature = "editor")]
+		app.insert_resource(editor_controls());
 
 		// game logic plugins
 		app.add_plugins((
@@ -154,4 +156,23 @@ impl Plugin for MainPlugin {
 		// network replication
 		app.replicate::<Position>().replicate::<Rotation>();
 	}
+}
+
+#[cfg(feature = "editor")]
+fn editor_controls() -> bevy_editor_pls::controls::EditorControls {
+	use bevy_editor_pls::controls;
+	use bevy_editor_pls::controls::EditorControls;
+
+	let mut editor_controls = EditorControls::default_bindings();
+	editor_controls.unbind(controls::Action::PlayPauseEditor);
+
+	editor_controls.insert(
+		controls::Action::PlayPauseEditor,
+		controls::Binding {
+			input: controls::UserInput::Single(controls::Button::Keyboard(KeyCode::Backslash)),
+			conditions: vec![controls::BindingCondition::ListeningForText(false)],
+		},
+	);
+
+	editor_controls
 }
