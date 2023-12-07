@@ -182,7 +182,7 @@ mod systems {
 						// sets rotation to same as the parent block it is following is
 						rig.driver_mut::<bevy_dolly::prelude::Rotation>().rotation = block_transform.rotation;
 					} else {
-						warn!("Camera {:?} has no global transform", camera_entity);
+						error!("Camera {:?} has no global transform", camera_entity);
 					}
 				} else {
 					warn!(

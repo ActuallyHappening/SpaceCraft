@@ -41,11 +41,8 @@ impl Plugin for PlayerPlugin {
 
 mod systems {
 	use crate::{
-		cameras::{ChangeCameraConfig},
-		players::{
-			spawn_points::AvailableSpawnPoints,
-			thruster_block::{Thruster},
-		},
+		cameras::ChangeCameraConfig,
+		players::{spawn_points::AvailableSpawnPoints, thruster_block::Thruster},
 		prelude::*,
 	};
 
@@ -73,6 +70,7 @@ mod systems {
 			mut commands: Commands,
 			mut mma: MMA,
 			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
+			local_id: ClientID,
 		) {
 			for (player, player_blueprint) in player_blueprints.iter() {
 				debug!(
@@ -94,10 +92,12 @@ mod systems {
 						let camera_entity = parent
 							.spawn(player_blueprint.primary_camera.stamp(&mut mma))
 							.id();
-						set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
-							follow_camera_block: camera_entity,
-						});
-						debug!("Using player's primary camera block as the primary camera");
+						if local_id.client_id() == Some(player_blueprint.get_network_id()) {
+							set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
+								follow_camera_block: camera_entity,
+							});
+							debug!("Using player's primary camera block as the primary camera");
+						}
 					});
 			}
 		}
@@ -231,11 +231,14 @@ mod player_blueprint {
 		type Bundle = PlayerBundle;
 		type StampSystemParam<'w, 's> = ();
 
-		fn stamp(
-			&self,
-			_system_param: &mut Self::StampSystemParam<'_, '_>,
-		) -> Self::Bundle {
-			let PlayerBlueprint { network_id, transform, structure_children: _, thruster_children, primary_camera: _ } = self;
+		fn stamp(&self, _system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
+			let PlayerBlueprint {
+				network_id,
+				transform,
+				structure_children: _,
+				thruster_children,
+				primary_camera: _,
+			} = self;
 			let thruster_ids: Vec<BlockId> = thruster_children
 				.iter()
 				.map(|blueprint| blueprint.specific_marker.get_id())

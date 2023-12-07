@@ -35,7 +35,7 @@ pub trait ExpandableBlueprint: Blueprint + Component + Serialize + DeserializeOw
 	type SpawnSystemParam: SystemParam;
 
 	/// The system that expands this blueprint on both server and client side.
-	fn expand_system(instances: Query<&Self, Changed<Self>>, system_param: &mut Self::SpawnSystemParam);
+	fn expand_system(instances: Query<(Entity, &Self), Changed<Self>>, system_param: &mut Self::SpawnSystemParam);
 }
 
 #[extension(pub trait AppExt)]
