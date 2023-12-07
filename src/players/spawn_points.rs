@@ -8,6 +8,7 @@ impl Plugin for SpawnPointsPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.register_type::<SpawnPoint>()
+.add_systems(Startup, Self::load_default_material)
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
 			.add_systems(
 				WorldCreation,
@@ -117,6 +118,26 @@ mod systems {
 				.collect();
 			commands.spawn_batch(spawn_points);
 		}
+
+		pub(super) fn load_default_material(mut materials: ResMut<Assets<StandardMaterial>>) {
+			materials.insert(
+				SpawnPointBlueprint::DEFAULT_MATERIAL,
+				StandardMaterial {
+					base_color: Color::BLUE,
+					emissive: Color::BLUE,
+					specular_transmission: 0.9,
+					thickness: 5.0,
+					ior: 1.33,
+					// attenuation_distance: 0.0,
+					// attenuation_color: (),
+					// normal_map_texture: (),
+					// flip_normal_map_y: (),
+					alpha_mode: AlphaMode::Blend,
+					// opaque_render_method: (),
+					..default()
+				},
+			);
+		}
 	}
 }
 
@@ -169,6 +190,11 @@ mod bundle {
 		collider: AsyncCollider,
 	}
 
+	impl SpawnPointBlueprint {
+		pub const DEFAULT_MATERIAL: Handle<StandardMaterial> =
+			Handle::weak_from_u128(1234760192378468914256943588769860234);
+	}
+
 	impl Blueprint for SpawnPointBlueprint {
 		type Bundle = SpawnPointBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
@@ -179,7 +205,6 @@ mod bundle {
 				size,
 				initial_occupation,
 			} = self;
-			
 
 			SpawnPointBundle {
 				pbr: PbrBundle {
@@ -191,20 +216,7 @@ mod bundle {
 						}
 						.into(),
 					),
-					material: mma.mats.add(StandardMaterial {
-						base_color: Color::BLUE,
-						emissive: Color::BLUE,
-						specular_transmission: 0.9,
-						thickness: 5.0,
-						ior: 1.33,
-						// attenuation_distance: 0.0,
-						// attenuation_color: (),
-						// normal_map_texture: (),
-						// flip_normal_map_y: (),
-						alpha_mode: AlphaMode::Blend,
-						// opaque_render_method: (),
-						..default()
-					}),
+					material: SpawnPointBlueprint::DEFAULT_MATERIAL,
 					..default()
 				},
 				name: Name::new("SpawnPoint"),
