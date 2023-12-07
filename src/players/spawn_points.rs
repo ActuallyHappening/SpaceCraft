@@ -8,12 +8,13 @@ impl Plugin for SpawnPointsPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.register_type::<SpawnPoint>()
-.add_systems(Startup, Self::load_default_material)
+			.add_systems(Startup, Self::load_default_materials)
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
 			.add_systems(
 				WorldCreation,
 				Self::creation_spawn_points.in_set(WorldCreationSet::SpawnPoints),
-			);
+			)
+			.add_systems(Update, Self::activate_local_spawn_points);
 	}
 }
 
@@ -29,15 +30,19 @@ mod systems {
 		pub(super) fn filter_non_occupied_collisions(
 			mut collisions: ResMut<Collisions>,
 			players: Query<&ControllablePlayer>,
+			player_blocks: Query<&Parent, With<Collider>>,
 			spawn_points: Query<&SpawnPoint>,
 		) {
 			collisions.retain(|contacts| {
 				let check = |e1: Entity, e2: Entity| -> bool {
-					if let Ok(player) = players.get(e1) {
-						if let Ok(spawn_point) = spawn_points.get(e2) {
-							match spawn_point.get_id() {
-								None => false,
-								Some(id) => {
+					if let Ok(spawn_point) = spawn_points.get(e2) {
+						match spawn_point.get_id() {
+							// this spawn point is not occupied, so no matter
+							// what player collides we should allow it
+							None => false,
+							Some(id) => {
+								// check direct player collision
+								if let Ok(player) = players.get(e1) {
 									// e1 is player, e2 is spawn point, and spawn point is occupied
 									// if the spawn point is occupied by the player, then ignore the collision
 									if id == player.get_id() {
@@ -46,10 +51,23 @@ mod systems {
 									} else {
 										false
 									}
+								} else if let Ok(player_block) = player_blocks.get(e1) {
+									// if is a child of player
+									if let Ok(player_of_child_block) = players.get(player_block.get()) {
+										// if the player of the child block is the same as the spawn point
+										// then ignore the collision
+										if id == player_of_child_block.get_id() {
+											true // block of a player that is occupying this spawn point, ignore
+										} else {
+											false
+										}
+									} else {
+										false // block is not a child of any player
+									}
+								} else {
+									false
 								}
 							}
-						} else {
-							false
 						}
 					} else {
 						false
@@ -119,24 +137,30 @@ mod systems {
 			commands.spawn_batch(spawn_points);
 		}
 
-		pub(super) fn load_default_material(mut materials: ResMut<Assets<StandardMaterial>>) {
+		pub(super) fn load_default_materials(mut materials: ResMut<Assets<StandardMaterial>>) {
 			materials.insert(
-				SpawnPointBlueprint::DEFAULT_MATERIAL,
-				StandardMaterial {
-					base_color: Color::BLUE,
-					emissive: Color::BLUE,
-					specular_transmission: 0.9,
-					thickness: 5.0,
-					ior: 1.33,
-					// attenuation_distance: 0.0,
-					// attenuation_color: (),
-					// normal_map_texture: (),
-					// flip_normal_map_y: (),
-					alpha_mode: AlphaMode::Blend,
-					// opaque_render_method: (),
-					..default()
-				},
+				SpawnPointBlueprint::DEFAULT_MATERIAL_HANDLE,
+				SpawnPointBlueprint::get_default_material(),
 			);
+			materials.insert(
+				SpawnPointBlueprint::ACTIVE_MATERIAL_HANDLE,
+				SpawnPointBlueprint::get_active_material(),
+			);
+		}
+
+		pub(super) fn activate_local_spawn_points(
+			mut spawn_points: Query<(&SpawnPoint, &mut Handle<StandardMaterial>)>,
+			local_id: ClientID,
+		) {
+			if let Some(id) = local_id.get() {
+				for (spawn_point, mut material) in spawn_points.iter_mut() {
+					if spawn_point.get_id() == Some(id) {
+						*material = SpawnPointBlueprint::ACTIVE_MATERIAL_HANDLE;
+					} else {
+						*material = SpawnPointBlueprint::DEFAULT_MATERIAL_HANDLE;
+					}
+				}
+			}
 		}
 	}
 }
@@ -191,8 +215,45 @@ mod bundle {
 	}
 
 	impl SpawnPointBlueprint {
-		pub const DEFAULT_MATERIAL: Handle<StandardMaterial> =
+		pub const DEFAULT_MATERIAL_HANDLE: Handle<StandardMaterial> =
 			Handle::weak_from_u128(1234760192378468914256943588769860234);
+
+		pub fn get_default_material() -> StandardMaterial {
+			StandardMaterial {
+				base_color: Color::BLUE,
+				emissive: Color::BLUE,
+				specular_transmission: 0.9,
+				thickness: 5.0,
+				ior: 1.33,
+				// attenuation_distance: 0.0,
+				// attenuation_color: (),
+				// normal_map_texture: (),
+				// flip_normal_map_y: (),
+				alpha_mode: AlphaMode::Blend,
+				// opaque_render_method: (),
+				..default()
+			}
+		}
+
+		pub const ACTIVE_MATERIAL_HANDLE: Handle<StandardMaterial> =
+			Handle::weak_from_u128(12347601923784689142569435843281790);
+
+		pub fn get_active_material() -> StandardMaterial {
+			StandardMaterial {
+				base_color: Color::GREEN,
+				emissive: Color::GREEN,
+				specular_transmission: 0.9,
+				thickness: 5.0,
+				ior: 1.33,
+				// attenuation_distance: 0.0,
+				// attenuation_color: (),
+				// normal_map_texture: (),
+				// flip_normal_map_y: (),
+				alpha_mode: AlphaMode::Blend,
+				// opaque_render_method: (),
+				..default()
+			}
+		}
 	}
 
 	impl Blueprint for SpawnPointBlueprint {
@@ -216,7 +277,7 @@ mod bundle {
 						}
 						.into(),
 					),
-					material: SpawnPointBlueprint::DEFAULT_MATERIAL,
+					material: SpawnPointBlueprint::DEFAULT_MATERIAL_HANDLE,
 					..default()
 				},
 				name: Name::new("SpawnPoint"),

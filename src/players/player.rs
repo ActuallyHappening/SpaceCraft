@@ -79,7 +79,7 @@ mod systems {
 				);
 				commands
 					.entity(player)
-					.insert(player_blueprint.stamp(&mut ()))
+					.insert(player_blueprint.stamp())
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
 							parent.spawn(blueprint.stamp(&mut mma));
@@ -92,11 +92,11 @@ mod systems {
 						let camera_entity = parent
 							.spawn(player_blueprint.primary_camera.stamp(&mut mma))
 							.id();
-						if local_id.client_id() == Some(player_blueprint.get_network_id()) {
+						if local_id.get() == Some(player_blueprint.get_network_id()) {
 							set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
 								follow_camera_block: camera_entity,
 							});
-							debug!("Using player's primary camera block as the primary camera");
+							debug!("Using player's {} primary camera block as the primary camera", local_id.assert_client_id());
 						}
 					});
 			}
@@ -261,6 +261,12 @@ mod player_blueprint {
 				body: RigidBody::Dynamic,
 				replication: Replication,
 			}
+		}
+	}
+
+	impl PlayerBlueprint {
+		pub fn stamp(&self) -> <PlayerBlueprint as Blueprint>::Bundle {
+			Blueprint::stamp(self, &mut ())
 		}
 	}
 }

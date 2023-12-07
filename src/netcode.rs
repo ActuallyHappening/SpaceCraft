@@ -67,7 +67,7 @@ impl ClientID<'_> {
 	/// Returns the client_id of the local player, or
 	/// [None] if [NetcodeConfig] is configured to be
 	/// [NetcodeConfig::is_headless]
-	pub fn client_id(&self) -> Option<ClientId> {
+	pub fn get(&self) -> Option<ClientId> {
 		let local_id = self
 			.res
 			.as_ref()
@@ -85,7 +85,7 @@ impl ClientID<'_> {
 	/// `.run_if`
 	pub fn assert_client_id(&self) -> ClientId {
 		self
-			.client_id()
+			.get()
 			.expect("ClientID is None, place the system that uses this parameter in a .run_if")
 	}
 }
