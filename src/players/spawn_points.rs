@@ -173,13 +173,15 @@ mod bundle {
 		type Bundle = SpawnPointBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+		fn stamp(&self, mma: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
 			let SpawnPointBlueprint {
 				at,
 				size,
 				initial_occupation,
 			} = self;
-			let mut bundle = SpawnPointBundle {
+			
+
+			SpawnPointBundle {
 				pbr: PbrBundle {
 					transform: *at,
 					mesh: mma.meshs.add(
@@ -209,9 +211,7 @@ mod bundle {
 				spawn_point: SpawnPoint::new(*initial_occupation),
 				rigid_body: RigidBody::Kinematic,
 				collider: AsyncCollider::default(),
-			};
-
-			bundle
+			}
 		}
 	}
 }

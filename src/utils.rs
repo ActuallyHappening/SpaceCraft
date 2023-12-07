@@ -17,15 +17,24 @@ pub use testing::*;
 /// a bundle that can be spawned, i.e., a [Bundle] that is specifically
 /// [Blueprint::For]
 pub trait Blueprint: Clone {
+	/// The bundle type that this blueprint can be stamped into.
 	type Bundle: Bundle;
+	/// A way to access the world when stamping, typically [MMA],
+	/// for things like [AssetServer] or [ResMut<Assets<Mesh>>].
 	type StampSystemParam<'w, 's>: SystemParam;
 
-	fn stamp<'w, 's>(&self, system_param: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle;
+	/// Stamps this blueprint into a bundle that can be spawned.
+	fn stamp(&self, system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle;
 }
 
-pub trait ExpandableBlueprint: Blueprint + Component + Clone + Serialize + DeserializeOwned  {
+/// A blueprint that is synced over the network.
+/// Hence, it must be serializable and deserializable,
+/// and a component so that [bevy_replicon] can sync it.
+pub trait ExpandableBlueprint: Blueprint + Component + Serialize + DeserializeOwned  {
+	/// What access is needed when expanding this blueprint.
 	type SpawnSystemParam: SystemParam;
 
+	/// The system that expands this blueprint on both server and client side.
 	fn expand_system(instances: Query<&Self, Changed<Self>>, system_param: &mut Self::SpawnSystemParam);
 }
 

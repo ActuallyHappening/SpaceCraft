@@ -209,9 +209,9 @@ mod terrain_bundle {
 		type Bundle = TerrainItemBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp<'w, 's>(
+		fn stamp(
 			&self,
-			mma: &mut Self::StampSystemParam<'w, 's>,
+			mma: &mut Self::StampSystemParam<'_, '_>,
 		) -> Self::Bundle {
 			let TerrainItemBlueprint { terrain_type, location } = self;
 			Self::Bundle {
@@ -242,12 +242,12 @@ mod terrain_bundle {
 		type Bundle = TerrainStructureBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp<'w, 's>(&self, system_param: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+		fn stamp(&self, _system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
 			let TerrainStructureBlueprint {
 				transform,
 				initial_velocity,
-				shape,
-				terrain_type,
+				shape: _,
+				terrain_type: _,
 			} = self;
 			let linvel = initial_velocity
 				.as_ref()
@@ -272,7 +272,7 @@ mod terrain_bundle {
 }
 
 mod terrain_type {
-	use crate::{blocks::manual_builder::RelativePixel, prelude::*};
+	use crate::{prelude::*};
 
 	#[derive(
 		Debug, Serialize, Deserialize, PartialEq, Eq, Hash, IntoStaticStr, Reflect, Clone, Default,

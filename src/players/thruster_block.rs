@@ -4,7 +4,7 @@ use crate::prelude::*;
 
 use crate::blocks::{manual_builder, BlockBlueprint};
 
-use super::ControllablePlayer;
+
 
 // Plugin
 pub struct ThrusterPlugin;
@@ -225,9 +225,9 @@ impl Blueprint for BlockBlueprint<ThrusterBlockBlueprint> {
 	type Bundle = ThrusterBlockBundle;
 	type StampSystemParam<'w, 's> = MMA<'w>;
 
-	fn stamp<'w, 's>(
+	fn stamp(
 		&self,
-		mma: &mut Self::StampSystemParam<'w, 's>,
+		mma: &mut Self::StampSystemParam<'_, '_>,
 	) -> Self::Bundle {
 		let BlockBlueprint {
 			transform,

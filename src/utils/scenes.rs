@@ -37,9 +37,9 @@ impl HelperScene {
 		let type_registry = world.resource::<AppTypeRegistry>().clone();
 		scene_world.insert_resource(type_registry);
 
-		let config = world.resource::<HelperSceneRes>().clone();
+		let _config = world.resource::<HelperSceneRes>().clone();
 
-		for (entity, marker) in world.query::<(Entity, &HelperSceneMarker)>().iter(world) {
+		for (_entity, marker) in world.query::<(Entity, &HelperSceneMarker)>().iter(world) {
 			if marker.save_recursive {
 				// add to scene world this entity, and any children
 				// scene_world

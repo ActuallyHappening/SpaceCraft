@@ -41,11 +41,10 @@ impl Plugin for PlayerPlugin {
 
 mod systems {
 	use crate::{
-		cameras::{CameraBlockBundle, ChangeCameraConfig},
+		cameras::{ChangeCameraConfig},
 		players::{
-			player::player_blueprint::PlayerBundle,
 			spawn_points::AvailableSpawnPoints,
-			thruster_block::{Thruster, ThrusterBlockBundle},
+			thruster_block::{Thruster},
 		},
 		prelude::*,
 	};
@@ -232,11 +231,11 @@ mod player_blueprint {
 		type Bundle = PlayerBundle;
 		type StampSystemParam<'w, 's> = ();
 
-		fn stamp<'w, 's>(
+		fn stamp(
 			&self,
-			system_param: &mut Self::StampSystemParam<'w, 's>,
+			_system_param: &mut Self::StampSystemParam<'_, '_>,
 		) -> Self::Bundle {
-			let PlayerBlueprint { network_id, transform, structure_children, thruster_children, primary_camera } = self;
+			let PlayerBlueprint { network_id, transform, structure_children: _, thruster_children, primary_camera: _ } = self;
 			let thruster_ids: Vec<BlockId> = thruster_children
 				.iter()
 				.map(|blueprint| blueprint.specific_marker.get_id())

@@ -153,7 +153,7 @@ mod structure_block {
 		type Bundle = StructureBlockBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::Bundle {
+		fn stamp(&self, mma: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
 			let BlockBlueprint {
 				transform,
 				mesh,
