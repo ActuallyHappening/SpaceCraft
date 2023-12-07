@@ -8,7 +8,6 @@ impl PluginGroup for BlockPlugins {
 	fn build(self) -> PluginGroupBuilder {
 		PluginGroupBuilder::start::<Self>()
 			.add(worldgen::WorldGenPlugin)
-			.register_type::<BlockId>();
 	}
 }
 

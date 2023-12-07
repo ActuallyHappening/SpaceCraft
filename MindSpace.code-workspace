@@ -6,18 +6,21 @@
 		{
 			"path": "src"
 		},
-		{
-			"path": "xtask/src"
-		},
-		{
-			"path": "../creativity-game-0.11"
-		},
+		// {
+		// 	"path": "xtask/src"
+		// },
+		// {
+		// 	"path": "../creativity-game-0.11"
+		// },
 		// {
 		// 	"path": "../bevy_hanabi"
 		// },
 		{
-			"path": "../bevy_starfield2"
+			"path": "../bevy_blueprints"
 		},
+		// {
+		// 	"path": "../bevy_starfield2"
+		// },
 		// {
 		// 	"path": "../testing-bug"
 		// },
@@ -66,9 +69,9 @@
 		// {
 		// 	"path": "../bevy_dolly"
 		// }
-		{
-			"path": "../bevy"
-		},
+		// {
+		// 	"path": "../bevy"
+		// },
 		// {
 		// 	"path": "../bevy/examples/shader"
 		// },
