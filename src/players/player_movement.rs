@@ -8,22 +8,28 @@ use crate::prelude::*;
 
 pub use api::*;
 
-use self::components::ThrusterStrengths;
-
 pub struct PlayerMovementPlugin;
 
 impl Plugin for PlayerMovementPlugin {
 	fn build(&self, app: &mut App) {
 		app
-			.replicate::<ThrusterStrengths>()
+			.replicate::<components::IntendedVelocity>()
 			.add_systems(
 				FixedUpdate,
-				(Self::compute_thruster_axis, Self::chose_thrusters)
+				(
+					(
+						Self::compute_thruster_axis,
+						Self::calculate_intended_velocity,
+					),
+					Self::chose_thrusters,
+				)
 					.chain()
 					.in_set(PlayerMovementSet),
 			)
+			.add_plugins(InputManagerPlugin::<PlayerInput>::default())
 			.register_type::<components::ThrusterAxis>()
-			.register_type::<components::ThrusterStrengths>();
+			.register_type::<components::ThrusterStrengths>()
+			.register_type::<components::IntendedVelocity>();
 	}
 }
 
@@ -31,6 +37,8 @@ impl Plugin for PlayerMovementPlugin {
 mod api {
 	use super::components::ThrusterStrengths;
 	use crate::prelude::*;
+
+	pub use super::input_processing::PlayerInput;
 
 	#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 	pub struct PlayerMovementSet;
@@ -52,20 +60,98 @@ mod api {
 	}
 }
 
+mod input_processing {
+	use crate::{players::player::ControllablePlayer, prelude::*};
+
+	// pub struct InputProcessingPlugin;
+
+	// impl Plugin for InputProcessingPlugin {
+	// 	fn build(&self, app: &mut App) {
+	// 		app
+	// 			.add_systems(PreUpdate, process_action_diffs::<PlayerInput, Key>)
+	// 			.add_systems(
+	// 				PostUpdate,
+	// 				generate_action_diffs::<PlayerInput, Key>.run_if(NetcodeConfig::not_headless()),
+	// 			)
+	// 			// .register_type::<Key>()
+	// 			.add_client_event::<ActionDiff<PlayerInput, Key>>(SendType::Unreliable);
+	// 	}
+	// }
+
+	#[derive(
+		ActionLike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect, Serialize, Deserialize,
+	)]
+	pub enum PlayerInput {
+		Forward,
+		Backward,
+		Left,
+		Right,
+	}
+
+	impl PlayerInput {
+		pub const FORCE_FACTOR: f32 = 2.;
+		pub const ROTATION_FACTOR: f32 = 2.;
+	}
+
+	#[derive(SystemParam, Debug)]
+	pub struct PlayerInputs<'w, 's> {
+		query: Query<'w, 's, (Entity, &'static ActionState<PlayerInput>)>,
+	}
+
+	impl PlayerInputs<'_, '_> {
+		// pub fn get_from_id(&self, player_id: ClientId) -> Option<&ActionState<PlayerInput>> {
+		// 	self
+		// 		.query
+		// 		.iter()
+		// 		.find(|(_, player)| player.get_network_id() == player_id)
+		// 		.map(|(action_state, _)| action_state)
+		// }
+
+		// pub fn get(&self, e: Entity) -> Option<&ActionState<PlayerInput>> {
+		// 	self.query.get(e).ok().map(|(action_state, _)| action_state)
+		// }
+
+		pub fn iter(&self) -> impl Iterator<Item = (Entity, &ActionState<PlayerInput>)> {
+			self.query.iter()
+		}
+	}
+
+	impl PlayerInput {
+		pub fn new() -> InputManagerBundle<Self> {
+			InputManagerBundle {
+				action_state: ActionState::default(),
+				input_map: InputMap::new([
+					(KeyCode::W, PlayerInput::Forward),
+					(KeyCode::S, PlayerInput::Backward),
+					(KeyCode::A, PlayerInput::Left),
+					(KeyCode::D, PlayerInput::Right),
+				]),
+			}
+		}
+	}
+}
+
 mod systems {
-	use super::{components::ThrusterAxis, PlayerMovementPlugin};
+	use super::{
+		components::{IntendedVelocity, ThrusterAxis},
+		input_processing::PlayerInputs,
+		PlayerInput, PlayerMovementPlugin,
+	};
 	use crate::{
 		players::{thruster_block::Thruster, PlayerBlueprint},
 		prelude::*,
 	};
 
 	impl PlayerMovementPlugin {
-		/// Triggers whenever the children of a player are change.
-		/// This makes sure the axis are only computed whenever a new thruster / block is added
+		/// Adds the [ThrusterAxis] component to players.
 		pub(super) fn compute_thruster_axis(
 			players: Query<
 				(Entity, &Children, &PlayerBlueprint, &CenterOfMass),
-				Or<(Changed<PlayerBlueprint>, Changed<CenterOfMass>)>,
+				Or<(
+					Changed<PlayerBlueprint>,
+					Changed<CenterOfMass>,
+					Changed<Children>,
+				)>,
 			>,
 			thrusters: Query<(&Transform, &Thruster)>,
 			mut commands: Commands,
@@ -81,6 +167,34 @@ mod systems {
 
 				let thruster_axis = ThrusterAxis::new(center_of_mass, thrusters.drain());
 				commands.entity(player).insert(thruster_axis);
+			}
+		}
+
+		/// Adds the [IntendedVelocity] component to players.
+		pub(super) fn calculate_intended_velocity(mut commands: Commands, player_inputs: PlayerInputs) {
+			for (player, inputs) in player_inputs.iter() {
+				let mut intended_velocity = IntendedVelocity {
+					linear_velocity: Vec3::ZERO,
+					angular_velocity: Vec3::ZERO,
+				};
+
+				if inputs.pressed(PlayerInput::Forward) {
+					intended_velocity.linear_velocity += Vec3::Z;
+				}
+				if inputs.pressed(PlayerInput::Backward) {
+					intended_velocity.linear_velocity -= Vec3::Z;
+				}
+				if inputs.pressed(PlayerInput::Left) {
+					intended_velocity.angular_velocity -= Vec3::X;
+				}
+				if inputs.pressed(PlayerInput::Right) {
+					intended_velocity.angular_velocity += Vec3::X;
+				}
+
+				intended_velocity.angular_velocity *= PlayerInput::ROTATION_FACTOR;
+				intended_velocity.linear_velocity *= PlayerInput::FORCE_FACTOR;
+
+				commands.entity(player).insert(intended_velocity);
 			}
 		}
 
@@ -109,67 +223,14 @@ mod components {
 		blocks: HashMap<BlockId, ForceAxis>,
 	}
 
-	/// Forces are between [0, 1],
-	/// but torque can be infinite so is either 0 or 1
-	///
-	/// The Greek philosopher, Archimedes, said,
-	/// “Give me a lever long enough and a fulcrum on which to place it, and I shall move the world.”
-	#[derive(Debug, Reflect)]
-	pub(super) struct ForceAxis {
-		forward: f32,
-		right: f32,
-		upwards: f32,
-		turn_right: SignedFlag,
-		pitch_up: SignedFlag,
-		roll_right: SignedFlag,
+	#[derive(Debug, Reflect, Component, Serialize, Deserialize)]
+	pub(super) struct IntendedVelocity {
+		pub(super) linear_velocity: Vec3,
+		pub(super) angular_velocity: Vec3,
 	}
 
-	#[derive(Debug, Reflect, Default)]
-	pub(super) enum SignedFlag {
-		Flag(bool),
-		#[default]
-		Zero,
-	}
-
-	impl SignedFlag {
-		pub fn new(num: f32) -> Self {
-			const EPSILON: f32 = 0.01;
-			if num.abs() < EPSILON {
-				Self::Zero
-			} else {
-				Self::Flag(num > 0.0)
-			}
-		}
-
-		pub fn into_option(self) -> Option<bool> {
-			match self {
-				Self::Flag(b) => Some(b),
-				Self::Zero => None,
-			}
-		}
-
-		/// Whether [SignedFlag::Zero] or not
-		pub fn flagged(self) -> bool {
-			match self {
-				Self::Flag(_) => true,
-				Self::Zero => false,
-			}
-		}
-
-		pub fn flagged_true(self) -> bool {
-			match self {
-				Self::Flag(b) => b,
-				Self::Zero => false,
-			}
-		}
-
-		pub fn flagged_false(self) -> bool {
-			match self {
-				Self::Flag(b) => !b,
-				Self::Zero => false,
-			}
-		}
-	}
+	use force_axis::ForceAxis;
+	mod force_axis;
 
 	impl ThrusterStrengths {
 		pub(super) fn get_blocks_strength(&self) -> HashMap<&BlockId, &f32> {
@@ -192,146 +253,6 @@ mod components {
 					.map(|(id, t)| (id, ForceAxis::new(t, center_of_mass)))
 					.collect(),
 			}
-		}
-	}
-
-	/// Returns [-1, 1] for factor that rotation is in the direction
-	/// of base
-	pub fn factor_direction_in(rotation: impl Into<Quat>, base: impl Into<Quat>) -> f32 {
-		let rotation: Quat = rotation.into();
-		let base = base.into();
-
-		let angle = rotation.angle_between(base);
-
-		// 0.0 -> 1.0
-		// TAU / 4 -> 0.0
-		// TAU / 2 -> -1.0
-		let ret: f32 = angle.cos();
-
-		#[cfg(test)]
-		println!(
-			"Angle between: {:?} & {:?} = {} (ret = {})",
-			rotation, base, angle, ret
-		);
-
-		ret
-	}
-
-	impl ForceAxis {
-		pub fn from_iter(
-			mut forces: impl FnMut(Vec3) -> f32,
-			mut torques: impl FnMut(Vec3) -> SignedFlag,
-		) -> Self {
-			Self {
-				forward: forces(-Vec3::Z),
-				right: forces(Vec3::X),
-				upwards: forces(Vec3::Y),
-				turn_right: torques(-Vec3::Y),
-				pitch_up: torques(Vec3::X),
-				roll_right: torques(Vec3::Z),
-			}
-		}
-
-		/// Takes the transform of a thruster, including its relative translation and rotation,
-		/// and the center of mass of the player, and computes what effect in
-		/// each of the 3 force and 3 torque axis it would have on the player
-		pub(super) fn new(
-			Transform {
-				translation,
-				rotation,
-				..
-			}: &Transform,
-			center_of_mass: &CenterOfMass,
-		) -> Self {
-			let relative_force = rotation.mul_vec3(Vec3::Z);
-
-			#[cfg(test)]
-			println!(
-				"Relative force: {:?}, translation: {:?}",
-				relative_force, translation
-			);
-
-			let ef = *ExternalForce::new(Vec3::ZERO).apply_force_at_point(
-				relative_force,
-				*translation,
-				center_of_mass.0,
-			);
-			let force = ef.force();
-			let forces = |dir: Vec3| force.dot(dir) / force.length();
-
-			let torque = ef.torque();
-			let torques = |dir: Vec3| SignedFlag::new(torque.dot(dir));
-
-			Self::from_iter(forces, torques)
-		}
-	}
-
-	#[cfg(test)]
-	mod test {
-		use crate::blocks::manual_builder::{Facing, RelativePixel};
-		use crate::prelude::*;
-
-		use super::{factor_direction_in, ForceAxis};
-
-		#[test]
-		fn force_axis() {
-			assert_vec3_near!(Facing::Forwards.into_quat().mul_vec3(Vec3::Z), Vec3::Z);
-			assert_vec3_near!(Facing::Right.into_quat().mul_vec3(Vec3::Z), -Vec3::X);
-
-			// thruster in back facing right,
-			// turning ship rightwards
-			let thruster_location = Transform {
-				translation: RelativePixel::new(0, 0, 1).into_world_offset(),
-				rotation: Facing::Right.into_quat(),
-				..default()
-			};
-			let force_axis = ForceAxis::new(&thruster_location, &CenterOfMass(Vec3::ZERO));
-			println!("Force axis {:?}", force_axis);
-
-			assert!(force_axis.turn_right.flagged_true());
-			assert!(!force_axis.pitch_up.flagged());
-			assert!(!force_axis.roll_right.flagged());
-			assert!(force_axis.right < 0.0);
-			assert!(force_axis.upwards == 0.0);
-			assert!(force_axis.forward == 0.0);
-		}
-
-		#[test]
-		fn apply_force_at_point() {
-			// force rightwards at back of ship
-			let ef = *ExternalForce::new(Vec3::ZERO).apply_force_at_point(-Vec3::X, Vec3::Z, Vec3::ZERO);
-			println!("EF: {:?}", ef);
-			assert_vec3_near!(ef.torque(), Vec3::new(0.0, -1.0, 0.0));
-
-			// force downward at back of ship
-			let ef = *ExternalForce::new(Vec3::ZERO).apply_force_at_point(-Vec3::Y, Vec3::Z, Vec3::ZERO);
-			println!("EF: {:?}", ef);
-			assert_vec3_near!(ef.torque(), Vec3::new(1.0, 0.0, 0.0));
-
-			// force upwards at right of ship
-			let ef = *ExternalForce::new(Vec3::ZERO).apply_force_at_point(Vec3::Y, Vec3::X, Vec3::ZERO);
-			println!("EF: {:?}", ef);
-			assert_vec3_near!(ef.torque(), Vec3::new(0.0, 0.0, 1.0));
-		}
-
-		#[test]
-		fn basic_rotations() {
-			assert_near!(
-				Facing::Right
-					.into_quat()
-					.angle_between(Facing::Right.into_quat()),
-				0.0
-			);
-			assert_near!(
-				Facing::Right
-					.into_quat()
-					.angle_between(Facing::Forwards.into_quat()),
-				TAU / 4.
-			);
-
-			assert_near!(factor_direction_in(Facing::Right, Facing::Forwards), 0.0);
-			assert_near!(factor_direction_in(Facing::Right, Facing::Right), 1.0);
-			assert_near!(factor_direction_in(Facing::Right, Facing::Left), -1.0);
 		}
 	}
 }

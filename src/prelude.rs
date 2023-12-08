@@ -28,6 +28,8 @@ pub use bevy_timewarp::prelude::*;
 pub use bevy_xpbd_3d::prelude::*;
 // conflicts names like [Transform]
 // pub use bevy_dolly::prelude::*;
+pub use leafwing_input_manager::prelude::*;
+pub use leafwing_input_manager::prelude::Actionlike as ActionLike;
 
 // helper deps
 pub use structstruck::strike as nested_structs;

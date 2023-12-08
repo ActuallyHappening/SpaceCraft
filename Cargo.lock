@@ -5016,6 +5016,7 @@ dependencies = [
  "clap",
  "extension-traits",
  "image",
+ "leafwing-input-manager",
  "rand 0.8.5",
  "renet 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
