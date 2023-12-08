@@ -20,8 +20,9 @@ impl Plugin for PlayerMovementPlugin {
 					(
 						Self::compute_thruster_axis,
 						Self::calculate_intended_velocity,
+						Self::calculate_actual_velocity,
 					),
-					Self::chose_thrusters,
+					Self::calculate_thruster_strengths,
 				)
 					.chain()
 					.in_set(PlayerMovementSet),
@@ -29,7 +30,8 @@ impl Plugin for PlayerMovementPlugin {
 			.add_plugins(InputManagerPlugin::<PlayerInput>::default())
 			.register_type::<components::ThrusterAxis>()
 			.register_type::<components::ThrusterStrengths>()
-			.register_type::<components::IntendedVelocity>();
+			.register_type::<components::IntendedVelocity>()
+			.register_type::<components::ActualVelocity>();
 	}
 }
 
@@ -133,9 +135,10 @@ mod input_processing {
 
 mod systems {
 	use super::{
-		components::{IntendedVelocity, ThrusterAxis},
+		components::{IntendedVelocity, ThrusterAxis, ThrusterStrengths},
 		input_processing::PlayerInputs,
-		PlayerInput, PlayerMovementPlugin,
+		utils::ActualVelocityQuery,
+		PlayerInput, PlayerMovementPlugin, Velocity6DimensionsMut,
 	};
 	use crate::{
 		players::{thruster_block::Thruster, PlayerBlueprint},
@@ -166,6 +169,7 @@ mod systems {
 					.collect();
 
 				let thruster_axis = ThrusterAxis::new(center_of_mass, thrusters.drain());
+				// MARK optimize by using &mut instead
 				commands.entity(player).insert(thruster_axis);
 			}
 		}
@@ -173,32 +177,48 @@ mod systems {
 		/// Adds the [IntendedVelocity] component to players.
 		pub(super) fn calculate_intended_velocity(mut commands: Commands, player_inputs: PlayerInputs) {
 			for (player, inputs) in player_inputs.iter() {
-				let mut intended_velocity = IntendedVelocity {
-					linear_velocity: Vec3::ZERO,
-					angular_velocity: Vec3::ZERO,
-				};
+				let mut intended_velocity = IntendedVelocity::default();
 
 				if inputs.pressed(PlayerInput::Forward) {
-					intended_velocity.linear_velocity += Vec3::Z;
+					intended_velocity.add_forward(PlayerInput::FORCE_FACTOR);
 				}
 				if inputs.pressed(PlayerInput::Backward) {
-					intended_velocity.linear_velocity -= Vec3::Z;
+					intended_velocity.add_backward(PlayerInput::FORCE_FACTOR);
 				}
+
 				if inputs.pressed(PlayerInput::Left) {
-					intended_velocity.angular_velocity -= Vec3::X;
+					intended_velocity.add_turn_left(PlayerInput::ROTATION_FACTOR);
 				}
 				if inputs.pressed(PlayerInput::Right) {
-					intended_velocity.angular_velocity += Vec3::X;
+					intended_velocity.add_turn_right(PlayerInput::ROTATION_FACTOR);
 				}
 
-				intended_velocity.angular_velocity *= PlayerInput::ROTATION_FACTOR;
-				intended_velocity.linear_velocity *= PlayerInput::FORCE_FACTOR;
-
+				// MARK optimize by using &mut instead
 				commands.entity(player).insert(intended_velocity);
 			}
 		}
 
-		pub(super) fn chose_thrusters() {}
+		/// Calculates the [ActualVelocity] component for each player
+		pub(super) fn calculate_actual_velocity(
+			players: Query<(Entity, ActualVelocityQuery), With<PlayerBlueprint>>,
+			mut commands: Commands,
+		) {
+			for (player, actual) in players.iter() {
+				let actual = actual.into_actual_velocity();
+				commands.entity(player).insert(actual);
+			}
+		}
+
+		pub(super) fn calculate_thruster_strengths(
+			players: Query<(Entity, &ThrusterAxis), (Without<ThrusterStrengths>, With<ThrusterAxis>)>,
+			mut commands: Commands,
+		) {
+			for (player, axis) in players.iter() {
+				commands
+					.entity(player)
+					.insert(ThrusterStrengths::empty_from_its(axis.ids()));
+			}
+		}
 	}
 }
 
@@ -214,6 +234,25 @@ mod components {
 		blocks: HashMap<BlockId, f32>,
 	}
 
+	impl ThrusterStrengths {
+		pub(super) fn get_blocks_strength(&self) -> HashMap<&BlockId, &f32> {
+			self
+				.blocks
+				.iter()
+				.map(|(id, strength)| (id, strength))
+				.collect()
+		}
+
+		#[deprecated]
+		pub(super) fn empty_from_its(ids: Vec<BlockId>) -> Self {
+			let mut blocks = HashMap::new();
+			for id in ids {
+				blocks.insert(id, 0.0);
+			}
+			Self { blocks }
+		}
+	}
+
 	/// Can maybe be cached after first computation,
 	/// depending on whether player rebuild their ships.
 	///
@@ -223,24 +262,10 @@ mod components {
 		blocks: HashMap<BlockId, ForceAxis>,
 	}
 
-	#[derive(Debug, Reflect, Component, Serialize, Deserialize)]
-	pub(super) struct IntendedVelocity {
-		pub(super) linear_velocity: Vec3,
-		pub(super) angular_velocity: Vec3,
-	}
-
 	use force_axis::ForceAxis;
-	mod force_axis;
 
-	impl ThrusterStrengths {
-		pub(super) fn get_blocks_strength(&self) -> HashMap<&BlockId, &f32> {
-			self
-				.blocks
-				.iter()
-				.map(|(id, strength)| (id, strength))
-				.collect()
-		}
-	}
+	use super::{Velocity6Dimensions, Velocity6DimensionsMut};
+	mod force_axis;
 
 	impl ThrusterAxis {
 		pub(super) fn new<'w>(
@@ -253,6 +278,318 @@ mod components {
 					.map(|(id, t)| (id, ForceAxis::new(t, center_of_mass)))
 					.collect(),
 			}
+		}
+
+		#[deprecated]
+		pub(super) fn ids(&self) -> Vec<BlockId> {
+			self.blocks.keys().copied().collect()
+		}
+	}
+
+	#[derive(Debug, Reflect, Component, Default, Serialize, Deserialize)]
+	pub(super) struct IntendedVelocity {
+		forward: f32,
+		right: f32,
+		up: f32,
+		turn_right: f32,
+		tilt_up: f32,
+		roll_right: f32,
+	}
+
+	impl Velocity6Dimensions for IntendedVelocity {
+		fn velocity_forward(&self) -> f32 {
+			self.forward
+		}
+
+		fn velocity_rightward(&self) -> f32 {
+			self.right
+		}
+
+		fn velocity_upward(&self) -> f32 {
+			self.up
+		}
+
+		fn angular_turn_right(&self) -> f32 {
+			self.turn_right
+		}
+
+		fn angular_tilt_up(&self) -> f32 {
+			self.tilt_up
+		}
+
+		fn angular_roll_right(&self) -> f32 {
+			self.roll_right
+		}
+	}
+	impl Velocity6DimensionsMut for IntendedVelocity {
+		fn forward_mut(&mut self) -> &mut f32 {
+			&mut self.forward
+		}
+
+		fn right_mut(&mut self) -> &mut f32 {
+			&mut self.right
+		}
+
+		fn up_mut(&mut self) -> &mut f32 {
+			&mut self.up
+		}
+
+		fn turn_right_mut(&mut self) -> &mut f32 {
+			&mut self.turn_right
+		}
+
+		fn tilt_up_mut(&mut self) -> &mut f32 {
+			&mut self.tilt_up
+		}
+
+		fn roll_right_mut(&mut self) -> &mut f32 {
+			&mut self.roll_right
+		}
+	}
+
+	#[derive(Debug, Reflect, Component, Default)]
+	pub(super) struct ActualVelocity {
+		forward: f32,
+		right: f32,
+		up: f32,
+		turn_right: f32,
+		tilt_up: f32,
+		roll_right: f32,
+	}
+
+	impl Velocity6Dimensions for ActualVelocity {
+		fn velocity_forward(&self) -> f32 {
+			self.forward
+		}
+
+		fn velocity_rightward(&self) -> f32 {
+			self.right
+		}
+
+		fn velocity_upward(&self) -> f32 {
+			self.up
+		}
+
+		fn angular_turn_right(&self) -> f32 {
+			self.turn_right
+		}
+
+		fn angular_tilt_up(&self) -> f32 {
+			self.tilt_up
+		}
+
+		fn angular_roll_right(&self) -> f32 {
+			self.roll_right
+		}
+	}
+	impl Velocity6DimensionsMut for ActualVelocity {
+		fn forward_mut(&mut self) -> &mut f32 {
+			&mut self.forward
+		}
+
+		fn right_mut(&mut self) -> &mut f32 {
+			&mut self.right
+		}
+
+		fn up_mut(&mut self) -> &mut f32 {
+			&mut self.up
+		}
+
+		fn turn_right_mut(&mut self) -> &mut f32 {
+			&mut self.turn_right
+		}
+
+		fn tilt_up_mut(&mut self) -> &mut f32 {
+			&mut self.tilt_up
+		}
+
+		fn roll_right_mut(&mut self) -> &mut f32 {
+			&mut self.roll_right
+		}
+	}
+}
+
+use utils::*;
+mod utils {
+	use bevy::ecs::query::WorldQuery;
+
+	use crate::prelude::*;
+
+	use super::components::ActualVelocity;
+
+	#[derive(WorldQuery)]
+	pub(super) struct ActualVelocityQuery {
+		lin: &'static LinearVelocity,
+		ang: &'static AngularVelocity,
+		rotation: &'static Transform,
+	}
+
+	impl<'w> ActualVelocityQueryItem<'w> {
+		pub fn into_actual_velocity(self) -> ActualVelocity {
+			let lin = self.rotation.rotation.mul_vec3(self.lin.0);
+			let ang = self.ang.0;
+			ActualVelocity::from_vec3(lin, ang)
+		}
+	}
+
+	pub(super) trait Velocity6Dimensions: Default + std::fmt::Debug {
+		fn linear_velocity(&self) -> Vec3 {
+			Vec3::new(self.forward(), self.right(), self.up())
+		}
+		fn angular_velocity(&self) -> Vec3 {
+			Vec3::new(-self.tilt_up(), self.turn_right(), self.roll_right())
+		}
+
+		fn velocity_forward(&self) -> f32;
+		fn forward(&self) -> f32 {
+			self.velocity_forward()
+		}
+		fn velocity_backward(&self) -> f32 {
+			-self.velocity_forward()
+		}
+		fn velocity_back(&self) -> f32 {
+			self.velocity_backward()
+		}
+		fn back(&self) -> f32 {
+			self.velocity_backward()
+		}
+
+		fn velocity_rightward(&self) -> f32;
+		fn velocity_right(&self) -> f32 {
+			self.velocity_rightward()
+		}
+		/// Velocity
+		fn right(&self) -> f32 {
+			self.velocity_rightward()
+		}
+		fn velocity_leftward(&self) -> f32 {
+			-self.velocity_rightward()
+		}
+		fn velocity_left(&self) -> f32 {
+			self.velocity_leftward()
+		}
+		/// Velocity
+		fn left(&self) -> f32 {
+			self.velocity_leftward()
+		}
+
+		fn velocity_upward(&self) -> f32;
+		fn velocity_up(&self) -> f32 {
+			self.velocity_upward()
+		}
+		/// Velocity
+		fn up(&self) -> f32 {
+			self.velocity_upward()
+		}
+		fn velocity_downward(&self) -> f32 {
+			-self.velocity_upward()
+		}
+		fn velocity_down(&self) -> f32 {
+			self.velocity_downward()
+		}
+		/// Velocity
+		fn down(&self) -> f32 {
+			self.velocity_downward()
+		}
+
+		fn angular_turn_right(&self) -> f32;
+		fn turn_right(&self) -> f32 {
+			self.angular_turn_right()
+		}
+		fn angular_turn_left(&self) -> f32 {
+			-self.angular_turn_right()
+		}
+		fn turn_left(&self) -> f32 {
+			self.angular_turn_left()
+		}
+
+		fn angular_tilt_up(&self) -> f32;
+		fn tilt_up(&self) -> f32 {
+			self.angular_tilt_up()
+		}
+		fn angular_tilt_down(&self) -> f32 {
+			-self.angular_tilt_up()
+		}
+		fn tilt_down(&self) -> f32 {
+			self.angular_tilt_down()
+		}
+
+		fn angular_roll_right(&self) -> f32;
+		fn roll_right(&self) -> f32 {
+			self.angular_roll_right()
+		}
+		fn angular_roll_left(&self) -> f32 {
+			-self.angular_roll_right()
+		}
+		fn roll_left(&self) -> f32 {
+			self.angular_roll_left()
+		}
+	}
+
+	pub(super) trait Velocity6DimensionsMut: Velocity6Dimensions {
+		fn forward_mut(&mut self) -> &mut f32;
+		fn right_mut(&mut self) -> &mut f32;
+		fn up_mut(&mut self) -> &mut f32;
+		fn turn_right_mut(&mut self) -> &mut f32;
+		fn tilt_up_mut(&mut self) -> &mut f32;
+		fn roll_right_mut(&mut self) -> &mut f32;
+
+		fn from_vec3(lin: Vec3, ang: Vec3) -> Self {
+			let mut ret = Self::default();
+			*ret.forward_mut() = -lin.z;
+			*ret.right_mut() = lin.x;
+			*ret.up_mut() = lin.y;
+			*ret.turn_right_mut() = ang.y;
+			*ret.tilt_up_mut() = -ang.x;
+			*ret.roll_right_mut() = ang.z;
+			ret
+		}
+
+		/// Velocity
+		fn add_forward(&mut self, amount: f32) {
+			*self.forward_mut() += amount;
+		}
+		/// Velocity
+		fn add_backward(&mut self, amount: f32) {
+			self.add_forward(-amount);
+		}
+
+		/// Velocity
+		fn add_rightward(&mut self, amount: f32) {
+			*self.right_mut() += amount;
+		}
+		/// Velocity
+		fn add_right(&mut self, amount: f32) {
+			self.add_rightward(amount);
+		}
+		/// Velocity
+		fn add_leftward(&mut self, amount: f32) {
+			self.add_rightward(-amount);
+		}
+		/// Velocity
+		fn add_left(&mut self, amount: f32) {
+			self.add_leftward(amount);
+		}
+
+		fn add_turn_right(&mut self, amount: f32) {
+			*self.turn_right_mut() += amount;
+		}
+		fn add_turn_left(&mut self, amount: f32) {
+			self.add_turn_right(-amount);
+		}
+
+		fn add_tilt_up(&mut self, amount: f32) {
+			*self.tilt_up_mut() += amount;
+		}
+		fn add_tilt_down(&mut self, amount: f32) {
+			self.add_tilt_up(-amount);
+		}
+
+		fn add_roll_right(&mut self, amount: f32) {
+			*self.roll_right_mut() += amount;
+		}
+		fn add_roll_left(&mut self, amount: f32) {
+			self.add_roll_right(-amount);
 		}
 	}
 }
