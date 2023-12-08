@@ -150,7 +150,7 @@ mod components {
 		) -> Self {
 			Self {
 				forward: forces(-Vec3::Z),
-				right: forces(Vec3::Z),
+				right: forces(Vec3::X),
 				upwards: forces(Vec3::Y),
 				turn_right: torques(-Vec3::Y),
 				pitch_up: torques(Vec3::X),
@@ -165,12 +165,17 @@ mod components {
 			Transform {
 				translation,
 				rotation,
-				scale,
+				..
 			}: Transform,
 			center_of_mass: CenterOfMass,
 		) -> Self {
+			let relative_force = rotation.mul_vec3(Vec3::Z);
+
+			#[cfg(test)]
+			println!("Relative force: {:?}, translation: {:?}", relative_force, translation);
+
 			let ef = *ExternalForce::new(Vec3::ZERO).apply_force_at_point(
-				rotation.mul_vec3(Vec3::Z),
+				relative_force,
 				translation,
 				center_of_mass.0,
 			);
@@ -193,17 +198,25 @@ mod components {
 
 		#[test]
 		fn force_axis() {
-			// thruster in back right facing right,
+			assert_vec3_near!(Facing::Forwards.into_quat().mul_vec3(Vec3::Z), Vec3::Z);
+			assert_vec3_near!(Facing::Right.into_quat().mul_vec3(Vec3::Z), -Vec3::X);
+
+			// thruster in back facing right,
 			// turning ship rightwards
 			let thruster_location = Transform {
-				translation: RelativePixel::new(1, 0, 1).into_world_offset(),
+				translation: RelativePixel::new(0, 0, 1).into_world_offset(),
 				rotation: Facing::Right.into_quat(),
 				..default()
 			};
 			let force_axis = ForceAxis::new(thruster_location, CenterOfMass(Vec3::ZERO));
+			println!("Force axis {:?}", force_axis);
 
 			assert!(force_axis.turn_right);
+			assert!(!force_axis.pitch_up);
+			assert!(!force_axis.roll_right);
 			assert!(force_axis.right < 0.0);
+			assert!(force_axis.upwards == 0.0);
+			assert!(force_axis.forward == 0.0);
 		}
 
 		#[test]
