@@ -169,7 +169,7 @@ mod player_bundle {
 	use bevy::render::view::NoFrustumCulling;
 
 	use crate::{
-		players::player_movement::{PlayerBundleExt, PlayerInput},
+		players::player_movement::{PlayerBundleMovementExt, PlayerInput},
 		prelude::*,
 	};
 
@@ -187,7 +187,7 @@ mod player_bundle {
 		controllable_player: ControllablePlayer,
 		external_force: ExternalForce,
 
-		inputs_ext: PlayerBundleExt,
+		inputs_ext: PlayerBundleMovementExt,
 
 		/// Stops the player from disappearing when inside a spawn point
 		no_frustum: NoFrustumCulling,
@@ -216,7 +216,7 @@ mod player_bundle {
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
-				inputs_ext: PlayerBundleExt::new(),
+				inputs_ext: PlayerBundleMovementExt::new(),
 				no_frustum: NoFrustumCulling,
 			}
 		}
