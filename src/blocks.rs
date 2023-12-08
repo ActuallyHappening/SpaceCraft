@@ -82,6 +82,10 @@ pub mod manual_builder {
 	}
 
 	impl RelativePixel {
+		pub fn new(x: i32, y: i32, z: i32) -> Self {
+			Self::from(IVec3::new(x, y, z))
+		}
+
 		pub fn into_world_offset(self) -> Vec3 {
 			self.0.as_vec3().mul(PIXEL_SIZE)
 		}

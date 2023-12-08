@@ -30,12 +30,15 @@ pub trait Blueprint: Clone {
 /// A blueprint that is synced over the network.
 /// Hence, it must be serializable and deserializable,
 /// and a component so that [bevy_replicon] can sync it.
-pub trait ExpandableBlueprint: Blueprint + Component + Serialize + DeserializeOwned  {
+pub trait ExpandableBlueprint: Blueprint + Component + Serialize + DeserializeOwned {
 	/// What access is needed when expanding this blueprint.
 	type SpawnSystemParam: SystemParam;
 
 	/// The system that expands this blueprint on both server and client side.
-	fn expand_system(instances: Query<(Entity, &Self), Changed<Self>>, system_param: &mut Self::SpawnSystemParam);
+	fn expand_system(
+		instances: Query<(Entity, &Self), Changed<Self>>,
+		system_param: &mut Self::SpawnSystemParam,
+	);
 }
 
 #[extension(pub trait AppExt)]
@@ -63,27 +66,42 @@ pub fn vec3_polar(horizontal_xz: f32, altitude_y: f32) -> Vec3 {
 		x: altitude_y.cos() * horizontal_xz.cos(),
 		y: altitude_y.sin(),
 		z: altitude_y.cos() * horizontal_xz.sin(),
-	}.normalize()
+	}
+	.normalize()
 }
 
 #[cfg(test)]
+pub use assert_float_eq::*;
+#[cfg(test)]
+#[macro_export]
+macro_rules! assert_vec3_near {
+	// delegates each component to assert_f32_near
+	($a:expr, $b:expr) => {
+		assert_float_absolute_eq!($a.x, $b.x, 0.01);
+		assert_float_absolute_eq!($a.y, $b.y, 0.01);
+		assert_float_absolute_eq!($a.z, $b.z, 0.01);
+	};
+}
+#[cfg(test)]
+#[macro_export]
+macro_rules! assert_near {
+	// using assert_float_absolute_eq
+	($a:expr, $b:expr) => {
+		assert_float_absolute_eq!($a, $b, 0.01);
+	};
+}
+#[cfg(test)]
+pub use crate::{assert_vec3_near, assert_near};
+
+#[cfg(test)]
 mod polar_tests {
+	use super::*;
 	use std::f32::consts::TAU;
 
 	use bevy::math::Vec3;
 	use rand::random;
-	use assert_float_eq::*;
 
 	use crate::prelude::vec3_polar;
-
-	macro_rules! assert_vec3_near {
-		// delegates each component to assert_f32_near
-		($a:expr, $b:expr) => {
-			assert_float_absolute_eq!($a.x, $b.x, 0.01);
-			assert_float_absolute_eq!($a.y, $b.y, 0.01);
-			assert_float_absolute_eq!($a.z, $b.z, 0.01);
-		};
-	}
 
 	#[test]
 	fn edges() {
