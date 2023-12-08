@@ -26,7 +26,7 @@ mod prelude;
 mod states;
 mod ui;
 mod utils;
-mod world;
+// mod world;
 
 #[allow(unused_imports)]
 use bevy_mod_picking::{

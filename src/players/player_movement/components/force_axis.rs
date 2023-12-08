@@ -1,11 +1,11 @@
-use crate::{prelude::*, players::player_movement::utils::Velocity6Dimensions};
+use crate::{prelude::*, players::player_movement::utils::{Velocity6Dimensions, Velocity6DimensionsMut}};
 
 /// Forces are between [-1, 1],
 /// but torque can be infinite so is [SignedFlag] instead
 ///
 /// The Greek philosopher, Archimedes, said,
 /// “Give me a lever long enough and a fulcrum on which to place it, and I shall move the world.”
-#[derive(Debug, Reflect, Default)]
+#[derive(Debug, Reflect, Default, Clone, Copy)]
 pub struct ForceAxis {
 	forward: f32,
 	right: f32,
@@ -182,6 +182,27 @@ impl Velocity6Dimensions for ForceAxis {
 	}
 	fn angular_roll_right(&self) -> f32 {
 		self.roll_right
+	}
+}
+
+impl Velocity6DimensionsMut for ForceAxis {
+	fn forward_mut(&mut self) -> &mut f32 {
+		&mut self.forward
+	}
+	fn right_mut(&mut self) -> &mut f32 {
+		&mut self.right
+	}
+	fn up_mut(&mut self) -> &mut f32 {
+		&mut self.upwards
+	}
+	fn roll_right_mut(&mut self) -> &mut f32 {
+		&mut self.roll_right
+	}
+	fn tilt_up_mut(&mut self) -> &mut f32 {
+		&mut self.pitch_up
+	}
+	fn turn_right_mut(&mut self) -> &mut f32 {
+		&mut self.turn_right
 	}
 }
 
