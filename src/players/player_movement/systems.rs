@@ -1,6 +1,5 @@
 use super::{
 	components::{ActualVelocity, IntendedVelocity, ThrusterAxis, ThrusterStrengths},
-	input_processing::PlayerInputs,
 	utils::ActualVelocityQuery,
 	PlayerInput, PlayerMovementPlugin, Velocity6DimensionsMut,
 };
@@ -12,8 +11,8 @@ use crate::{
 impl PlayerMovementPlugin {
 	/// Adds the [ThrusterAxis] component to players.
 	pub(super) fn compute_thruster_axis(
-		players: Query<
-			(Entity, &Children, &PlayerBlueprint, &CenterOfMass),
+		mut players: Query<
+			(&mut ThrusterAxis, &Children, &PlayerBlueprint, &CenterOfMass),
 			Or<(
 				Changed<PlayerBlueprint>,
 				Changed<CenterOfMass>,
@@ -21,9 +20,8 @@ impl PlayerMovementPlugin {
 			)>,
 		>,
 		thrusters: Query<(&Transform, &Thruster)>,
-		mut commands: Commands,
 	) {
-		for (player, children, blueprint, center_of_mass) in players.iter() {
+		for (mut player, children, blueprint, center_of_mass) in players.iter_mut() {
 			let block_ids: HashSet<BlockId> = blueprint.derive_thruster_ids().collect();
 			let mut thrusters: HashMap<BlockId, &Transform> = children
 				.iter()
@@ -33,14 +31,13 @@ impl PlayerMovementPlugin {
 				.collect();
 
 			let thruster_axis = ThrusterAxis::new(center_of_mass, thrusters.drain());
-			// MARK optimize by using &mut instead
-			commands.entity(player).insert(thruster_axis);
+			*player = thruster_axis;
 		}
 	}
 
 	/// Adds the [IntendedVelocity] component to players.
-	pub(super) fn calculate_intended_velocity(mut commands: Commands, player_inputs: PlayerInputs) {
-		for (player, inputs) in player_inputs.iter() {
+	pub(super) fn calculate_intended_velocity(mut players: Query<(&mut IntendedVelocity, &ActionState<PlayerInput>)>) {
+		for (mut player, inputs) in players.iter_mut() {
 			let mut intended_velocity = IntendedVelocity::default();
 
 			if inputs.pressed(PlayerInput::Forward) {
@@ -57,30 +54,29 @@ impl PlayerMovementPlugin {
 				intended_velocity.add_turn_right(PlayerInput::ROTATION_FACTOR);
 			}
 
-			// MARK optimize by using &mut instead
-			commands.entity(player).insert(intended_velocity);
+			*player = intended_velocity;
 		}
 	}
 
 	/// Calculates the [ActualVelocity] component for each player
 	pub(super) fn calculate_actual_velocity(
-		players: Query<(Entity, ActualVelocityQuery), With<PlayerBlueprint>>,
-		mut commands: Commands,
+		mut players: Query<(&mut ActualVelocity, ActualVelocityQuery), With<PlayerBlueprint>>,
 	) {
-		for (player, actual) in players.iter() {
+		for (mut player, actual) in players.iter_mut() {
 			let actual = actual.into_actual_velocity();
-			commands.entity(player).insert(actual);
+			*player = actual;
 		}
 	}
 
+	/// Calculates [ThrusterStrengths] from [ThrusterAxis],
+	/// [IntendedVelocity], and [ActualVelocity].
 	pub(super) fn calculate_thruster_strengths(
-		players: Query<
-			(Entity, &ThrusterAxis, &IntendedVelocity, &ActualVelocity),
+		mut players: Query<
+			(&mut ThrusterStrengths, &ThrusterAxis, &IntendedVelocity, &ActualVelocity),
 			With<PlayerBlueprint>,
 		>,
-		mut commands: Commands,
 	) {
-		for (player, axis, intended, actual) in players.iter() {
+		for (mut player, axis, intended, actual) in players.iter_mut() {
 			let desired_delta = &intended.sub(*actual);
 			let strengths = ThrusterStrengths::new(axis.get_blocks().map(|(id, force_axis)| {
 				let mut dot = force_axis.dot(*desired_delta);
@@ -90,8 +86,7 @@ impl PlayerMovementPlugin {
 				}
 				(id, dot)
 			}));
-			commands.entity(player).insert(strengths);
-			// debug!("Thruster strengths: {:?}", strengths);
+			*player = strengths;
 		}
 	}
 }
