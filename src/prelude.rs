@@ -11,12 +11,12 @@ pub use std::ops::{Add as _, Div as _, Mul as _};
 pub use std::time::*; // is this better than std library?
 
 // bevy
-pub use bevy::prelude::*;
-pub use bevy::prelude::AlphaMode;
 pub use bevy::app::*;
 pub use bevy::core_pipeline::clear_color::ClearColorConfig;
 pub use bevy::core_pipeline::tonemapping::Tonemapping;
 pub use bevy::ecs::system::*;
+pub use bevy::prelude::AlphaMode;
+pub use bevy::prelude::*;
 pub use bevy::render::view::RenderLayers;
 
 // bevy_* deps
@@ -28,8 +28,8 @@ pub use bevy_timewarp::prelude::*;
 pub use bevy_xpbd_3d::prelude::*;
 // conflicts names like [Transform]
 // pub use bevy_dolly::prelude::*;
-pub use leafwing_input_manager::prelude::*;
 pub use leafwing_input_manager::prelude::Actionlike as ActionLike;
+pub use leafwing_input_manager::prelude::*;
 
 // helper deps
 pub use structstruck::strike as nested_structs;
@@ -38,10 +38,10 @@ pub use strum::IntoEnumIterator as _;
 // pub use uuid::Uuid;
 pub use clap::Parser;
 pub use rand::random;
+pub use rand::rngs::ThreadRng;
+pub use rand::Rng;
 pub use serde::{Deserialize, Serialize};
 pub use strum::IntoStaticStr;
-pub use rand::Rng;
-pub use rand::rngs::ThreadRng;
 
 // internal re-exports
 

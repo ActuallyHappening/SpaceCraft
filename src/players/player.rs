@@ -90,12 +90,12 @@ mod components {
 	use crate::prelude::*;
 
 	/// The marker component for player entities.
-	/// 
-	/// 
+	///
+	///
 	// / The [Eq] impl compares the [ClientId]s of the players.
 	// / The [Serialize] and [Deserialize] impls serialize the [ClientId]s of the players,
 	// / and are **NOT** synced using [bevy_replicon]
-	#[derive(Component, Reflect,)]
+	#[derive(Component, Reflect)]
 	#[reflect(from_reflect = false)]
 	pub struct ControllablePlayer {
 		#[reflect(ignore)]
@@ -168,7 +168,10 @@ mod player_blueprint {
 mod player_bundle {
 	use bevy::render::view::NoFrustumCulling;
 
-	use crate::{prelude::*, players::player_movement::PlayerInput};
+	use crate::{
+		players::player_movement::{PlayerBundleExt, PlayerInput},
+		prelude::*,
+	};
 
 	use super::{ControllablePlayer, PlayerBlueprint};
 
@@ -184,8 +187,7 @@ mod player_bundle {
 		controllable_player: ControllablePlayer,
 		external_force: ExternalForce,
 
-		/// input managing
-		inputs: InputManagerBundle<PlayerInput>,
+		inputs_ext: PlayerBundleExt,
 
 		/// Stops the player from disappearing when inside a spawn point
 		no_frustum: NoFrustumCulling,
@@ -214,7 +216,7 @@ mod player_bundle {
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
 				replication: Replication,
-				inputs: PlayerInput::new(),
+				inputs_ext: PlayerBundleExt::new(),
 				no_frustum: NoFrustumCulling,
 			}
 		}

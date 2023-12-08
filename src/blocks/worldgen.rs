@@ -209,11 +209,11 @@ mod terrain_bundle {
 		type Bundle = TerrainItemBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
-		fn stamp(
-			&self,
-			mma: &mut Self::StampSystemParam<'_, '_>,
-		) -> Self::Bundle {
-			let TerrainItemBlueprint { terrain_type, location } = self;
+		fn stamp(&self, mma: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
+			let TerrainItemBlueprint {
+				terrain_type,
+				location,
+			} = self;
 			Self::Bundle {
 				pbr: PbrBundle {
 					transform: Transform::from_translation(location.into_world_offset()),
@@ -272,7 +272,7 @@ mod terrain_bundle {
 }
 
 mod terrain_type {
-	use crate::{prelude::*};
+	use crate::prelude::*;
 
 	#[derive(
 		Debug, Serialize, Deserialize, PartialEq, Eq, Hash, IntoStaticStr, Reflect, Clone, Default,

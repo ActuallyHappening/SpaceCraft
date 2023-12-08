@@ -91,7 +91,7 @@ macro_rules! assert_near {
 	};
 }
 #[cfg(test)]
-pub use crate::{assert_vec3_near, assert_near};
+pub use crate::{assert_near, assert_vec3_near};
 
 #[cfg(test)]
 mod polar_tests {

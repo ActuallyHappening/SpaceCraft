@@ -1,4 +1,4 @@
-use bevy::{prelude::*, ecs::system::SystemParam};
+use bevy::{ecs::system::SystemParam, prelude::*};
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(SystemParam)]
@@ -17,7 +17,7 @@ trait Blueprint: Clone {
 
 #[derive(Clone)]
 struct PBlueprint {
-	f: f32
+	f: f32,
 }
 
 #[derive(bevy::ecs::bundle::Bundle)]
@@ -32,15 +32,11 @@ impl Blueprint for PBlueprint {
 	fn stamp<'w, 's>(&self, mma: &mut Self::StampSystemParam<'w, 's>) -> Self::For {
 		PBundle {
 			pbr: PbrBundle {
-				material: mma.mats.add(StandardMaterial {
-					..default()
-				}),
+				material: mma.mats.add(StandardMaterial { ..default() }),
 				..default()
-			}
+			},
 		}
 	}
 }
 
-fn main() {
-	
-}
+fn main() {}

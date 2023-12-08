@@ -65,7 +65,7 @@ mod bundle {
 
 	use crate::prelude::*;
 
-	use super::{Thruster, blueprint::ThrusterBlockBlueprint};
+	use super::{blueprint::ThrusterBlockBlueprint, Thruster};
 
 	/// Thruster that is spawned into the world
 	#[derive(Bundle)]

@@ -19,7 +19,7 @@ impl Plugin for SpawnPointsPlugin {
 }
 
 mod systems {
-	use crate::{prelude::*, players::player::ControllablePlayer};
+	use crate::{players::player::ControllablePlayer, prelude::*};
 
 	use super::{
 		blueprint::SpawnPointBlueprint, bundle::SpawnPointBundle, components::SpawnPoint,

@@ -22,7 +22,7 @@ fn main() {
 					level: bevy::log::Level::WARN,
 					filter:
 						"space_craft=trace,bevy_ecs=info,bevy_replicon=debug,renet=debug,bevy_xpbd_3d=debug"
-						// ""
+							// ""
 							.into(),
 				})
 				.build(),

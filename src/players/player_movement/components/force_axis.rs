@@ -1,4 +1,7 @@
-use crate::{prelude::*, players::player_movement::utils::{Velocity6Dimensions, Velocity6DimensionsMut}};
+use crate::{
+	players::player_movement::utils::{Velocity6Dimensions, Velocity6DimensionsMut},
+	prelude::*,
+};
 
 /// Forces are between [-1, 1],
 /// but torque can be infinite so is [SignedFlag] instead
