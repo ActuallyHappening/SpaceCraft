@@ -83,6 +83,7 @@ pub mod manual_builder {
 	}
 
 	impl RelativePixel {
+		#[cfg_attr(not(test), allow(dead_code))]
 		pub fn new(x: i32, y: i32, z: i32) -> Self {
 			Self::from(IVec3::new(x, y, z))
 		}

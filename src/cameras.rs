@@ -76,7 +76,7 @@ mod camera_bundle {
 			composite_mode: BloomCompositeMode::Additive,
 		};
 
-		pub const DEFAULT_BLOOM: BloomSettings = BloomSettings::NATURAL;
+		// pub const DEFAULT_BLOOM: BloomSettings = BloomSettings::NATURAL;
 	}
 
 	impl Default for CameraBundle {
@@ -203,12 +203,6 @@ mod resources {
 	#[derive(Debug, Clone, Copy, Reflect)]
 	pub(super) struct BlockEntity(pub Entity);
 
-	impl BlockEntity {
-		pub fn inner(self) -> Entity {
-			self.0
-		}
-	}
-
 	/// Holds state about the cameras of the game.
 	///
 	/// Public so that UI can change where camera is pointing
@@ -294,9 +288,9 @@ mod resources {
 			}
 		}
 
-		pub fn get_primary_cam(&self) -> Option<(BlockEntity, CameraEntity)> {
-			self.primary_cam.get_primary()
-		}
+		// pub fn get_primary_cam(&self) -> Option<(BlockEntity, CameraEntity)> {
+		// 	self.primary_cam.get_primary()
+		// }
 
 		/// Sets the primary camera to follow the given camera block entity.
 		/// Must have already spawned the camera.

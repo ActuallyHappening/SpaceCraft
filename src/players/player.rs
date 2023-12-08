@@ -169,7 +169,7 @@ mod player_bundle {
 	use bevy::render::view::NoFrustumCulling;
 
 	use crate::{
-		players::player_movement::{PlayerBundleMovementExt, PlayerInput},
+		players::player_movement::PlayerBundleMovementExt,
 		prelude::*,
 	};
 
@@ -202,7 +202,7 @@ mod player_bundle {
 				network_id,
 				transform,
 				structure_children: _,
-				thruster_children,
+				thruster_children: _,
 				primary_camera: _,
 			} = self;
 			Self::Bundle {
