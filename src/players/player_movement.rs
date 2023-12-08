@@ -14,12 +14,16 @@ pub struct PlayerMovementPlugin;
 
 impl Plugin for PlayerMovementPlugin {
 	fn build(&self, app: &mut App) {
-		app.replicate::<ThrusterStrengths>().add_systems(
-			FixedUpdate,
-			(Self::compute_thruster_axis, Self::chose_thrusters)
-				.chain()
-				.in_set(PlayerMovementSet),
-		);
+		app
+			.replicate::<ThrusterStrengths>()
+			.add_systems(
+				FixedUpdate,
+				(Self::compute_thruster_axis, Self::chose_thrusters)
+					.chain()
+					.in_set(PlayerMovementSet),
+			)
+			.register_type::<components::ThrusterAxis>()
+			.register_type::<components::ThrusterStrengths>();
 	}
 }
 
@@ -49,10 +53,7 @@ mod api {
 }
 
 mod systems {
-	use super::{
-		components::ThrusterAxis,
-		PlayerMovementPlugin,
-	};
+	use super::{components::ThrusterAxis, PlayerMovementPlugin};
 	use crate::{
 		players::{thruster_block::Thruster, PlayerBlueprint},
 		prelude::*,
@@ -118,9 +119,56 @@ mod components {
 		forward: f32,
 		right: f32,
 		upwards: f32,
-		turn_right: bool,
-		pitch_up: bool,
-		roll_right: bool,
+		turn_right: SignedFlag,
+		pitch_up: SignedFlag,
+		roll_right: SignedFlag,
+	}
+
+	#[derive(Debug, Reflect, Default)]
+	pub(super) enum SignedFlag {
+		Flag(bool),
+		#[default]
+		Zero,
+	}
+
+	impl SignedFlag {
+		pub fn new(num: f32) -> Self {
+			const EPSILON: f32 = 0.01;
+			if num.abs() < EPSILON {
+				Self::Zero
+			} else {
+				Self::Flag(num > 0.0)
+			}
+		}
+
+		pub fn into_option(self) -> Option<bool> {
+			match self {
+				Self::Flag(b) => Some(b),
+				Self::Zero => None,
+			}
+		}
+
+		/// Whether [SignedFlag::Zero] or not
+		pub fn flagged(self) -> bool {
+			match self {
+				Self::Flag(_) => true,
+				Self::Zero => false,
+			}
+		}
+
+		pub fn flagged_true(self) -> bool {
+			match self {
+				Self::Flag(b) => b,
+				Self::Zero => false,
+			}
+		}
+
+		pub fn flagged_false(self) -> bool {
+			match self {
+				Self::Flag(b) => !b,
+				Self::Zero => false,
+			}
+		}
 	}
 
 	impl ThrusterStrengths {
@@ -172,7 +220,7 @@ mod components {
 	impl ForceAxis {
 		pub fn from_iter(
 			mut forces: impl FnMut(Vec3) -> f32,
-			mut torques: impl FnMut(Vec3) -> bool,
+			mut torques: impl FnMut(Vec3) -> SignedFlag,
 		) -> Self {
 			Self {
 				forward: forces(-Vec3::Z),
@@ -212,7 +260,7 @@ mod components {
 			let forces = |dir: Vec3| force.dot(dir) / force.length();
 
 			let torque = ef.torque();
-			let torques = |dir: Vec3| torque.dot(dir) > 0.01;
+			let torques = |dir: Vec3| SignedFlag::new(torque.dot(dir));
 
 			Self::from_iter(forces, torques)
 		}
@@ -240,9 +288,9 @@ mod components {
 			let force_axis = ForceAxis::new(&thruster_location, &CenterOfMass(Vec3::ZERO));
 			println!("Force axis {:?}", force_axis);
 
-			assert!(force_axis.turn_right);
-			assert!(!force_axis.pitch_up);
-			assert!(!force_axis.roll_right);
+			assert!(force_axis.turn_right.flagged_true());
+			assert!(!force_axis.pitch_up.flagged());
+			assert!(!force_axis.roll_right.flagged());
 			assert!(force_axis.right < 0.0);
 			assert!(force_axis.upwards == 0.0);
 			assert!(force_axis.forward == 0.0);
