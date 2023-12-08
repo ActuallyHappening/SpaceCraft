@@ -142,6 +142,10 @@ mod player_blueprint {
 				primary_camera: BlockBlueprint::new_camera(IVec3::new(0, 1, 0), Facing::Forwards),
 			}
 		}
+
+		pub fn derive_thruster_ids(&self) -> impl Iterator<Item = BlockId> + '_ {
+			self.thruster_children.iter().map(|b| b.get_block_id())
+		}
 	}
 
 	impl GetNetworkId for PlayerBlueprint {

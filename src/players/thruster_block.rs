@@ -283,8 +283,10 @@ mod blueprint {
 				strength: 10.,
 			}
 		}
+	}
 
-		pub fn get_id(&self) -> BlockId {
+	impl GetBlockId for ThrusterBlockBlueprint {
+		fn get_block_id(&self) -> BlockId {
 			self.id
 		}
 	}

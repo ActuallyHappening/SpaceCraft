@@ -33,11 +33,12 @@ impl BlockId {
 ///
 /// Assumes all blocks have a position, material and mesh. These restrictions may be lifted
 /// if ever there was a need.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Deref)]
 pub struct BlockBlueprint<T> {
 	pub transform: Transform,
 	pub mesh: OptimizableMesh,
 	pub material: OptimizableMaterial,
+	#[deref]
 	pub specific_marker: T,
 }
 

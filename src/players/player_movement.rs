@@ -49,9 +49,12 @@ mod api {
 }
 
 mod systems {
-	use super::PlayerMovementPlugin;
+	use super::{
+		components::ThrusterAxis,
+		PlayerMovementPlugin,
+	};
 	use crate::{
-		players::{player::ControllablePlayer, thruster_block::Thruster},
+		players::{thruster_block::Thruster, PlayerBlueprint},
 		prelude::*,
 	};
 
@@ -59,9 +62,25 @@ mod systems {
 		/// Triggers whenever the children of a player are change.
 		/// This makes sure the axis are only computed whenever a new thruster / block is added
 		pub(super) fn compute_thruster_axis(
-			players: Query<Entity, (Changed<Children>, With<ControllablePlayer>)>,
+			players: Query<
+				(Entity, &Children, &PlayerBlueprint, &CenterOfMass),
+				Or<(Changed<PlayerBlueprint>, Changed<CenterOfMass>)>,
+			>,
 			thrusters: Query<(&Transform, &Thruster)>,
+			mut commands: Commands,
 		) {
+			for (player, children, blueprint, center_of_mass) in players.iter() {
+				let block_ids: HashSet<BlockId> = blueprint.derive_thruster_ids().collect();
+				let mut thrusters: HashMap<BlockId, &Transform> = children
+					.iter()
+					.filter_map(|e| thrusters.get(*e).ok())
+					.filter(|(_, thruster)| block_ids.contains(&thruster.get_block_id()))
+					.map(|(t, id)| (id.get_block_id(), t))
+					.collect();
+
+				let thruster_axis = ThrusterAxis::new(center_of_mass, thrusters.drain());
+				commands.entity(player).insert(thruster_axis);
+			}
 		}
 
 		pub(super) fn chose_thrusters() {}
@@ -69,7 +88,7 @@ mod systems {
 }
 
 mod components {
-	use crate::{blocks::manual_builder::Facing, prelude::*};
+	use crate::prelude::*;
 
 	/// Stores all of the data concerning thruster movements.
 	/// Placed on players.
@@ -84,6 +103,7 @@ mod components {
 	/// depending on whether player rebuild their ships.
 	///
 	/// Is not replicated, is derived data.
+	#[derive(Debug, Component, Reflect)]
 	pub(super) struct ThrusterAxis {
 		blocks: HashMap<BlockId, ForceAxis>,
 	}
@@ -114,9 +134,15 @@ mod components {
 	}
 
 	impl ThrusterAxis {
-		pub(super) fn new(blocks: impl IntoIterator<Item = (BlockId, ForceAxis)>) -> Self {
+		pub(super) fn new<'w>(
+			center_of_mass: &'w CenterOfMass,
+			blocks: impl IntoIterator<Item = (BlockId, &'w Transform)>,
+		) -> Self {
 			Self {
-				blocks: blocks.into_iter().collect(),
+				blocks: blocks
+					.into_iter()
+					.map(|(id, t)| (id, ForceAxis::new(t, center_of_mass)))
+					.collect(),
 			}
 		}
 	}
@@ -166,17 +192,20 @@ mod components {
 				translation,
 				rotation,
 				..
-			}: Transform,
-			center_of_mass: CenterOfMass,
+			}: &Transform,
+			center_of_mass: &CenterOfMass,
 		) -> Self {
 			let relative_force = rotation.mul_vec3(Vec3::Z);
 
 			#[cfg(test)]
-			println!("Relative force: {:?}, translation: {:?}", relative_force, translation);
+			println!(
+				"Relative force: {:?}, translation: {:?}",
+				relative_force, translation
+			);
 
 			let ef = *ExternalForce::new(Vec3::ZERO).apply_force_at_point(
 				relative_force,
-				translation,
+				*translation,
 				center_of_mass.0,
 			);
 			let force = ef.force();
@@ -208,7 +237,7 @@ mod components {
 				rotation: Facing::Right.into_quat(),
 				..default()
 			};
-			let force_axis = ForceAxis::new(thruster_location, CenterOfMass(Vec3::ZERO));
+			let force_axis = ForceAxis::new(&thruster_location, &CenterOfMass(Vec3::ZERO));
 			println!("Force axis {:?}", force_axis);
 
 			assert!(force_axis.turn_right);
