@@ -126,7 +126,6 @@ impl Plugin for MainPlugin {
 			PhysicsPlugins::new(FixedUpdate),
 			#[cfg(feature = "debug")]
 			PhysicsDebugPlugin::default(),
-			bevy_xpbd3d_parenting::PhysicsParentingPlugin,
 			HanabiPlugin,
 			ReplicationPlugins
 				.build()
@@ -135,9 +134,14 @@ impl Plugin for MainPlugin {
 				GlobalSystemSet::GameLogic,
 				GlobalSystemSet::GameLogic,
 			)),
-			crate::utils::scenes::HelperScene,
+			// crate::utils::scenes::HelperScene,
+		));
+
+		app.add_plugins((
+			bevy_xpbd3d_parenting::PhysicsParentingPlugin,
 			bevy_starfield::StarfieldPlugin::default(),
 		));
+
 		// dep configuration
 		app.insert_resource(Gravity(Vec3::ZERO));
 		#[cfg(feature = "editor")]
@@ -153,8 +157,8 @@ impl Plugin for MainPlugin {
 		));
 		app.register_type::<BlockId>();
 
-		// network replication
-		app.replicate::<Position>().replicate::<Rotation>();
+		// general network replication
+		replicate_marked!(app, Transform);
 	}
 }
 

@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+pub use crate::replicate_marked;
+
 use crate::prelude::*;
 
 use extension_traits::extension;
@@ -12,6 +14,9 @@ pub mod scenes;
 mod testing;
 #[cfg(test)]
 pub use testing::*;
+
+/// Implemented on types that are replicated
+pub trait ReplicationMarker: Serialize + DeserializeOwned + Reflect {}
 
 /// Represents a type [Blueprint] that can be [Blueprint::stamp]ed into
 /// a bundle that can be spawned, i.e., a [Bundle] that is specifically
@@ -29,8 +34,10 @@ pub trait Blueprint {
 
 /// A blueprint that is synced over the network.
 /// Hence, it must be serializable and deserializable,
-/// and a component so that [bevy_replicon] can sync it.
-pub trait NetworkedBlueprint: Blueprint + Component + Serialize + DeserializeOwned {
+/// and contain at least a [bevy_replicon] serializable component.
+pub trait NetworkedBlueprintBundle: Bundle + std::ops::Deref<Target = Self::NetworkedBlueprintComponent> {
+	type NetworkedBlueprintComponent: Component + Serialize + DeserializeOwned + ReplicationMarker;
+
 	// /// What access is needed when expanding this blueprint.
 	// type SpawnSystemParam: SystemParam;
 
@@ -46,8 +53,18 @@ pub struct SpatialBundleNoTransform {
 	pub visibility: Visibility,
 	pub inherited_visibility: InheritedVisibility,
 	pub view_visibility: ViewVisibility,
-    // pub transform: Transform,
+	// pub transform: Transform,
 	pub global_transform: GlobalTransform,
+}
+
+#[derive(Bundle, Default)]
+pub struct PbrBundleNoTransform {
+	pub mesh: Handle<Mesh>,
+	pub material: Handle<StandardMaterial>,
+	pub global_transform: GlobalTransform,
+	pub visibility: Visibility,
+	pub inherited_visibility: InheritedVisibility,
+	pub view_visibility: ViewVisibility,
 }
 
 #[extension(pub trait AppExt)]
@@ -68,6 +85,29 @@ impl &mut App {
 			self
 		}
 	}
+
+	fn replicate_marked<T>(self) -> Self
+	where
+		T: Component + Serialize + DeserializeOwned + ReplicationMarker,
+	{
+		debug!("Replicating {:?}", std::any::type_name::<T>());
+
+		// impl ReplicationMarker for T {}
+
+		self.replicate::<T>()
+	}
+}
+
+#[macro_export]
+macro_rules! replicate_marked {
+	// &mut App
+	($app:expr, $($t:ty),*) => {
+		$(
+			$app.replicate_marked::<$t>();
+
+			impl ReplicationMarker for $t {}
+		)*
+	};
 }
 
 pub fn vec3_polar(horizontal_xz: f32, altitude_y: f32) -> Vec3 {

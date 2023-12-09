@@ -9,8 +9,9 @@ impl Plugin for PlayerPlugin {
 		app.depends_on::<RepliconCorePlugin, _>(ReplicationPlugins);
 		app.depends_on::<crate::cameras::CameraPlugin, _>(crate::cameras::CameraPlugin);
 
+		replicate_marked!(app, player_blueprint::PlayerBlueprintComponent);
+
 		app
-			.replicate::<player_blueprint::PlayerBlueprintComponent>()
 			.register_type::<player_blueprint::PlayerBlueprintComponent>()
 			.register_type::<components::ControllablePlayer>()
 			.add_systems(
@@ -138,11 +139,12 @@ mod player_blueprint {
 		pub(super) primary_camera: BlockBlueprint<CameraBlockBlueprint>,
 	}
 
-	#[derive(Bundle, Debug, Serialize, Deserialize)]
+	#[derive(Bundle, Debug, Serialize, Deserialize, Deref)]
 	pub struct PlayerBlueprintBundle {
 		/// Synced
 		pub(super) transform: Transform,
 		/// Synced
+		#[deref]
 		pub(super) blueprint: PlayerBlueprintComponent,
 	}
 
@@ -188,7 +190,7 @@ mod player_bundle {
 
 	use crate::{players::player_movement::PlayerBundleMovementExt, prelude::*};
 
-	use super::{ControllablePlayer, PlayerBlueprintComponent};
+	use super::{ControllablePlayer, PlayerBlueprintComponent, PlayerBlueprintBundle};
 
 	/// Parent entity of a player.
 	/// Doesn't actually have its own [Mesh] / [Collider],
@@ -237,7 +239,7 @@ mod player_bundle {
 		}
 	}
 
-	impl NetworkedBlueprint for PlayerBlueprintComponent {
-		
+	impl NetworkedBlueprintBundle for PlayerBlueprintBundle {
+		type NetworkedBlueprintComponent = PlayerBlueprintComponent;
 	}
 }

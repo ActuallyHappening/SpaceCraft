@@ -1,13 +1,16 @@
 use crate::prelude::*;
 
-use self::components::SpawnPoint;
+pub use api::*;
 
 pub struct SpawnPointsPlugin;
 
 impl Plugin for SpawnPointsPlugin {
 	fn build(&self, app: &mut App) {
+		replicate_marked!(app, blueprint::SpawnPointBlueprintComponent);
+
 		app
-			.register_type::<SpawnPoint>()
+			// .replicate_marked::<blueprint::SpawnPointBlueprintComponent>()
+			.register_type::<components::SpawnPoint>()
 			.add_systems(Startup, Self::load_default_materials)
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
 			.add_systems(
@@ -18,11 +21,54 @@ impl Plugin for SpawnPointsPlugin {
 	}
 }
 
+mod api {
+	use crate::prelude::*;
+
+	use super::components::SpawnPoint;
+
+	#[derive(SystemParam)]
+	// #[system_param(mutable)]
+	pub struct AvailableSpawnPoints<'w, 's> {
+		spawn_points: Query<'w, 's, (&'static mut SpawnPoint, &'static Transform)>,
+		state: Res<'w, NetcodeConfig>,
+	}
+
+	impl AvailableSpawnPoints<'_, '_> {
+		/// Returns a valid spawn location, handling side effects.
+		///
+		/// Maybe: Handle spawning a new spawn location in the future?
+		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<Transform> {
+			if !self.state.is_authoritative() {
+				error!(
+					"Cannot assign spawn points from a non-authoritative state: {:?}",
+					self.state
+				);
+			}
+
+			let mut available_points = self
+				.spawn_points
+				.iter_mut()
+				.filter(|(sp, _)| sp.player_occupation.is_none());
+
+			let Some((mut spawn_point, global_transform)) = available_points.next() else {
+				return None;
+			};
+
+			spawn_point.set_network_id(player_occupying);
+
+			Some(*global_transform)
+		}
+	}
+}
+
 mod systems {
-	use crate::{players::player::ControllablePlayer, prelude::*};
+	use crate::{
+		players::{player::ControllablePlayer, spawn_points::blueprint::SpawnPointBlueprintBundle},
+		prelude::*,
+	};
 
 	use super::{
-		blueprint::SpawnPointBlueprint, bundle::SpawnPointBundle, components::SpawnPoint,
+		blueprint::SpawnPointBlueprintComponent, bundle::SpawnPointBundle, components::SpawnPoint,
 		SpawnPointsPlugin,
 	};
 
@@ -36,7 +82,7 @@ mod systems {
 			collisions.retain(|contacts| {
 				let check = |e1: Entity, e2: Entity| -> bool {
 					if let Ok(spawn_point) = spawn_points.get(e2) {
-						match spawn_point.get_id() {
+						match spawn_point.get_network_id() {
 							// this spawn point is not occupied, so no matter
 							// what player collides we should allow it
 							None => false,
@@ -79,7 +125,7 @@ mod systems {
 		}
 
 		pub(super) fn creation_spawn_points(mut commands: Commands, mut mma: MMA) {
-			const CIRCLE_RADIUS: f32 = SpawnPointBlueprint::DEFAULT_SIZE * 4.0;
+			const CIRCLE_RADIUS: f32 = SpawnPointBlueprintBundle::DEFAULT_SIZE * 4.0;
 			const NUM_STRIPS_MAGNITUDE: isize = 2; // 5 total layers
 
 			// altitudes
@@ -126,25 +172,25 @@ mod systems {
 
 			// trace!("Starting positions: {:?}", starting_positions);
 
-			let spawn_points: Vec<SpawnPointBundle> = starting_positions
+			let spawn_points = starting_positions
 				.iter()
 				.map(|pos| {
 					let transform = Transform::from_translation(*pos);
-					let blueprint = SpawnPointBlueprint::new(transform, None);
-					blueprint.stamp(&mut mma)
+					let blueprint_bundle = SpawnPointBlueprintBundle::new(transform, None);
+					(blueprint_bundle.stamp(&mut mma), blueprint_bundle)
 				})
-				.collect();
+				.collect::<Vec<_>>();
 			commands.spawn_batch(spawn_points);
 		}
 
 		pub(super) fn load_default_materials(mut materials: ResMut<Assets<StandardMaterial>>) {
 			materials.insert(
-				SpawnPointBlueprint::DEFAULT_MATERIAL_HANDLE,
-				SpawnPointBlueprint::get_default_material(),
+				SpawnPointBlueprintComponent::DEFAULT_MATERIAL_HANDLE,
+				SpawnPointBlueprintComponent::get_default_material(),
 			);
 			materials.insert(
-				SpawnPointBlueprint::ACTIVE_MATERIAL_HANDLE,
-				SpawnPointBlueprint::get_active_material(),
+				SpawnPointBlueprintComponent::ACTIVE_MATERIAL_HANDLE,
+				SpawnPointBlueprintComponent::get_active_material(),
 			);
 		}
 
@@ -154,10 +200,10 @@ mod systems {
 		) {
 			if let Some(id) = local_id.get() {
 				for (spawn_point, mut material) in spawn_points.iter_mut() {
-					if spawn_point.get_id() == Some(id) {
-						*material = SpawnPointBlueprint::ACTIVE_MATERIAL_HANDLE;
+					if spawn_point.get_network_id() == Some(id) {
+						*material = SpawnPointBlueprintComponent::ACTIVE_MATERIAL_HANDLE;
 					} else {
-						*material = SpawnPointBlueprint::DEFAULT_MATERIAL_HANDLE;
+						*material = SpawnPointBlueprintComponent::DEFAULT_MATERIAL_HANDLE;
 					}
 				}
 			}
@@ -169,20 +215,27 @@ mod blueprint {
 	use crate::prelude::*;
 
 	#[derive(Debug, Component, Reflect, Clone, Serialize, Deserialize)]
-	pub struct SpawnPointBlueprint {
-		pub at: Transform,
-		pub size: f32,
-
-		#[reflect(ignore)]
-		pub initial_occupation: Option<ClientId>,
+	pub struct SpawnPointBlueprintComponent {
+		// MARK use [ClientId]
+		pub initial_occupation: Option<u64>,
 	}
 
-	impl SpawnPointBlueprint {
+	#[derive(Bundle, Deref)]
+	pub struct SpawnPointBlueprintBundle {
+		/// synced
+		transform: Transform,
+		/// synced
+		#[deref]
+		blueprint: SpawnPointBlueprintComponent,
+	}
+
+	impl SpawnPointBlueprintBundle {
 		pub fn new(at: Transform, initially_occupied: Option<ClientId>) -> Self {
 			Self {
-				at,
-				initial_occupation: initially_occupied,
-				size: SpawnPointBlueprint::DEFAULT_SIZE,
+				transform: at.with_scale(Vec3::splat(Self::DEFAULT_SIZE)),
+				blueprint: SpawnPointBlueprintComponent {
+					initial_occupation: initially_occupied.map(|id| id.raw()),
+				},
 			}
 		}
 
@@ -203,18 +256,23 @@ mod blueprint {
 mod bundle {
 	use crate::prelude::*;
 
-	use super::{blueprint::SpawnPointBlueprint, components::SpawnPoint};
+	use super::{
+		blueprint::{SpawnPointBlueprintBundle, SpawnPointBlueprintComponent},
+		components::SpawnPoint,
+	};
 
+	/// Actual [SpawnPoint] bundle
+	/// No transform, because that is added in [SpawnPointBlueprintBundle]
 	#[derive(Bundle)]
 	pub struct SpawnPointBundle {
-		pbr: PbrBundle,
+		pbr: PbrBundleNoTransform,
 		name: Name,
 		spawn_point: SpawnPoint,
 		rigid_body: RigidBody,
 		collider: AsyncCollider,
 	}
 
-	impl SpawnPointBlueprint {
+	impl SpawnPointBlueprintComponent {
 		pub const DEFAULT_MATERIAL_HANDLE: Handle<StandardMaterial> =
 			Handle::weak_from_u128(1234760192378468914256943588769860234);
 
@@ -256,97 +314,58 @@ mod bundle {
 		}
 	}
 
-	impl Blueprint for SpawnPointBlueprint {
+	impl Blueprint for SpawnPointBlueprintComponent {
 		type Bundle = SpawnPointBundle;
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
 		fn stamp(&self, mma: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
-			let SpawnPointBlueprint {
-				at,
-				size,
-				initial_occupation,
-			} = self;
+			let SpawnPointBlueprintComponent { initial_occupation } = self;
 
 			SpawnPointBundle {
-				pbr: PbrBundle {
-					transform: *at,
+				pbr: PbrBundleNoTransform {
 					mesh: mma.meshs.add(
-						shape::UVSphere {
-							radius: *size,
-							..default()
-						}
-						.into(),
+						// radius is handled by scale
+						shape::UVSphere::default().into(),
 					),
-					material: SpawnPointBlueprint::DEFAULT_MATERIAL_HANDLE,
+					material: SpawnPointBlueprintComponent::DEFAULT_MATERIAL_HANDLE,
 					..default()
 				},
 				name: Name::new("SpawnPoint"),
-				spawn_point: SpawnPoint::new(*initial_occupation),
+				spawn_point: SpawnPoint::new(initial_occupation.map(ClientId::from_raw)),
 				rigid_body: RigidBody::Kinematic,
 				collider: AsyncCollider::default(),
 			}
 		}
 	}
+
+	impl NetworkedBlueprintBundle for SpawnPointBlueprintBundle {
+		type NetworkedBlueprintComponent = SpawnPointBlueprintComponent;
+	}
 }
 
-pub use components::AvailableSpawnPoints;
 mod components {
 	use crate::prelude::*;
 
 	#[derive(Component, Debug, Reflect)]
 	pub(super) struct SpawnPoint {
+		// MARK use [ClientId]
 		/// Player that occupies this spawn point.
-		#[reflect(ignore)]
-		player_occupation: Option<ClientId>,
+		pub(super) player_occupation: Option<u64>,
 	}
 
 	impl SpawnPoint {
 		pub(super) fn new(occupation: Option<ClientId>) -> Self {
 			Self {
-				player_occupation: occupation,
+				player_occupation: occupation.map(|id| id.raw()),
 			}
 		}
 
-		pub(super) fn get_id(&self) -> Option<ClientId> {
-			self.player_occupation
+		pub(super) fn get_network_id(&self) -> Option<ClientId> {
+			self.player_occupation.map(ClientId::from_raw)
 		}
 
-		fn set_id(&mut self, id: ClientId) {
-			self.player_occupation = Some(id);
-		}
-	}
-
-	#[derive(SystemParam)]
-	// #[system_param(mutable)]
-	pub struct AvailableSpawnPoints<'w, 's> {
-		spawn_points: Query<'w, 's, (&'static mut SpawnPoint, &'static Transform)>,
-		state: Res<'w, NetcodeConfig>,
-	}
-
-	impl AvailableSpawnPoints<'_, '_> {
-		/// Returns a valid spawn location, handling side effects.
-		///
-		/// Maybe: Handle spawning a new spawn location in the future?
-		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<Transform> {
-			if !self.state.is_authoritative() {
-				error!(
-					"Cannot assign spawn points from a non-authoritative state: {:?}",
-					self.state
-				);
-			}
-
-			let mut available_points = self
-				.spawn_points
-				.iter_mut()
-				.filter(|(sp, _)| sp.player_occupation.is_none());
-
-			let Some((mut spawn_point, global_transform)) = available_points.next() else {
-				return None;
-			};
-
-			spawn_point.set_id(player_occupying);
-
-			Some(*global_transform)
+		pub(super) fn set_network_id(&mut self, id: ClientId) {
+			self.player_occupation = Some(id.raw());
 		}
 	}
 }
