@@ -270,7 +270,7 @@ mod blueprint {
 	/// Builder for [ThrusterBlockBundle].
 	///
 	/// Will spawn a particle emitter as a child
-	#[derive(Debug, Serialize, Deserialize, Clone)]
+	#[derive(Debug, Reflect, Serialize, Deserialize, Clone)]
 	pub struct ThrusterBlockBlueprint {
 		id: BlockId,
 		strength: f32,

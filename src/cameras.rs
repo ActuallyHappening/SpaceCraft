@@ -351,7 +351,7 @@ mod camera_block {
 	}
 
 	/// Blueprint for [CameraBlockBundle]
-	#[derive(Debug, Serialize, Deserialize, Clone)]
+	#[derive(Debug, Reflect, Serialize, Deserialize, Clone)]
 	pub struct CameraBlockBlueprint {
 		pub id: BlockId,
 	}

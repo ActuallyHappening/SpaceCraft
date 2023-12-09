@@ -4,7 +4,7 @@ use super::{
 	PlayerInput, PlayerMovementPlugin, Velocity6DimensionsMut,
 };
 use crate::{
-	players::{thruster_block::Thruster, PlayerBlueprint},
+	players::{player::PlayerBlueprintComponent, thruster_block::Thruster},
 	prelude::*,
 };
 
@@ -12,9 +12,14 @@ impl PlayerMovementPlugin {
 	/// Adds the [ThrusterAxis] component to players.
 	pub(super) fn compute_thruster_axis(
 		mut players: Query<
-			(&mut ThrusterAxis, &Children, &PlayerBlueprint, &CenterOfMass),
+			(
+				&mut ThrusterAxis,
+				&Children,
+				&PlayerBlueprintComponent,
+				&CenterOfMass,
+			),
 			Or<(
-				Changed<PlayerBlueprint>,
+				Changed<PlayerBlueprintComponent>,
 				Changed<CenterOfMass>,
 				Changed<Children>,
 			)>,
@@ -36,7 +41,9 @@ impl PlayerMovementPlugin {
 	}
 
 	/// Adds the [IntendedVelocity] component to players.
-	pub(super) fn calculate_intended_velocity(mut players: Query<(&mut IntendedVelocity, &ActionState<PlayerInput>)>) {
+	pub(super) fn calculate_intended_velocity(
+		mut players: Query<(&mut IntendedVelocity, &ActionState<PlayerInput>)>,
+	) {
 		for (mut player, inputs) in players.iter_mut() {
 			let mut intended_velocity = IntendedVelocity::default();
 
@@ -60,7 +67,7 @@ impl PlayerMovementPlugin {
 
 	/// Calculates the [ActualVelocity] component for each player
 	pub(super) fn calculate_actual_velocity(
-		mut players: Query<(&mut ActualVelocity, ActualVelocityQuery), With<PlayerBlueprint>>,
+		mut players: Query<(&mut ActualVelocity, ActualVelocityQuery), With<PlayerBlueprintComponent>>,
 	) {
 		for (mut player, actual) in players.iter_mut() {
 			let actual = actual.into_actual_velocity();
@@ -70,10 +77,16 @@ impl PlayerMovementPlugin {
 
 	/// Calculates [ThrusterStrengths] from [ThrusterAxis],
 	/// [IntendedVelocity], and [ActualVelocity].
+	// #[bevycheck::system]
 	pub(super) fn calculate_thruster_strengths(
 		mut players: Query<
-			(&mut ThrusterStrengths, &ThrusterAxis, &IntendedVelocity, &ActualVelocity),
-			With<PlayerBlueprint>,
+			(
+				&mut ThrusterStrengths,
+				&ThrusterAxis,
+				&IntendedVelocity,
+				&ActualVelocity,
+			),
+			With<PlayerBlueprintComponent>,
 		>,
 	) {
 		for (mut player, axis, intended, actual) in players.iter_mut() {

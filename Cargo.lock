@@ -1363,16 +1363,17 @@ dependencies = [
 [[package]]
 name = "bevy_renet"
 version = "0.0.10"
-source = "git+https://github.com/lucaspoffo/renet.git#b873925ebcf65d5ddb21b3adac9e8bff8de2e83f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b0f74ab5d4a9954c4dc1497bc55bfd5f845e254f24717c6464accffa4498f95"
 dependencies = [
  "bevy",
- "renet 0.0.14 (git+https://github.com/lucaspoffo/renet.git)",
+ "renet",
 ]
 
 [[package]]
 name = "bevy_replicon"
 version = "0.17.0"
-source = "git+https://github.com/ActuallyHappening/bevy_replicon.git#94f59cd55682f99e42ed9e92c6a3538fb6e6e6a5"
+source = "git+https://github.com/lifescapegame/bevy_replicon.git#0d99639e0946fe92131d91f637745ac30630479f"
 dependencies = [
  "bevy",
  "bevy_renet",
@@ -1661,6 +1662,16 @@ source = "git+https://github.com/Jondolf/bevy_xpbd.git#3a7559bb1f8113bf76d880204
 dependencies = [
  "quote",
  "syn 2.0.39",
+]
+
+[[package]]
+name = "bevycheck"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35eff4e62ba08efdfa824e835bd7d33875d3f9871dab5c41a8d1c9ed374e89af"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -4678,23 +4689,11 @@ version = "0.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3ac6743d7567cad8ca1bb3b7ebe773ea81f2f7ed356cb0867ddb56251429644"
 dependencies = [
- "bytes",
- "log",
- "octets",
- "renetcode 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde",
-]
-
-[[package]]
-name = "renet"
-version = "0.0.14"
-source = "git+https://github.com/lucaspoffo/renet.git#b873925ebcf65d5ddb21b3adac9e8bff8de2e83f"
-dependencies = [
  "bevy_ecs",
  "bytes",
  "log",
  "octets",
- "renetcode 0.0.10 (git+https://github.com/lucaspoffo/renet.git)",
+ "renetcode",
  "serde",
 ]
 
@@ -4703,15 +4702,6 @@ name = "renetcode"
 version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d20c7f74570e31217a9bbe6912e8d93ebf461939731ccb2f09a0da50e729ff7"
-dependencies = [
- "chacha20poly1305",
- "log",
-]
-
-[[package]]
-name = "renetcode"
-version = "0.0.10"
-source = "git+https://github.com/lucaspoffo/renet.git#b873925ebcf65d5ddb21b3adac9e8bff8de2e83f"
 dependencies = [
  "chacha20poly1305",
  "log",
@@ -5013,12 +5003,13 @@ dependencies = [
  "bevy_timewarp",
  "bevy_xpbd3d_parenting",
  "bevy_xpbd_3d",
+ "bevycheck",
  "clap",
  "extension-traits",
  "image",
  "leafwing-input-manager",
  "rand 0.8.5",
- "renet 0.0.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "renet",
  "serde",
  "structstruck",
  "strum",

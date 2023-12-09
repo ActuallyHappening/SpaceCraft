@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub use player::PlayerBlueprint;
+pub use player::PlayerBlueprintBundle;
 mod player;
 
 pub use spawn_points::AvailableSpawnPoints;

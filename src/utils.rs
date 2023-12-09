@@ -16,7 +16,7 @@ pub use testing::*;
 /// Represents a type [Blueprint] that can be [Blueprint::stamp]ed into
 /// a bundle that can be spawned, i.e., a [Bundle] that is specifically
 /// [Blueprint::For]
-pub trait Blueprint: Clone {
+pub trait Blueprint {
 	/// The bundle type that this blueprint can be stamped into.
 	type Bundle: Bundle;
 	/// A way to access the world when stamping, typically [MMA],
@@ -30,15 +30,24 @@ pub trait Blueprint: Clone {
 /// A blueprint that is synced over the network.
 /// Hence, it must be serializable and deserializable,
 /// and a component so that [bevy_replicon] can sync it.
-pub trait ExpandableBlueprint: Blueprint + Component + Serialize + DeserializeOwned {
-	/// What access is needed when expanding this blueprint.
-	type SpawnSystemParam: SystemParam;
+pub trait NetworkedBlueprint: Blueprint + Component + Serialize + DeserializeOwned {
+	// /// What access is needed when expanding this blueprint.
+	// type SpawnSystemParam: SystemParam;
 
-	/// The system that expands this blueprint on both server and client side.
-	fn expand_system(
-		instances: Query<(Entity, &Self), Changed<Self>>,
-		system_param: &mut Self::SpawnSystemParam,
-	);
+	// /// The system that expands this blueprint on both server and client side.
+	// fn expand_system(
+	// 	instances: Query<(Entity, &Self), Changed<Self>>,
+	// 	system_param: &mut Self::SpawnSystemParam,
+	// );
+}
+
+#[derive(Bundle, Debug, Default)]
+pub struct SpatialBundleNoTransform {
+	pub visibility: Visibility,
+	pub inherited_visibility: InheritedVisibility,
+	pub view_visibility: ViewVisibility,
+    // pub transform: Transform,
+	pub global_transform: GlobalTransform,
 }
 
 #[extension(pub trait AppExt)]

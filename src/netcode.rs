@@ -1,4 +1,4 @@
-use crate::{players::PlayerBlueprint, prelude::*};
+use crate::{players::PlayerBlueprintBundle, prelude::*};
 
 pub use bevy_replicon::{
 	prelude::*,
@@ -68,15 +68,16 @@ impl ClientID<'_> {
 	/// [None] if [NetcodeConfig] is configured to be
 	/// [NetcodeConfig::is_headless]
 	pub fn get(&self) -> Option<ClientId> {
-		let local_id = self
-			.res
-			.as_ref()
-			.map(|client| client.client_id())
-			.unwrap_or(SERVER_ID);
 		if self.is_headless.get_headless() {
 			None
 		} else {
-			Some(local_id)
+			Some(
+				self
+					.res
+					.as_ref()
+					.map(|client| ClientId::from_raw(client.client_id()))
+					.unwrap_or(SERVER_ID),
+			)
 		}
 	}
 
@@ -272,7 +273,7 @@ impl NetcodePlugin {
 				ServerEvent::ClientConnected { client_id } => {
 					info!("New player with id {client_id} connected");
 
-					commands.spawn(PlayerBlueprint::new(*client_id, Transform::default()));
+					commands.spawn(PlayerBlueprintBundle::new(*client_id, Transform::default()));
 				}
 				ServerEvent::ClientDisconnected { client_id, reason } => {
 					info!("Client {client_id} disconnected because: {reason}");

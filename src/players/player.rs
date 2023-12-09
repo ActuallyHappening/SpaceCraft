@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
-pub use components::ControllablePlayer;
-pub use player_blueprint::PlayerBlueprint;
+pub use api::*;
 
 pub struct PlayerPlugin;
 
@@ -11,7 +10,9 @@ impl Plugin for PlayerPlugin {
 		app.depends_on::<crate::cameras::CameraPlugin, _>(crate::cameras::CameraPlugin);
 
 		app
-			.replicate::<PlayerBlueprint>()
+			.replicate::<player_blueprint::PlayerBlueprintComponent>()
+			.register_type::<player_blueprint::PlayerBlueprintComponent>()
+			.register_type::<components::ControllablePlayer>()
 			.add_systems(
 				FixedUpdate,
 				(Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),),
@@ -19,9 +20,13 @@ impl Plugin for PlayerPlugin {
 			.add_systems(
 				WorldCreation,
 				Self::creation_spawn_initial.in_set(WorldCreationSet::InitialPlayer),
-			)
-			.register_type::<components::ControllablePlayer>();
+			);
 	}
+}
+
+mod api {
+	pub use super::components::ControllablePlayer;
+	pub use super::player_blueprint::{PlayerBlueprintBundle, PlayerBlueprintComponent};
 }
 
 mod systems {
@@ -29,11 +34,14 @@ mod systems {
 		cameras::ChangeCameraConfig, players::spawn_points::AvailableSpawnPoints, prelude::*,
 	};
 
-	use super::{PlayerBlueprint, PlayerPlugin};
+	use super::{player_blueprint::PlayerBlueprintComponent, PlayerBlueprintBundle, PlayerPlugin};
 
 	impl PlayerPlugin {
 		pub(super) fn handle_spawn_player_blueprints(
-			player_blueprints: Query<(Entity, &PlayerBlueprint), Added<PlayerBlueprint>>,
+			player_blueprints: Query<
+				(Entity, &PlayerBlueprintComponent),
+				Added<PlayerBlueprintComponent>,
+			>,
 			mut commands: Commands,
 			mut mma: MMA,
 			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
@@ -81,7 +89,7 @@ mod systems {
 				.try_get_spawn_location(SERVER_ID)
 				.expect("No more spawn points left!");
 
-			commands.spawn(PlayerBlueprint::new(SERVER_ID, transform));
+			commands.spawn(PlayerBlueprintBundle::new(SERVER_ID, transform));
 		}
 	}
 }
@@ -95,22 +103,22 @@ mod components {
 	// / The [Eq] impl compares the [ClientId]s of the players.
 	// / The [Serialize] and [Deserialize] impls serialize the [ClientId]s of the players,
 	// / and are **NOT** synced using [bevy_replicon]
-	#[derive(Component, Reflect)]
-	#[reflect(from_reflect = false)]
+	#[derive(Component, Reflect, Debug)]
 	pub struct ControllablePlayer {
-		#[reflect(ignore)]
-		network_id: ClientId,
+		network_id: u64,
 	}
 
 	impl GetNetworkId for ControllablePlayer {
 		fn get_network_id(&self) -> ClientId {
-			self.network_id
+			ClientId::from_raw(self.network_id)
 		}
 	}
 
 	impl ControllablePlayer {
 		pub(super) fn new(network_id: ClientId) -> Self {
-			Self { network_id }
+			Self {
+				network_id: network_id.raw(),
+			}
 		}
 	}
 }
@@ -122,45 +130,55 @@ mod player_blueprint {
 	};
 
 	/// What is used to construct a [PlayerBundle]
-	#[derive(Component, Serialize, Deserialize, Clone, Debug)]
-	pub struct PlayerBlueprint {
-		pub(super) network_id: ClientId,
-		pub(super) transform: Transform,
+	#[derive(Component, Reflect, Serialize, Deserialize, Debug)]
+	pub struct PlayerBlueprintComponent {
+		pub(super) network_id: u64,
 		pub(super) structure_children: Vec<BlockBlueprint<StructureBlockBlueprint>>,
 		pub(super) thruster_children: Vec<BlockBlueprint<ThrusterBlockBlueprint>>,
 		pub(super) primary_camera: BlockBlueprint<CameraBlockBlueprint>,
 	}
 
-	impl PlayerBlueprint {
+	#[derive(Bundle, Debug, Serialize, Deserialize)]
+	pub struct PlayerBlueprintBundle {
+		/// Synced
+		pub(super) transform: Transform,
+		/// Synced
+		pub(super) blueprint: PlayerBlueprintComponent,
+	}
+
+	impl PlayerBlueprintBundle {
 		pub fn new(network_id: ClientId, transform: Transform) -> Self {
-			PlayerBlueprint {
-				network_id,
+			PlayerBlueprintBundle {
 				transform,
-				structure_children: vec![
-					BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::ZERO),
-					BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, -1)),
-				],
-				thruster_children: vec![
-					BlockBlueprint::new_thruster(IVec3::new(-1, 0, 0), Facing::Left),
-					BlockBlueprint::new_thruster(IVec3::new(1, 0, 0), Facing::Right),
-				],
-				primary_camera: BlockBlueprint::new_camera(IVec3::new(0, 1, 0), Facing::Forwards),
+				blueprint: PlayerBlueprintComponent {
+					network_id: network_id.raw(),
+					structure_children: vec![
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::ZERO),
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, -1)),
+					],
+					thruster_children: vec![
+						BlockBlueprint::new_thruster(IVec3::new(-1, 0, 0), Facing::Left),
+						BlockBlueprint::new_thruster(IVec3::new(1, 0, 0), Facing::Right),
+					],
+					primary_camera: BlockBlueprint::new_camera(IVec3::new(0, 1, 0), Facing::Forwards),
+				},
 			}
 		}
-
+	}
+	impl PlayerBlueprintComponent {
 		pub fn derive_thruster_ids(&self) -> impl Iterator<Item = BlockId> + '_ {
 			self.thruster_children.iter().map(|b| b.get_block_id())
 		}
 	}
 
-	impl GetNetworkId for PlayerBlueprint {
+	impl GetNetworkId for PlayerBlueprintComponent {
 		fn get_network_id(&self) -> ClientId {
-			self.network_id
+			ClientId::from_raw(self.network_id)
 		}
 	}
 
-	impl PlayerBlueprint {
-		pub fn stamp(&self) -> <PlayerBlueprint as Blueprint>::Bundle {
+	impl PlayerBlueprintComponent {
+		pub fn stamp(&self) -> <PlayerBlueprintComponent as Blueprint>::Bundle {
 			Blueprint::stamp(self, &mut ())
 		}
 	}
@@ -168,18 +186,19 @@ mod player_blueprint {
 mod player_bundle {
 	use bevy::render::view::NoFrustumCulling;
 
-	use crate::{
-		players::player_movement::PlayerBundleMovementExt,
-		prelude::*,
-	};
+	use crate::{players::player_movement::PlayerBundleMovementExt, prelude::*};
 
-	use super::{ControllablePlayer, PlayerBlueprint};
+	use super::{ControllablePlayer, PlayerBlueprintComponent};
 
 	/// Parent entity of a player.
-	/// Doesn't actually have its own mesh
+	/// Doesn't actually have its own [Mesh] / [Collider],
+	/// because its children provide that for it.
+	/// 
+	/// Also, doesn't have a transform because [PlayerBlueprintBundle] provides
+	/// that for it through [bevy_replicon].
 	#[derive(Bundle)]
 	pub struct PlayerBundle {
-		spatial: SpatialBundle,
+		spatial: SpatialBundleNoTransform,
 		replication: Replication,
 		mass: MassPropertiesBundle,
 		body: RigidBody,
@@ -193,25 +212,21 @@ mod player_bundle {
 		no_frustum: NoFrustumCulling,
 	}
 
-	impl Blueprint for PlayerBlueprint {
+	impl Blueprint for PlayerBlueprintComponent {
 		type Bundle = PlayerBundle;
 		type StampSystemParam<'w, 's> = ();
 
 		fn stamp(&self, _system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
-			let PlayerBlueprint {
+			let PlayerBlueprintComponent {
 				network_id,
-				transform,
 				structure_children: _,
 				thruster_children: _,
 				primary_camera: _,
 			} = self;
 			Self::Bundle {
-				spatial: SpatialBundle {
-					transform: *transform,
-					..default()
-				},
+				spatial: Default::default(),
 				name: Name::new(format!("Player {}", network_id)),
-				controllable_player: ControllablePlayer::new(*network_id),
+				controllable_player: ControllablePlayer::new(ClientId::from_raw(*network_id)),
 				mass: MassPropertiesBundle::new_computed(&Collider::ball(1.0), 1.0),
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
@@ -220,5 +235,9 @@ mod player_bundle {
 				no_frustum: NoFrustumCulling,
 			}
 		}
+	}
+
+	impl NetworkedBlueprint for PlayerBlueprintComponent {
+		
 	}
 }
