@@ -67,10 +67,7 @@ mod systems {
 		prelude::*,
 	};
 
-	use super::{
-		blueprint::SpawnPointBlueprintComponent, bundle::SpawnPointBundle, components::SpawnPoint,
-		SpawnPointsPlugin,
-	};
+	use super::{blueprint::SpawnPointBlueprintComponent, components::SpawnPoint, SpawnPointsPlugin};
 
 	impl SpawnPointsPlugin {
 		pub(super) fn filter_non_occupied_collisions(
@@ -124,7 +121,7 @@ mod systems {
 			});
 		}
 
-		pub(super) fn creation_spawn_points(mut commands: Commands, mut mma: MMA) {
+		pub(super) fn creation_spawn_points(mut commands: Commands) {
 			const CIRCLE_RADIUS: f32 = SpawnPointBlueprintBundle::DEFAULT_SIZE * 4.0;
 			const NUM_STRIPS_MAGNITUDE: isize = 2; // 5 total layers
 
@@ -172,14 +169,14 @@ mod systems {
 
 			// trace!("Starting positions: {:?}", starting_positions);
 
-			let spawn_points = starting_positions
+			let spawn_points: Vec<SpawnPointBlueprintBundle> = starting_positions
 				.iter()
 				.map(|pos| {
 					let transform = Transform::from_translation(*pos);
-					let blueprint_bundle = SpawnPointBlueprintBundle::new(transform, None);
-					(blueprint_bundle.stamp(&mut mma), blueprint_bundle)
+					SpawnPointBlueprintBundle::new(transform, None)
 				})
 				.collect::<Vec<_>>();
+
 			commands.spawn_batch(spawn_points);
 		}
 
@@ -224,6 +221,7 @@ mod blueprint {
 	pub struct SpawnPointBlueprintBundle {
 		/// synced
 		transform: Transform,
+		
 		/// synced
 		#[deref]
 		blueprint: SpawnPointBlueprintComponent,

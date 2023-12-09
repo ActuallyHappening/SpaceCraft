@@ -1,11 +1,7 @@
 use crate::prelude::*;
 
-pub use player::PlayerBlueprintBundle;
 mod player;
-
-pub use spawn_points::AvailableSpawnPoints;
 mod spawn_points;
-
 mod player_movement;
 mod thruster_block;
 

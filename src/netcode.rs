@@ -1,4 +1,4 @@
-use crate::{players::PlayerBlueprintBundle, prelude::*};
+use crate::prelude::*;
 
 pub use bevy_replicon::{
 	prelude::*,
@@ -11,23 +11,37 @@ pub use bevy_replicon::{
 	},
 };
 
-use self::world_creation::CreateWorldEvent;
-pub use self::world_creation::{WorldCreation, WorldCreationSet};
-mod world_creation;
+pub use api::*;
+// pub use self::world_creation::{WorldCreation, WorldCreationSet};
 
 pub struct NetcodePlugin;
 
-/// Contains only systems that are relevant to controlling a player.
-///
-/// Configured for [Update] and [FixedUpdate] schedules.
-#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
-pub struct Client;
+mod world_creation;
 
-/// Contains only systems that are relevant to the server.
-///
-/// Configured ONLY for [FixedUpdate]
-#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
-pub struct Server;
+mod api {
+	use crate::prelude::*;
+
+	pub use super::resources::NetcodeConfig;
+	pub use super::world_creation::{WorldCreation, WorldCreationSet};
+
+	/// Contains only systems that are relevant to controlling a player.
+	///
+	/// Configured for [Update] and [FixedUpdate] schedules.
+	#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
+	pub struct Client;
+
+	/// Contains only systems that are relevant to the server.
+	///
+	/// Configured ONLY for [FixedUpdate]
+	#[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
+	pub struct Server;
+
+	#[derive(Event, Debug)]
+	pub struct PlayerJoin(pub ClientId);
+
+	#[derive(Event, Debug)]
+	pub struct PlayerLeave(pub ClientId);
+}
 
 impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut App) {
@@ -91,194 +105,210 @@ impl ClientID<'_> {
 	}
 }
 
-/// Holds information about what ip and port to connect to, or host on.
-#[derive(Resource, Debug, clap::Parser)]
-pub enum NetcodeConfig {
-	Server {
-		#[arg(long, default_value_t = Ipv4Addr::LOCALHOST.into())]
-		ip: IpAddr,
+mod systems {
+	use crate::prelude::*;
 
-		#[arg(short, long, default_value_t = DEFAULT_PORT)]
-		port: u16,
+	use super::world_creation::CreateWorldEvent;
 
-		/// Whether or not to run the server in headless mode.
-		#[arg(long, default_value_t = false)]
-		headless: bool,
-	},
-	Client {
-		#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
-		ip: IpAddr,
+	impl NetcodePlugin {
+		/// sets up the server / client depending on [NetcodeConfig]
+		pub(super) fn add_netcode(
+			mut commands: Commands,
+			network_channels: Res<NetworkChannels>,
+			config: Res<NetcodeConfig>,
+			mut creation_event: EventWriter<CreateWorldEvent>,
+		) {
+			match config.into_inner() {
+				NetcodeConfig::Server { ip, port, headless } => {
+					info!("Setting up as server, hosting on {}:{}", ip, port);
+					let server_channels_config = network_channels.get_server_configs();
+					let client_channels_config = network_channels.get_client_configs();
 
-		#[arg(short, long, default_value_t = DEFAULT_PORT)]
-		port: u16,
-	},
+					let server = RenetServer::new(ConnectionConfig {
+						server_channels_config,
+						client_channels_config,
+						..Default::default()
+					});
+
+					let current_time = SystemTime::now()
+						.duration_since(SystemTime::UNIX_EPOCH)
+						.unwrap();
+					let public_addr = SocketAddr::new(*ip, *port);
+
+					let socket = UdpSocket::bind(public_addr).expect("Couldn't bind to UdpSocket");
+
+					let server_config = ServerConfig {
+						current_time,
+						max_clients: 10,
+						protocol_id: PROTOCOL_ID,
+						public_addresses: vec![public_addr],
+						authentication: ServerAuthentication::Unsecure,
+					};
+					let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
+
+					commands.insert_resource(server);
+					commands.insert_resource(transport);
+
+					if !headless {
+						creation_event.send(CreateWorldEvent);
+					}
+				}
+				NetcodeConfig::Client { ip, port } => {
+					info!(
+						"Setting up as client, connecting to {:?} on port {}",
+						ip, port
+					);
+					let server_channels_config = network_channels.get_server_configs();
+					let client_channels_config = network_channels.get_client_configs();
+
+					let client = RenetClient::new(ConnectionConfig {
+						server_channels_config,
+						client_channels_config,
+						..Default::default()
+					});
+
+					let current_time = SystemTime::now()
+						.duration_since(SystemTime::UNIX_EPOCH)
+						.unwrap();
+					let client_id = ClientId::from_raw(current_time.as_millis() as u64);
+					let server_addr = SocketAddr::new(*ip, *port);
+					let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))
+						.expect("Couldn't bind to (unspecified) socket");
+					let authentication = ClientAuthentication::Unsecure {
+						client_id: client_id.raw(),
+						protocol_id: PROTOCOL_ID,
+						server_addr,
+						user_data: None,
+					};
+					let transport = NetcodeClientTransport::new(current_time, authentication, socket)
+						.expect("Couldn't join to server");
+
+					commands.insert_resource(client);
+					commands.insert_resource(transport);
+				}
+			}
+		}
+
+		pub(super) fn disconnect_netcode(
+			config: Res<NetcodeConfig>,
+			mut client: ResMut<RenetClient>,
+			mut server: ResMut<RenetServer>,
+			mut commands: Commands,
+		) {
+			match config.into_inner() {
+				NetcodeConfig::Server { .. } => {
+					info!("Disconnecting as server");
+					server.disconnect_all();
+					commands.remove_resource::<RenetServer>();
+					commands.remove_resource::<NetcodeClientTransport>();
+				}
+				NetcodeConfig::Client { .. } => {
+					info!("Disconnecting client");
+					client.disconnect();
+					commands.remove_resource::<RenetClient>();
+					commands.remove_resource::<NetcodeClientTransport>();
+				}
+			}
+		}
+
+		/// Logs server events and spawns a new player whenever a client connects.
+		pub(super) fn server_event_system(
+			mut server_event: EventReader<ServerEvent>,
+			mut player_join: EventWriter<PlayerJoin>,
+			mut player_leave: EventWriter<PlayerLeave>,
+		) {
+			for event in server_event.read() {
+				match event {
+					ServerEvent::ClientConnected { client_id } => {
+						info!("New player with id {client_id} connected");
+
+						player_join.send(PlayerJoin(*client_id));
+					}
+					ServerEvent::ClientDisconnected { client_id, reason } => {
+						info!("Client {client_id} disconnected because: {reason}");
+
+						player_leave.send(PlayerLeave(*client_id));
+					}
+				}
+			}
+		}
+	}
 }
 
-impl NetcodeConfig {
-	pub const fn new_hosting_public(headless: bool) -> Self {
-		NetcodeConfig::Server {
-			ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
-			port: DEFAULT_PORT,
-			headless,
-		}
+mod resources {
+	use crate::prelude::*;
+
+	/// Holds information about what ip and port to connect to, or host on.
+	#[derive(Resource, Debug, clap::Parser)]
+	pub enum NetcodeConfig {
+		Server {
+			#[arg(long, default_value_t = Ipv4Addr::LOCALHOST.into())]
+			ip: IpAddr,
+
+			#[arg(short, long, default_value_t = DEFAULT_PORT)]
+			port: u16,
+
+			/// Whether or not to run the server in headless mode.
+			#[arg(long, default_value_t = false)]
+			headless: bool,
+		},
+		Client {
+			#[arg(short, long, default_value_t = Ipv4Addr::LOCALHOST.into())]
+			ip: IpAddr,
+
+			#[arg(short, long, default_value_t = DEFAULT_PORT)]
+			port: u16,
+		},
 	}
 
-	pub const fn new_hosting_machine_local(headless: bool) -> Self {
-		NetcodeConfig::Server {
-			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
-			port: DEFAULT_PORT,
-			headless,
-		}
-	}
-
-	pub const fn new_client_machine_local() -> Self {
-		NetcodeConfig::Client {
-			ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
-			port: DEFAULT_PORT,
-		}
-	}
-
-	pub const fn get_headless(&self) -> bool {
-		match self {
-			NetcodeConfig::Server { headless, .. } => *headless,
-			NetcodeConfig::Client { .. } => false,
-		}
-	}
-
-	/// Used in a `.run_if` to signify a system that should only run if
-	/// a client/player is being controlled by the current instance
-	pub fn not_headless() -> impl Fn(Res<NetcodeConfig>) -> bool {
-		|config| !config.into_inner().get_headless()
-	}
-
-	pub fn is_authoritative(&self) -> bool {
-		match self {
-			NetcodeConfig::Server { .. } => true,
-			NetcodeConfig::Client { .. } => false,
-		}
-	}
-
-	/// Used in a `.run_if` to signify a system that should only run if
-	/// the current instance is the authoritative server
-	pub fn has_authority() -> impl Fn(Res<NetcodeConfig>) -> bool {
-		|config| config.is_authoritative()
-	}
-}
-
-impl NetcodePlugin {
-	/// sets up the server / client depending on [NetcodeConfig]
-	fn add_netcode(
-		mut commands: Commands,
-		network_channels: Res<NetworkChannels>,
-		config: Res<NetcodeConfig>,
-		mut creation_event: EventWriter<CreateWorldEvent>,
-	) {
-		match config.into_inner() {
-			NetcodeConfig::Server { ip, port, headless } => {
-				info!("Setting up as server, hosting on {}:{}", ip, port);
-				let server_channels_config = network_channels.get_server_configs();
-				let client_channels_config = network_channels.get_client_configs();
-
-				let server = RenetServer::new(ConnectionConfig {
-					server_channels_config,
-					client_channels_config,
-					..Default::default()
-				});
-
-				let current_time = SystemTime::now()
-					.duration_since(SystemTime::UNIX_EPOCH)
-					.unwrap();
-				let public_addr = SocketAddr::new(*ip, *port);
-
-				let socket = UdpSocket::bind(public_addr).expect("Couldn't bind to UdpSocket");
-
-				let server_config = ServerConfig {
-					current_time,
-					max_clients: 10,
-					protocol_id: PROTOCOL_ID,
-					public_addresses: vec![public_addr],
-					authentication: ServerAuthentication::Unsecure,
-				};
-				let transport = NetcodeServerTransport::new(server_config, socket).unwrap();
-
-				commands.insert_resource(server);
-				commands.insert_resource(transport);
-
-				if !headless {
-					creation_event.send(CreateWorldEvent);
-				}
-			}
-			NetcodeConfig::Client { ip, port } => {
-				info!(
-					"Setting up as client, connecting to {:?} on port {}",
-					ip, port
-				);
-				let server_channels_config = network_channels.get_server_configs();
-				let client_channels_config = network_channels.get_client_configs();
-
-				let client = RenetClient::new(ConnectionConfig {
-					server_channels_config,
-					client_channels_config,
-					..Default::default()
-				});
-
-				let current_time = SystemTime::now()
-					.duration_since(SystemTime::UNIX_EPOCH)
-					.unwrap();
-				let client_id = ClientId::from_raw(current_time.as_millis() as u64);
-				let server_addr = SocketAddr::new(*ip, *port);
-				let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))
-					.expect("Couldn't bind to (unspecified) socket");
-				let authentication = ClientAuthentication::Unsecure {
-					client_id: client_id.raw(),
-					protocol_id: PROTOCOL_ID,
-					server_addr,
-					user_data: None,
-				};
-				let transport = NetcodeClientTransport::new(current_time, authentication, socket)
-					.expect("Couldn't join to server");
-
-				commands.insert_resource(client);
-				commands.insert_resource(transport);
+	impl NetcodeConfig {
+		pub const fn new_hosting_public(headless: bool) -> Self {
+			NetcodeConfig::Server {
+				ip: IpAddr::V4(Ipv4Addr::UNSPECIFIED),
+				port: DEFAULT_PORT,
+				headless,
 			}
 		}
-	}
 
-	fn disconnect_netcode(
-		config: Res<NetcodeConfig>,
-		mut client: ResMut<RenetClient>,
-		mut server: ResMut<RenetServer>,
-		mut commands: Commands,
-	) {
-		match config.into_inner() {
-			NetcodeConfig::Server { .. } => {
-				info!("Disconnecting as server");
-				server.disconnect_all();
-				commands.remove_resource::<RenetServer>();
-				commands.remove_resource::<NetcodeClientTransport>();
-			}
-			NetcodeConfig::Client { .. } => {
-				info!("Disconnecting client");
-				client.disconnect();
-				commands.remove_resource::<RenetClient>();
-				commands.remove_resource::<NetcodeClientTransport>();
+		pub const fn new_hosting_machine_local(headless: bool) -> Self {
+			NetcodeConfig::Server {
+				ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
+				port: DEFAULT_PORT,
+				headless,
 			}
 		}
-	}
 
-	/// Logs server events and spawns a new player whenever a client connects.
-	fn server_event_system(mut server_event: EventReader<ServerEvent>, mut commands: Commands) {
-		for event in server_event.read() {
-			match event {
-				ServerEvent::ClientConnected { client_id } => {
-					info!("New player with id {client_id} connected");
-
-					commands.spawn(PlayerBlueprintBundle::new(*client_id, Transform::default()));
-				}
-				ServerEvent::ClientDisconnected { client_id, reason } => {
-					info!("Client {client_id} disconnected because: {reason}");
-				}
+		pub const fn new_client_machine_local() -> Self {
+			NetcodeConfig::Client {
+				ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
+				port: DEFAULT_PORT,
 			}
+		}
+
+		pub const fn get_headless(&self) -> bool {
+			match self {
+				NetcodeConfig::Server { headless, .. } => *headless,
+				NetcodeConfig::Client { .. } => false,
+			}
+		}
+
+		/// Used in a `.run_if` to signify a system that should only run if
+		/// a client/player is being controlled by the current instance
+		pub fn not_headless() -> impl Fn(Res<NetcodeConfig>) -> bool {
+			|config| !config.into_inner().get_headless()
+		}
+
+		pub fn is_authoritative(&self) -> bool {
+			match self {
+				NetcodeConfig::Server { .. } => true,
+				NetcodeConfig::Client { .. } => false,
+			}
+		}
+
+		/// Used in a `.run_if` to signify a system that should only run if
+		/// the current instance is the authoritative server
+		pub fn has_authority() -> impl Fn(Res<NetcodeConfig>) -> bool {
+			|config| config.is_authoritative()
 		}
 	}
 }
