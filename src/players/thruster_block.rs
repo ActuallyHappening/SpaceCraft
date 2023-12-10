@@ -176,7 +176,7 @@ mod systems {
 		const LIFETIME_ATTR: &str = "dynamic_lifetime";
 
 		pub(super) fn spawn_thruster_visuals(
-			added_thrusters: Query<Entity, (With<Thruster>, Added<BlueprintUpdated>)>,
+			added_thrusters: Query<Entity, (With<Thruster>, Added<JustExpanded>)>,
 			mut commands: Commands,
 			mut effects: ResMut<Assets<EffectAsset>>,
 		) {

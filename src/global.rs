@@ -20,6 +20,9 @@ pub struct GameLogic;
 /// Configured for [FixedUpdate] ONLY!
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GlobalSystemSet {
+	/// Runs the [WorldCreation] [Schedule].
+	WorldCreation,
+
 	/// Player's movement, set in [crate::players]
 	PlayerMovement,
 
@@ -33,8 +36,6 @@ pub enum GlobalSystemSet {
 
 	/// Runs the [Blueprints] [Schedule].
 	BlueprintExpansion,
-
-	WorldCreation,
 }
 
 /// Naming of all render layers used within the project

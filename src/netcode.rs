@@ -18,6 +18,28 @@ pub struct NetcodePlugin;
 
 mod world_creation;
 
+impl Plugin for NetcodePlugin {
+	fn build(&self, app: &mut App) {
+		replicate_marked!(app, NetworkId);
+
+		app
+			.register_type::<NetworkId>()
+			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
+			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
+			.add_systems(Update, Self::server_event_system.in_set(Server))
+			// .add_systems(
+			// 	FixedUpdate,
+			// 	Self::frame_inc_and_replicon_tick_sync.in_set(GlobalSystemSet::GameLogic),
+			// )
+			.configure_sets(GameLogic, Client.run_if(NetcodeConfig::not_headless()))
+			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
+			.configure_sets(GameLogic, Server.run_if(NetcodeConfig::has_authority()))
+			.add_event::<PlayerJoin>()
+			.add_event::<PlayerLeave>()
+			.add_plugins(self::world_creation::WorldCreationPlugin);
+	}
+}
+
 mod api {
 	use crate::prelude::*;
 
@@ -94,29 +116,9 @@ mod api {
 	}
 }
 
-impl Plugin for NetcodePlugin {
-	fn build(&self, app: &mut App) {
-		replicate_marked!(app, NetworkId);
-
-		app
-			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
-			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
-			.add_systems(Update, Self::server_event_system.in_set(Server))
-			// .add_systems(
-			// 	FixedUpdate,
-			// 	Self::frame_inc_and_replicon_tick_sync.in_set(GlobalSystemSet::GameLogic),
-			// )
-			.configure_sets(GameLogic, Client.run_if(NetcodeConfig::not_headless()))
-			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
-			.configure_sets(FixedUpdate, Server.run_if(NetcodeConfig::has_authority()))
-			.add_event::<PlayerJoin>()
-			.add_event::<PlayerLeave>()
-			.add_plugins(self::world_creation::WorldCreationPlugin);
-	}
-}
-
 impl NetcodePlugin {
 	// todo add tests
+	#[allow(dead_code)]
 	fn frame_inc_and_replicon_tick_sync(
 		mut game_clock: ResMut<GameClock>, // your own tick counter
 		mut replicon_tick: ResMut<RepliconTick>,
@@ -174,7 +176,9 @@ mod systems {
 					commands.insert_resource(transport);
 
 					if !headless {
+						trace!("Sending CreateWorldEvent");
 						creation_event.send(CreateWorldEvent);
+						trace!("Sending PlayerJoin(0)");
 						server_non_headless_join.send(PlayerJoin(SERVER_ID));
 					}
 				}

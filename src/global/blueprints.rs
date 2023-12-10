@@ -21,7 +21,7 @@ impl Plugin for BlueprintsPlugin {
 				)
 					.chain(),
 			)
-			.register_type::<BlueprintUpdated>()
+			.register_type::<JustExpanded>()
 			.add_systems(
 				Blueprints,
 				((
@@ -49,14 +49,11 @@ impl Plugin for BlueprintsPlugin {
 #[derive(ScheduleLabel, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Blueprints;
 
-/// If an entity has just 'refreshed' its blueprint,
-/// as in there is data that needs/has been updated from it,
-/// then this component should be added.
-///
-/// This allows optimization like only running systems over entities that have
-/// just had their blueprints updated / just been spawned in and need hydrating.
+/// If an entity has this component, it means that it was just spawned
+/// / its blueprint was just expanded.
 #[derive(Component, Debug, Default, Reflect)]
-pub struct BlueprintUpdated;
+#[component(storage = "SparseSet")]
+pub struct JustExpanded;
 
 /// Makes sure that the blueprints that the player creates are
 /// expanded before, so that thruster visuals can be spawned on time.
@@ -88,15 +85,15 @@ pub enum BlueprintExpansion {
 mod systems {
 	use crate::prelude::*;
 
-	use super::{BlueprintUpdated, BlueprintsPlugin};
+	use super::{JustExpanded, BlueprintsPlugin};
 
 	impl BlueprintsPlugin {
 		pub(super) fn clear_blueprint_updated_markers(
-			markers: Query<Entity, With<BlueprintUpdated>>,
+			markers: Query<Entity, With<JustExpanded>>,
 			mut commands: Commands,
 		) {
 			for entity in markers.iter() {
-				commands.entity(entity).remove::<BlueprintUpdated>();
+				commands.entity(entity).remove::<JustExpanded>();
 			}
 		}
 
@@ -162,7 +159,7 @@ mod traits {
 				commands
 					.entity(e)
 					.insert(blueprint.stamp(&mut expand_system_param))
-					.insert(BlueprintUpdated);
+					.insert(JustExpanded);
 			}
 		}
 	}

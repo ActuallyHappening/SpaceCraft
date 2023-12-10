@@ -5,8 +5,8 @@ pub(super) struct WorldCreationPlugin;
 
 impl Plugin for WorldCreationPlugin {
 	fn build(&self, app: &mut App) {
-		#[allow(clippy::upper_case_acronyms)]
-		type WCS = WorldCreationSet;
+		// #[allow(clippy::upper_case_acronyms)]
+		// type WCS = WorldCreationSet;
 
 		app
 			.add_event::<CreateWorldEvent>()
@@ -43,12 +43,14 @@ impl WorldCreationPlugin {
 	) {
 		// in the future might add more fields to create world event,
 		// like creating chunks e.t.c.
-		world.resource_scope(|world: &mut World, events: Mut<Events<CreateWorldEvent>>| {
+		world.resource_scope(|world: &mut World, mut events: Mut<Events<CreateWorldEvent>>| {
 			for e in events.get_reader().read(&events) {
 				info!("Running WorldCreation schedule in response to {:?}", e);
 				world.run_schedule(WorldCreation);
+				info!("Running Blueprints schedule after WorldCreation");
 				world.run_schedule(Blueprints);
 			}
+			events.clear();
 		});
 	}
 }

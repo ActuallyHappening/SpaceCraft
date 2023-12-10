@@ -52,11 +52,11 @@ impl Plugin for MainPlugin {
 			FixedUpdate,
 			(
 				(
+					GlobalSystemSet::WorldCreation,
 					GlobalSystemSet::PlayerMovement,
 					GlobalSystemSet::RawPhysics,
 					GlobalSystemSet::ExecuteGameLogic,
 					GlobalSystemSet::BlueprintExpansion,
-					GlobalSystemSet::WorldCreation,
 				)
 					.chain(),
 				(
@@ -77,9 +77,16 @@ impl Plugin for MainPlugin {
 					..default()
 				});
 		});
-		app.add_systems(FixedUpdate, |world: &mut World| {
-			world.try_run_schedule(GameLogic).ok();
-		});
+		app.add_systems(
+			FixedUpdate,
+			run_game_logic.in_set(GlobalSystemSet::ExecuteGameLogic),
+		);
+		fn run_game_logic(world: &mut World) {
+			// trace!("Running Game Logic");
+			world
+				.try_run_schedule(GameLogic)
+				.ok();
+		}
 
 		// spawn initial light
 		app.add_systems(Startup, |mut commands: Commands| {
