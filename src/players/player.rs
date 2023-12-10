@@ -60,24 +60,24 @@ mod systems {
 				commands
 					.entity(player)
 					.despawn_descendants()
-					.insert(JustExpanded)
+					.insert(FreshlyExpanded)
 					.insert(player_blueprint.stamp())
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
 							parent
 								.spawn(blueprint.stamp(&mut mma))
-								.insert(JustExpanded);
+								.insert(FreshlyExpanded);
 						}
 
 						for blueprint in &player_blueprint.thruster_children {
 							parent
 								.spawn(blueprint.stamp(&mut mma))
-								.insert(JustExpanded);
+								.insert(FreshlyExpanded);
 						}
 
 						parent
 							.spawn(player_blueprint.primary_camera.stamp(&mut mma))
-							.insert(JustExpanded);
+							.insert(FreshlyExpanded);
 					});
 			}
 		}
@@ -87,9 +87,9 @@ mod systems {
 		/// If so, set the primary camera to it.
 		pub(super) fn manage_primary_camera(
 			// player spawned
-			players: Query<&NetworkId, (With<ControllablePlayer>, Added<JustExpanded>)>,
+			players: Query<&NetworkId, (With<ControllablePlayer>, Added<FreshlyExpanded>)>,
 			// camera spawned as well
-			camera_blocks: Query<(Entity, &Parent), (With<CameraBlockMarker>, Added<JustExpanded>)>,
+			camera_blocks: Query<(Entity, &Parent), (With<CameraBlockMarker>, Added<FreshlyExpanded>)>,
 			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
 			local_id: ClientID,
 		) {
@@ -124,7 +124,7 @@ mod systems {
 		pub(super) fn name_player(
 			mut players: Query<
 				(&mut Name, &NetworkId),
-				(With<ControllablePlayer>, Added<JustExpanded>),
+				(With<ControllablePlayer>, Added<FreshlyExpanded>),
 			>,
 		) {
 			for (mut name, id) in players.iter_mut() {

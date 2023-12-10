@@ -176,11 +176,12 @@ mod systems {
 		const LIFETIME_ATTR: &str = "dynamic_lifetime";
 
 		pub(super) fn spawn_thruster_visuals(
-			added_thrusters: Query<Entity, (With<Thruster>, Added<JustExpanded>)>,
+			added_thrusters: Query<Entity, (With<Thruster>, Added<FreshlyExpanded>)>,
 			mut commands: Commands,
 			mut effects: ResMut<Assets<EffectAsset>>,
 		) {
 			for thruster in added_thrusters.iter() {
+				trace!("Expanding thruster visual");
 				commands
 					.entity(thruster)
 					.despawn_descendants()

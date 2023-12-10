@@ -21,16 +21,20 @@ impl Plugin for BlueprintsPlugin {
 				)
 					.chain(),
 			)
-			.register_type::<JustExpanded>()
+			.register_type::<FreshlyExpanded>()
 			.add_systems(
 				Blueprints,
-				((
-					apply_deferred,
-					Self::clear_blueprint_updated_markers,
-					apply_deferred,
-				)
-					.chain()
-					.in_set(BE::ClearJustExpandedMarker),),
+				(
+					(
+						apply_deferred,
+						Self::clear_blueprint_updated_markers,
+						apply_deferred,
+					)
+						.chain()
+						.in_set(BE::ClearJustExpandedMarker),
+					apply_deferred.in_set(BE::Expand1),
+					apply_deferred.in_set(BE::Expand2),
+				),
 			)
 			.add_systems(
 				FixedUpdate,
@@ -53,7 +57,7 @@ pub struct Blueprints;
 /// / its blueprint was just expanded.
 #[derive(Component, Debug, Default, Reflect)]
 #[component(storage = "SparseSet")]
-pub struct JustExpanded;
+pub struct FreshlyExpanded;
 
 /// Makes sure that the blueprints that the player creates are
 /// expanded before, so that thruster visuals can be spawned on time.
@@ -85,15 +89,16 @@ pub enum BlueprintExpansion {
 mod systems {
 	use crate::prelude::*;
 
-	use super::{JustExpanded, BlueprintsPlugin};
+	use super::{BlueprintsPlugin, FreshlyExpanded};
 
 	impl BlueprintsPlugin {
 		pub(super) fn clear_blueprint_updated_markers(
-			markers: Query<Entity, With<JustExpanded>>,
+			markers: Query<(Entity, Option<&Name>), With<FreshlyExpanded>>,
 			mut commands: Commands,
 		) {
-			for entity in markers.iter() {
-				commands.entity(entity).remove::<JustExpanded>();
+			for (entity, name) in markers.iter() {
+				trace!("Removing JustExpanded marker from {:?}", name);
+				commands.entity(entity).remove::<FreshlyExpanded>();
 			}
 		}
 
@@ -159,8 +164,9 @@ mod traits {
 				);
 				commands
 					.entity(e)
+					.despawn_descendants()
 					.insert(blueprint.stamp(&mut expand_system_param))
-					.insert(JustExpanded);
+					.insert(FreshlyExpanded);
 			}
 		}
 	}
