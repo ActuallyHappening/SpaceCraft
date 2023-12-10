@@ -50,9 +50,6 @@ impl Plugin for MainPlugin {
 		app.configure_sets(
 			FixedUpdate,
 			(
-				(BlueprintExpansion::Player, BlueprintExpansion::Thruster)
-					.chain()
-					.in_set(GlobalSystemSet::BlueprintExpansion),
 				(
 					GlobalSystemSet::BlueprintExpansion,
 					GlobalSystemSet::PlayerMovement,
@@ -137,6 +134,7 @@ impl Plugin for MainPlugin {
 			// crate::utils::scenes::HelperScene,
 		));
 
+		// personally built projects
 		app.add_plugins((
 			bevy_xpbd3d_parenting::PhysicsParentingPlugin,
 			bevy_starfield::StarfieldPlugin::default(),

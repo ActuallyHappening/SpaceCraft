@@ -51,6 +51,12 @@ mod api {
 		}
 	}
 
+	impl NetworkId {
+		pub fn from_raw(raw: u64) -> Self {
+			NetworkId(raw)
+		}
+	}
+
 	/// Useful for finding the local player's renet id.
 	#[derive(SystemParam)]
 	pub struct ClientID<'w> {
@@ -79,7 +85,7 @@ mod api {
 		/// See [Self::client_id], [Option::unwrap]s for you.
 		/// Only use in systems that are already gated by
 		/// `.run_if`
-		// #[allow(dead_code)]
+		#[allow(dead_code)]
 		pub fn assert_client_id(&self) -> ClientId {
 			self
 				.get()
@@ -90,6 +96,8 @@ mod api {
 
 impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut App) {
+		replicate_marked!(app, NetworkId);
+		
 		app
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)

@@ -6,6 +6,7 @@ use strum::IntoEnumIterator;
 use crate::prelude::*;
 
 pub mod assets;
+pub mod blueprints;
 
 pub const DEFAULT_PORT: u16 = 5069;
 pub const PROTOCOL_ID: u64 = 0;
@@ -31,13 +32,7 @@ pub enum GlobalSystemSet {
 	GameLogic,
 }
 
-/// Makes sure that the blueprints that the player creates are
-/// expanded before, so that thruster visuals can be spawned on time
-#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
-pub enum BlueprintExpansion {
-	Player,
-	Thruster,
-}
+
 
 /// Naming of all render layers used within the project
 pub enum GlobalRenderLayers {

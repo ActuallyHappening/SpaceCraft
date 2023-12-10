@@ -48,6 +48,7 @@ pub use strum::IntoStaticStr;
 pub use crate::blocks::*;
 pub(crate) use crate::global;
 pub use crate::global::assets::*;
+pub use crate::global::blueprints::*;
 pub use crate::global::*;
 
 pub use crate::netcode::*;

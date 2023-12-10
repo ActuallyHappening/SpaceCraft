@@ -60,15 +60,15 @@ mod api {
 			let mut available_points = self
 				.spawn_points
 				.iter_mut()
-				.filter(|(sp, _)| sp.player_occupation.is_none());
+				.filter(|(sp, _)| sp.get_occupation().is_none());
 
-			let Some((mut spawn_point, global_transform)) = available_points.next() else {
+			let Some((mut spawn_point, transform)) = available_points.next() else {
 				return None;
 			};
 
-			spawn_point.set_network_id(player_occupying);
+			spawn_point.set_occupation(player_occupying);
 
-			Some(*global_transform)
+			Some(transform.with_scale(Vec3::splat(1.0)))
 		}
 	}
 }
@@ -84,14 +84,14 @@ mod systems {
 	impl SpawnPointsPlugin {
 		pub(super) fn filter_non_occupied_collisions(
 			mut collisions: ResMut<Collisions>,
-			players: Query<&ControllablePlayer>,
+			players: Query<&NetworkId, With<ControllablePlayer>>,
 			player_blocks: Query<&Parent, With<Collider>>,
 			spawn_points: Query<&SpawnPoint>,
 		) {
 			collisions.retain(|contacts| {
 				let check = |e1: Entity, e2: Entity| -> bool {
 					if let Ok(spawn_point) = spawn_points.get(e2) {
-						match spawn_point.get_network_id() {
+						match spawn_point.get_occupation() {
 							// this spawn point is not occupied, so no matter
 							// what player collides we should allow it
 							None => false,
@@ -208,7 +208,7 @@ mod systems {
 		) {
 			if let Some(id) = local_id.get() {
 				for (spawn_point, mut material) in spawn_points.iter_mut() {
-					if spawn_point.get_network_id() == Some(id) {
+					if spawn_point.get_occupation() == Some(id) {
 						*material = SpawnPointBlueprintComponent::ACTIVE_MATERIAL_HANDLE;
 					} else {
 						*material = SpawnPointBlueprintComponent::DEFAULT_MATERIAL_HANDLE;
@@ -225,7 +225,7 @@ mod blueprint {
 	#[derive(Debug, Component, Reflect, Clone, Serialize, Deserialize)]
 	pub struct SpawnPointBlueprintComponent {
 		// MARK use [ClientId]
-		pub initial_occupation: Option<u64>,
+		pub occupation: Option<u64>,
 	}
 
 	#[derive(Bundle, Deref)]
@@ -239,11 +239,11 @@ mod blueprint {
 	}
 
 	impl SpawnPointBlueprintBundle {
-		pub fn new(at: Transform, initially_occupied: Option<ClientId>) -> Self {
+		pub fn new(at: Transform, occupation: Option<ClientId>) -> Self {
 			Self {
 				transform: at.with_scale(Vec3::splat(Self::DEFAULT_SIZE)),
 				blueprint: SpawnPointBlueprintComponent {
-					initial_occupation: initially_occupied.map(|id| id.raw()),
+					occupation: occupation.map(|id| id.raw()),
 				},
 			}
 		}
@@ -265,10 +265,7 @@ mod blueprint {
 mod bundle {
 	use crate::prelude::*;
 
-	use super::{
-		blueprint::{SpawnPointBlueprintBundle, SpawnPointBlueprintComponent},
-		components::SpawnPoint,
-	};
+	use super::blueprint::{SpawnPointBlueprintBundle, SpawnPointBlueprintComponent};
 
 	/// Actual [SpawnPoint] bundle
 	/// No transform, because that is added in [SpawnPointBlueprintBundle]
@@ -276,7 +273,7 @@ mod bundle {
 	pub struct SpawnPointBundle {
 		pbr: PbrBundleNoTransform,
 		name: Name,
-		spawn_point: SpawnPoint,
+		// spawn_point: SpawnPoint,
 		rigid_body: RigidBody,
 		collider: AsyncCollider,
 	}
@@ -328,7 +325,7 @@ mod bundle {
 		type StampSystemParam<'w, 's> = MMA<'w>;
 
 		fn stamp(&self, mma: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
-			let SpawnPointBlueprintComponent { initial_occupation } = self;
+			let SpawnPointBlueprintComponent { .. } = self;
 
 			SpawnPointBundle {
 				pbr: PbrBundleNoTransform {
@@ -340,7 +337,7 @@ mod bundle {
 					..default()
 				},
 				name: Name::new("SpawnPoint"),
-				spawn_point: SpawnPoint::new(initial_occupation.map(ClientId::from_raw)),
+				// spawn_point: SpawnPoint::new(initial_occupation.map(ClientId::from_raw)),
 				rigid_body: RigidBody::Kinematic,
 				collider: AsyncCollider::default(),
 			}
@@ -357,26 +354,31 @@ mod bundle {
 mod components {
 	use crate::prelude::*;
 
-	#[derive(Component, Debug, Reflect)]
-	pub(super) struct SpawnPoint {
-		// MARK use [ClientId]
-		/// Player that occupies this spawn point.
-		pub(super) player_occupation: Option<u64>,
-	}
+use super::blueprint::SpawnPointBlueprintComponent;
+
+	// #[derive(Component, Debug, Reflect)]
+	// pub(super) struct SpawnPoint {
+	// 	// MARK use [ClientId]
+	// 	/// Player that occupies this spawn point.
+	// 	pub(super) player_occupation: Option<u64>,
+	// }
+
+	pub type SpawnPoint = SpawnPointBlueprintComponent;
 
 	impl SpawnPoint {
+		#[allow(dead_code)]
 		pub(super) fn new(occupation: Option<ClientId>) -> Self {
 			Self {
-				player_occupation: occupation.map(|id| id.raw()),
+				occupation: occupation.map(|id| id.raw()),
 			}
 		}
 
-		pub(super) fn get_network_id(&self) -> Option<ClientId> {
-			self.player_occupation.map(ClientId::from_raw)
+		pub(super) fn get_occupation(&self) -> Option<ClientId> {
+			self.occupation.map(ClientId::from_raw)
 		}
 
-		pub(super) fn set_network_id(&mut self, id: ClientId) {
-			self.player_occupation = Some(id.raw());
+		pub(super) fn set_occupation(&mut self, id: ClientId) {
+			self.occupation = Some(id.raw());
 		}
 	}
 }

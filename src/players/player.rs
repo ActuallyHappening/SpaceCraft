@@ -15,8 +15,15 @@ impl Plugin for PlayerPlugin {
 			.register_type::<player_blueprint::PlayerBlueprintComponent>()
 			.register_type::<components::ControllablePlayer>()
 			.add_systems(
+				Blueprints,
+				Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),
+			)
+			.add_systems(
 				FixedUpdate,
-				(Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),),
+				(
+					Self::manage_primary_camera.run_if(NetcodeConfig::not_headless()),
+					Self::name_player,
+				),
 			)
 			.add_systems(
 				WorldCreation,
@@ -32,7 +39,7 @@ mod api {
 
 mod systems {
 	use crate::{
-		cameras::{BlockEntity, ChangeCameraConfig, CameraBlockMarker},
+		cameras::{BlockEntity, CameraBlockMarker, ChangeCameraConfig},
 		players::spawn_points::AvailableSpawnPoints,
 		prelude::*,
 	};
@@ -45,22 +52,18 @@ mod systems {
 	impl PlayerPlugin {
 		pub(super) fn handle_spawn_player_blueprints(
 			player_blueprints: Query<
-				(Entity, &PlayerBlueprintComponent),
+				(Entity, &PlayerBlueprintComponent, &NetworkId),
 				Changed<PlayerBlueprintComponent>,
 			>,
 			mut commands: Commands,
 			mut mma: MMA,
-			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
-			local_id: ClientID,
 		) {
-			for (player, player_blueprint) in player_blueprints.iter() {
-				debug!(
-					"Expanding player blueprint for {:?}",
-					player_blueprint.get_network_id()
-				);
+			for (player, player_blueprint, id) in player_blueprints.iter() {
+				debug!("Expanding player blueprint for {:?}", id);
 				commands
 					.entity(player)
 					.despawn_descendants()
+					.insert(BlueprintUpdated)
 					.insert(player_blueprint.stamp())
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
@@ -80,8 +83,9 @@ mod systems {
 		/// check if they are the child of the local player.
 		/// If so, set the primary camera to it.
 		pub(super) fn manage_primary_camera(
-			players: Query<&ControllablePlayer>,
-			camera_blocks: Query<(Entity, &Parent), Changed<CameraBlockMarker>>,
+			players: Query<&NetworkId, With<ControllablePlayer>>,
+			// camera blocks that change
+			camera_blocks: Query<(Entity, &Parent), (With<CameraBlockMarker>, Added<BlueprintUpdated>)>,
 			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
 			local_id: ClientID,
 		) {
@@ -107,6 +111,17 @@ mod systems {
 
 			commands.spawn(PlayerBlueprintBundle::new(SERVER_ID, transform));
 		}
+
+		pub(super) fn name_player(
+			mut players: Query<
+				(&mut Name, &NetworkId),
+				(With<ControllablePlayer>, Added<BlueprintUpdated>),
+			>,
+		) {
+			for (mut name, id) in players.iter_mut() {
+				*name = Name::new(format!("Player {}", id.get_network_id()));
+			}
+		}
 	}
 }
 
@@ -114,29 +129,8 @@ mod components {
 	use crate::prelude::*;
 
 	/// The marker component for player entities.
-	///
-	///
-	// / The [Eq] impl compares the [ClientId]s of the players.
-	// / The [Serialize] and [Deserialize] impls serialize the [ClientId]s of the players,
-	// / and are **NOT** synced using [bevy_replicon]
 	#[derive(Component, Reflect, Debug)]
-	pub struct ControllablePlayer {
-		network_id: u64,
-	}
-
-	impl GetNetworkId for ControllablePlayer {
-		fn get_network_id(&self) -> ClientId {
-			ClientId::from_raw(self.network_id)
-		}
-	}
-
-	impl ControllablePlayer {
-		pub(super) fn new(network_id: ClientId) -> Self {
-			Self {
-				network_id: network_id.raw(),
-			}
-		}
-	}
+	pub struct ControllablePlayer;
 }
 
 mod player_blueprint {
@@ -148,7 +142,6 @@ mod player_blueprint {
 	/// What is used to construct a [PlayerBundle]
 	#[derive(Component, Reflect, Serialize, Deserialize, Debug)]
 	pub struct PlayerBlueprintComponent {
-		pub(super) network_id: u64,
 		pub(super) structure_children: Vec<BlockBlueprint<StructureBlockBlueprint>>,
 		pub(super) thruster_children: Vec<BlockBlueprint<ThrusterBlockBlueprint>>,
 		pub(super) primary_camera: BlockBlueprint<CameraBlockBlueprint>,
@@ -158,17 +151,21 @@ mod player_blueprint {
 	pub struct PlayerBlueprintBundle {
 		/// Synced
 		pub(super) transform: Transform,
+
 		/// Synced
 		#[deref]
 		pub(super) blueprint: PlayerBlueprintComponent,
+
+		/// Synced
+		pub(super) network_id: NetworkId,
 	}
 
 	impl PlayerBlueprintBundle {
 		pub fn new(network_id: ClientId, transform: Transform) -> Self {
 			PlayerBlueprintBundle {
 				transform,
+				network_id: NetworkId::from_raw(network_id.raw()),
 				blueprint: PlayerBlueprintComponent {
-					network_id: network_id.raw(),
 					structure_children: vec![
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::ZERO),
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, -1)),
@@ -188,13 +185,8 @@ mod player_blueprint {
 		}
 	}
 
-	impl GetNetworkId for PlayerBlueprintComponent {
-		fn get_network_id(&self) -> ClientId {
-			ClientId::from_raw(self.network_id)
-		}
-	}
-
 	impl PlayerBlueprintComponent {
+		// todo: impl spawn point semantics
 		pub fn stamp(&self) -> <PlayerBlueprintComponent as Blueprint>::Bundle {
 			Blueprint::stamp(self, &mut ())
 		}
@@ -235,15 +227,14 @@ mod player_bundle {
 
 		fn stamp(&self, _system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
 			let PlayerBlueprintComponent {
-				network_id,
 				structure_children: _,
 				thruster_children: _,
 				primary_camera: _,
 			} = self;
 			Self::Bundle {
 				spatial: Default::default(),
-				name: Name::new(format!("Player {}", network_id)),
-				controllable_player: ControllablePlayer::new(ClientId::from_raw(*network_id)),
+				name: Name::new("Player"),
+				controllable_player: ControllablePlayer,
 				mass: MassPropertiesBundle::new_computed(&Collider::ball(1.0), 1.0),
 				external_force: ExternalForce::ZERO.with_persistence(false),
 				body: RigidBody::Dynamic,
