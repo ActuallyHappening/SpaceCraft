@@ -126,7 +126,7 @@ mod systems {
 		camera_bundle::{CameraBundle, CameraMarker},
 		events::ChangeCameraConfig,
 		resources::{self, CamerasConfig},
-		CameraEntity, CameraPlugin, CameraBlockMarker,
+		CameraBlockMarker, CameraEntity, CameraPlugin,
 	};
 	use crate::prelude::*;
 

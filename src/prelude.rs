@@ -40,6 +40,7 @@ pub use clap::Parser;
 pub use rand::random;
 pub use rand::rngs::ThreadRng;
 pub use rand::Rng;
+pub use serde::de::DeserializeOwned;
 pub use serde::{Deserialize, Serialize};
 pub use strum::IntoStaticStr;
 

@@ -97,7 +97,7 @@ mod api {
 impl Plugin for NetcodePlugin {
 	fn build(&self, app: &mut App) {
 		replicate_marked!(app, NetworkId);
-		
+
 		app
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)

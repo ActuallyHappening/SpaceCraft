@@ -5,7 +5,6 @@ pub use crate::replicate_marked;
 use crate::prelude::*;
 
 use extension_traits::extension;
-use serde::de::DeserializeOwned;
 
 // mod text;
 
@@ -17,63 +16,6 @@ pub use testing::*;
 
 /// Implemented on types that are replicated
 pub trait ReplicationMarker: Serialize + DeserializeOwned + Reflect {}
-
-/// Represents a type [Blueprint] that can be [Blueprint::stamp]ed into
-/// a bundle that can be spawned, i.e., a [Bundle] that is specifically
-/// [Blueprint::For]
-pub trait Blueprint: std::fmt::Debug {
-	/// The bundle type that this blueprint can be stamped into.
-	type Bundle: Bundle;
-	/// A way to access the world when stamping, typically [MMA],
-	/// for things like [AssetServer] or [ResMut<Assets<Mesh>>].
-	type StampSystemParam<'w, 's>: SystemParam;
-
-	/// Stamps this blueprint into a bundle that can be spawned.
-	fn stamp(&self, system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle;
-}
-
-/// A blueprint that is synced over the network.
-/// Hence, it must be serializable and deserializable,
-/// and contain at least a [bevy_replicon] serializable component.
-pub trait NetworkedBlueprintBundle:
-	Bundle + std::ops::Deref<Target = Self::NetworkedBlueprintComponent>
-{
-	type NetworkedBlueprintComponent: Component
-		+ Serialize
-		+ DeserializeOwned
-		+ Blueprint
-		+ ReplicationMarker;
-
-	/// What access is needed when expanding this blueprint.
-	type SpawnSystemParam: SystemParam;
-
-	/// The system that expands this blueprint on both server and client side.
-	/// Runs whenever a new instance of this blueprint is spawned.
-	/// By default, immediately stamps the blueprint bundle on top of the entity.
-	fn expand_system(
-		instances: Query<
-			(Entity, &Self::NetworkedBlueprintComponent),
-			Changed<Self::NetworkedBlueprintComponent>,
-		>,
-		mut commands: Commands,
-		mut expand_system_param: <Self::NetworkedBlueprintComponent as Blueprint>::StampSystemParam<
-			'_,
-			'_,
-		>,
-		_spawn_system_param: Self::SpawnSystemParam,
-	) {
-		for (e, blueprint) in instances.iter() {
-			trace!(
-				"Expanding blueprint {:?}: {:?}",
-				std::any::type_name::<Self::NetworkedBlueprintComponent>(),
-				blueprint
-			);
-			commands
-				.entity(e)
-				.insert(blueprint.stamp(&mut expand_system_param));
-		}
-	}
-}
 
 #[derive(Bundle, Debug, Default)]
 pub struct SpatialBundleNoTransform {

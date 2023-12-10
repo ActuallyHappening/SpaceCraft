@@ -15,7 +15,7 @@ impl Plugin for ThrusterPlugin {
 			.add_systems(
 				FixedUpdate,
 				(
-					(Self::spawn_thruster_visuals).in_set(BlueprintExpansion::Thruster),
+					(Self::spawn_thruster_visuals).in_set(BlueprintExpansion::ThrusterBlocks),
 					(
 						Self::sync_thruster_data,
 						Self::sync_thruster_with_internal_forces,

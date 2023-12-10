@@ -15,19 +15,12 @@ impl Plugin for SpawnPointsPlugin {
 			.add_systems(Startup, Self::load_default_materials)
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
 			.add_systems(
+				Blueprints,
+				blueprint::SpawnPointBlueprintBundle::expand_system,
+			)
+			.add_systems(
 				WorldCreation,
-				(
-					Self::creation_spawn_points,
-					// |spawn_points: Query<&SpawnPointBlueprintComponent>| {
-					// 	let dbg = spawn_points.iter().collect::<Vec<_>>();
-					// 	debug!("Found spawn points: {:?}", dbg);
-					// },
-					apply_deferred,
-					blueprint::SpawnPointBlueprintBundle::expand_system,
-					apply_deferred,
-				)
-					.chain()
-					.in_set(WorldCreationSet::SpawnPoints),
+				Self::creation_spawn_points.in_set(WorldCreationSet::SpawnPoints),
 			)
 			.add_systems(Update, Self::activate_local_spawn_points);
 	}
@@ -36,12 +29,12 @@ impl Plugin for SpawnPointsPlugin {
 mod api {
 	use crate::prelude::*;
 
-	use super::components::SpawnPoint;
+	use super::blueprint::SpawnPointBlueprintComponent;
 
 	#[derive(SystemParam)]
 	// #[system_param(mutable)]
 	pub struct AvailableSpawnPoints<'w, 's> {
-		spawn_points: Query<'w, 's, (&'static mut SpawnPoint, &'static Transform)>,
+		spawn_points: Query<'w, 's, (&'static mut SpawnPointBlueprintComponent, &'static Transform)>,
 		state: Res<'w, NetcodeConfig>,
 	}
 
@@ -354,7 +347,7 @@ mod bundle {
 mod components {
 	use crate::prelude::*;
 
-use super::blueprint::SpawnPointBlueprintComponent;
+	use super::blueprint::SpawnPointBlueprintComponent;
 
 	// #[derive(Component, Debug, Reflect)]
 	// pub(super) struct SpawnPoint {

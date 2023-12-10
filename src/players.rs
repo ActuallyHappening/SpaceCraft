@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
 mod player;
-mod spawn_points;
 mod player_movement;
+mod spawn_points;
 mod thruster_block;
 
 /// Plugin Group

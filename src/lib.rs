@@ -51,11 +51,10 @@ impl Plugin for MainPlugin {
 			FixedUpdate,
 			(
 				(
-					GlobalSystemSet::BlueprintExpansion,
 					GlobalSystemSet::PlayerMovement,
-					GlobalSystemSet::PlayerThrusters,
 					GlobalSystemSet::RawPhysics,
 					GlobalSystemSet::GameLogic,
+					GlobalSystemSet::BlueprintExpansion,
 				)
 					.chain(),
 				(

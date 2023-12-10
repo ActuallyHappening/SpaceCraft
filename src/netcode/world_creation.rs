@@ -45,6 +45,8 @@ impl WorldCreationPlugin {
 		mut commands: Commands,
 		system: Res<WorldCreationRunSystem>,
 	) {
+		// in the future might add more fields to create world event,
+		// like creating chunks e.t.c.
 		for _ in events.read() {
 			commands.run_system(system.0);
 		}
@@ -55,5 +57,7 @@ impl WorldCreation {
 	fn run_schedule(world: &mut World) {
 		info!("Running WorldCreation schedule");
 		world.try_run_schedule(WorldCreation).ok();
+		info!("Running Blueprints schedule after WorldCreation");
+		world.try_run_schedule(Blueprints).ok();
 	}
 }
