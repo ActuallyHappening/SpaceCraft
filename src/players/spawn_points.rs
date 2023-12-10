@@ -34,7 +34,14 @@ mod api {
 	#[derive(SystemParam)]
 	// #[system_param(mutable)]
 	pub struct AvailableSpawnPoints<'w, 's> {
-		spawn_points: Query<'w, 's, (&'static mut SpawnPointBlueprintComponent, &'static Transform)>,
+		spawn_points: Query<
+			'w,
+			's,
+			(
+				&'static mut SpawnPointBlueprintComponent,
+				&'static Transform,
+			),
+		>,
 		state: Res<'w, NetcodeConfig>,
 	}
 

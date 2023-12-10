@@ -19,7 +19,10 @@ impl Plugin for WorldCreationPlugin {
 					.chain(),
 			)
 			.add_event::<CreateWorldEvent>()
-			.add_systems(FixedUpdate, Self::handle_world_creation_events)
+			.add_systems(
+				FixedUpdate,
+				Self::handle_world_creation_events.in_set(GlobalSystemSet::WorldCreation),
+			)
 			.add_systems(WorldCreation, apply_deferred.in_set(WCS::ApplyBlueprints));
 
 		let system_id = app.world.register_system(WorldCreation::run_schedule);

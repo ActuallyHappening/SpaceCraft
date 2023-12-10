@@ -28,6 +28,7 @@ mod ui;
 mod utils;
 // mod world;
 
+use bevy::ecs::schedule::{LogLevel, ScheduleBuildSettings};
 #[allow(unused_imports)]
 use bevy_mod_picking::{
 	prelude::{DebugPickingPlugin, DefaultHighlightingPlugin},
@@ -55,6 +56,7 @@ impl Plugin for MainPlugin {
 					GlobalSystemSet::RawPhysics,
 					GlobalSystemSet::GameLogic,
 					GlobalSystemSet::BlueprintExpansion,
+					GlobalSystemSet::WorldCreation,
 				)
 					.chain(),
 				(
@@ -66,6 +68,15 @@ impl Plugin for MainPlugin {
 				ServerSet::Send.after(GlobalSystemSet::GameLogic),
 			),
 		);
+		// Set up the physics schedule, the schedule that advances the physics simulation
+		app.edit_schedule(FixedUpdate, |schedule| {
+			schedule
+				// .set_executor_kind(ExecutorKind::SingleThreaded)
+				.set_build_settings(ScheduleBuildSettings {
+					ambiguity_detection: LogLevel::Error,
+					..default()
+				});
+		});
 
 		// spawn initial light
 		app.add_systems(Startup, |mut commands: Commands| {

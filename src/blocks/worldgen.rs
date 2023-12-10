@@ -5,7 +5,10 @@ pub struct WorldGenPlugin;
 impl Plugin for WorldGenPlugin {
 	fn build(&self, app: &mut App) {
 		app
-			.add_systems(FixedUpdate, Self::expand_terrain_structure)
+			.add_systems(
+				Blueprints,
+				Self::expand_terrain_structure.in_set(BlueprintExpansion::Terrain),
+			)
 			.add_systems(
 				WorldCreation,
 				Self::creation_spawn_random_world.in_set(WorldCreationSet::Asteroids),

@@ -14,6 +14,15 @@ impl Plugin for PlayerMovementPlugin {
 	fn build(&self, app: &mut App) {
 		app
 			.replicate::<components::IntendedVelocity>()
+			.configure_sets(
+				FixedUpdate,
+				(
+					PlayerMovementSet::ComputeStrengths,
+					PlayerMovementSet::EnactThrusters,
+				)
+					.chain()
+					.in_set(GlobalSystemSet::PlayerMovement),
+			)
 			.add_systems(
 				FixedUpdate,
 				(
@@ -25,7 +34,7 @@ impl Plugin for PlayerMovementPlugin {
 					Self::calculate_thruster_strengths,
 				)
 					.chain()
-					.in_set(PlayerMovementSet),
+					.in_set(PlayerMovementSet::ComputeStrengths),
 			)
 			.add_plugins(InputManagerPlugin::<PlayerInput>::default())
 			.register_type::<components::ThrusterAxis>()
@@ -41,9 +50,6 @@ mod api {
 	use crate::prelude::*;
 
 	pub use super::input_processing::PlayerInput;
-
-	#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
-	pub struct PlayerMovementSet;
 
 	#[derive(SystemParam, Debug)]
 	pub struct GetThrusterData<'w, 's> {
@@ -90,4 +96,6 @@ mod systems;
 mod components;
 
 use utils::*;
+
+use super::PlayerMovementSet;
 mod utils;

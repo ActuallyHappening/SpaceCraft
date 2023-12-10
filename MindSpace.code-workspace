@@ -69,9 +69,9 @@
 		// {
 		// 	"path": "../bevy_dolly"
 		// }
-		{
-			"path": "../bevy"
-		},
+		// {
+		// 	"path": "../bevy"
+		// },
 		// {
 		// 	"path": "../bevy/examples/shader"
 		// },

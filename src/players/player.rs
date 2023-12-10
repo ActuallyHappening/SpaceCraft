@@ -23,7 +23,8 @@ impl Plugin for PlayerPlugin {
 				(
 					Self::manage_primary_camera.run_if(NetcodeConfig::not_headless()),
 					Self::name_player,
-				),
+				)
+					.in_set(GlobalSystemSet::GameLogic),
 			)
 			.add_systems(
 				WorldCreation,

@@ -15,7 +15,7 @@ pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
 /// Configured for [FixedUpdate] ONLY!
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GlobalSystemSet {
-	/// Player's movement, set in [crate::players::player_movement]
+	/// Player's movement, set in [crate::players]
 	PlayerMovement,
 
 	/// Runs physics simulation
@@ -25,7 +25,10 @@ pub enum GlobalSystemSet {
 	/// Runs after physics simulation
 	GameLogic,
 
+	/// Runs the [Blueprints] [Schedule].
 	BlueprintExpansion,
+
+	WorldCreation,
 }
 
 /// Naming of all render layers used within the project

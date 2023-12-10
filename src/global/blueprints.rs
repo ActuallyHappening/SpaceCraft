@@ -14,7 +14,7 @@ impl Plugin for BlueprintsPlugin {
 				Blueprints,
 				(
 					BE::ClearJustExpandedMarker,
-					(BE::Player, BE::SpawnPoints),
+					(BE::Player, BE::SpawnPoints, BE::Terrain),
 					BE::Expand1, // expands player children like structure blueprints
 					(BE::ThrusterBlocks, BE::CameraBlocks, BE::StructureBlocks),
 					BE::Expand2,
@@ -59,6 +59,8 @@ pub enum BlueprintExpansion {
 	/// which also spawns a few children.
 	Player,
 	SpawnPoints,
+	/// Asteroids
+	Terrain,
 
 	/// Runs [apply_deferred]
 	Expand1,
