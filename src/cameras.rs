@@ -64,7 +64,7 @@ mod camera_bundle {
 		render_layer: RenderLayers,
 		name: Name,
 		vis: VisibilityBundle,
-		id: CameraMarker,
+		marker: CameraMarker,
 	}
 
 	/// Marker for actual cameras, [CameraBundle]
@@ -113,7 +113,7 @@ mod camera_bundle {
 				render_layer: GlobalRenderLayers::InGame.into(),
 				vis: VisibilityBundle::default(),
 				// bloom: Self::DEFAULT_BLOOM,
-				id: CameraMarker,
+				marker: CameraMarker,
 			}
 		}
 	}
@@ -140,7 +140,19 @@ mod systems {
 			match config.get_fallback_cam() {
 				Some(None) => {
 					// spawn a fallback camera
-					let entity = commands.spawn(Camera3dBundle::default()).id();
+					let entity = commands
+						.spawn(Camera3dBundle {
+							camera: Camera {
+								hdr: true,
+								..default()
+							},
+							camera_3d: Camera3d {
+								clear_color: ClearColorConfig::Custom(Color::BLUE),
+								..default()
+							},
+							..default()
+						})
+						.id();
 					debug!("Spawned a fallback camera");
 					config.set_fallback_cam(entity, &mut commands);
 				}
@@ -205,133 +217,7 @@ mod systems {
 	}
 }
 
-mod resources {
-	use crate::prelude::*;
-
-	use super::{BlockEntity, CameraEntity};
-
-	/// Holds state about the cameras of the game.
-	///
-	/// Public so that UI can change where camera is pointing
-	/// e.g. in load screen point towards highest ranked player
-	#[derive(Resource, Debug, Reflect)]
-	#[reflect(Resource)]
-	pub(super) struct CamerasConfig {
-		/// Pointer to the block entity the primary camera should
-		/// be following, and the actual ID of the Camera.
-		///
-		/// When [Err], is actually a default camera which should be removed
-		/// when a better primary camera can be spawned.
-		primary_cam: PrimaryCam,
-
-		/// Pointer to blocks, with extra configuration for the cameras.
-		secondary_cams: HashMap<CameraEntity, (BlockEntity, super::SecondaryCameraConfig)>,
-	}
-
-	#[derive(Debug, Reflect)]
-	pub(super) enum PrimaryCam {
-		Primary(BlockEntity, CameraEntity),
-		Fallback(Option<Entity>),
-	}
-
-	use PrimaryCam::{Fallback, Primary};
-
-	impl PrimaryCam {
-		pub fn get_fallback(&self) -> Option<Option<Entity>> {
-			match self {
-				Self::Fallback(e) => Some(*e),
-				Self::Primary(_, _) => None,
-			}
-		}
-
-		pub fn get_primary(&self) -> Option<(BlockEntity, CameraEntity)> {
-			match self {
-				Self::Fallback(_) => None,
-				Self::Primary(b, c) => Some((*b, *c)),
-			}
-		}
-	}
-
-	impl Default for CamerasConfig {
-		fn default() -> Self {
-			CamerasConfig {
-				primary_cam: Fallback(None),
-				secondary_cams: HashMap::new(),
-			}
-		}
-	}
-
-	impl CamerasConfig {
-		pub fn get_fallback_cam(&self) -> Option<Option<Entity>> {
-			self.primary_cam.get_fallback()
-		}
-
-		/// If a fallback camera is in place, despawn it
-		fn clean_fallback_cam(&mut self, commands: &mut Commands) {
-			if let Fallback(Some(e)) = &mut self.primary_cam {
-				debug!("Despawning old fallback camera");
-				commands.entity(*e).despawn_recursive();
-				self.primary_cam = Fallback(None);
-			}
-		}
-
-		fn clean_primary_cam(&mut self, commands: &mut Commands) {
-			if let Primary(_, e) = &self.primary_cam {
-				debug!("Despawning old primary camera");
-				commands.entity(e.0).despawn_recursive();
-				self.primary_cam = Fallback(None);
-			}
-		}
-
-		/// Assumes you have spawned a camera, and want to set it
-		/// as the primary camera. `entity` is the entity of the [CameraBundle]
-		pub fn set_fallback_cam(&mut self, entity: Entity, commands: &mut Commands) {
-			self.clean_fallback_cam(commands);
-			match &mut self.primary_cam {
-				Fallback(_) => {
-					self.primary_cam = Fallback(Some(entity));
-				}
-				Primary(_, _) => error!("Trying to set the fallback cam when a fallback is not needed"),
-			}
-		}
-
-		// pub fn get_primary_cam(&self) -> Option<(BlockEntity, CameraEntity)> {
-		// 	self.primary_cam.get_primary()
-		// }
-
-		/// Sets the primary camera to follow the given camera block entity.
-		/// Must have already spawned the camera.
-		///
-		/// Automatically clears up old cameras in the process, like
-		/// fallback and primary.
-		pub fn set_primary_cam(
-			&mut self,
-			block_entity: BlockEntity,
-			camera_entity: CameraEntity,
-			commands: &mut Commands,
-		) {
-			self.clean_fallback_cam(commands);
-			self.clean_primary_cam(commands);
-			self.primary_cam = Primary(block_entity, camera_entity);
-		}
-
-		/// Returns the camera [BlockEntity] that the camera
-		/// with the given [CameraId] is following.
-		pub fn get_cam_from_id(&self, id: CameraEntity) -> Option<BlockEntity> {
-			if let Some((block_entity, _)) = self.secondary_cams.get(&id) {
-				Some(*block_entity)
-			} else if let Some((block_entity, primary_id)) = self.primary_cam.get_primary() {
-				if primary_id == id {
-					Some(block_entity)
-				} else {
-					None
-				}
-			} else {
-				None
-			}
-		}
-	}
-}
+mod resources;
 
 mod events {
 	use crate::prelude::*;
@@ -344,70 +230,4 @@ mod events {
 	}
 }
 
-mod camera_block {
-	use crate::prelude::*;
-
-	/// Camera block that is spawned into the world
-	#[derive(Bundle)]
-	pub struct CameraBlockBundle {
-		pbr: PbrBundle,
-		name: Name,
-		id: BlockId,
-		marker: CameraBlockMarker,
-	}
-
-	/// Blueprint for [CameraBlockBundle]
-	#[derive(Debug, Reflect, Serialize, Deserialize, Clone)]
-	pub struct CameraBlockBlueprint {
-		pub id: BlockId,
-	}
-
-	/// Marker for [BlockBlueprint]s that are [CameraBlockBlueprint]s,
-	/// which spawn [CameraBlockBundle]s.
-	#[derive(Component)]
-	pub struct CameraBlockMarker;
-
-	impl BlockBlueprint<CameraBlockBlueprint> {
-		pub fn new_camera(
-			position: impl Into<manual_builder::RelativePixel>,
-			facing: impl Into<Quat>,
-		) -> Self {
-			Self {
-				transform: Transform::from_rotation(facing.into())
-					.translate(position.into().into_world_offset()),
-				mesh: OptimizableMesh::Sphere {
-					radius: PIXEL_SIZE / 2.,
-				},
-				material: OptimizableMaterial::OpaqueColour(Color::BLACK),
-				specific_marker: CameraBlockBlueprint {
-					id: BlockId::random(),
-				},
-			}
-		}
-	}
-
-	impl Blueprint for BlockBlueprint<CameraBlockBlueprint> {
-		type Bundle = CameraBlockBundle;
-		type StampSystemParam<'w, 's> = MMA<'w>;
-
-		fn stamp(&self, mma: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle {
-			let BlockBlueprint {
-				transform,
-				mesh,
-				material,
-				specific_marker,
-			} = self;
-			Self::Bundle {
-				pbr: PbrBundle {
-					transform: *transform,
-					mesh: mesh.clone().into_mesh(mma),
-					material: material.clone().into_material(&mut mma.mats),
-					..default()
-				},
-				name: Name::new("CameraBlock"),
-				id: specific_marker.id,
-				marker: CameraBlockMarker,
-			}
-		}
-	}
-}
+mod camera_block;

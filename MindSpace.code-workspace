@@ -89,6 +89,7 @@
 			"linvel",
 			"picka ble",
 			"Pickable",
+			"prefilter",
 			"Raycast",
 			"renet",
 			"reparented",

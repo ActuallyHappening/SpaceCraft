@@ -67,14 +67,20 @@ mod systems {
 					.insert(player_blueprint.stamp())
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
-							parent.spawn(blueprint.stamp(&mut mma));
+							parent
+								.spawn(blueprint.stamp(&mut mma))
+								.insert(BlueprintUpdated);
 						}
 
 						for blueprint in &player_blueprint.thruster_children {
-							parent.spawn(blueprint.stamp(&mut mma));
+							parent
+								.spawn(blueprint.stamp(&mut mma))
+								.insert(BlueprintUpdated);
 						}
 
-						parent.spawn(player_blueprint.primary_camera.stamp(&mut mma));
+						parent
+							.spawn(player_blueprint.primary_camera.stamp(&mut mma))
+							.insert(BlueprintUpdated);
 					});
 			}
 		}
@@ -83,8 +89,9 @@ mod systems {
 		/// check if they are the child of the local player.
 		/// If so, set the primary camera to it.
 		pub(super) fn manage_primary_camera(
-			players: Query<&NetworkId, With<ControllablePlayer>>,
-			// camera blocks that change
+			// player spawned
+			players: Query<&NetworkId, (With<ControllablePlayer>, Added<BlueprintUpdated>)>,
+			// camera spawned as well
 			camera_blocks: Query<(Entity, &Parent), (With<CameraBlockMarker>, Added<BlueprintUpdated>)>,
 			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
 			local_id: ClientID,

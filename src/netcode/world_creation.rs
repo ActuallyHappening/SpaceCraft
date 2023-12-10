@@ -11,10 +11,16 @@ impl Plugin for WorldCreationPlugin {
 		app
 			.configure_sets(
 				WorldCreation,
-				(WCS::SpawnPoints, WCS::InitialPlayer).chain(),
+				(
+					(WCS::SpawnPoints, WCS::Asteroids),
+					WCS::ApplyBlueprints,
+					WCS::InitialPlayer,
+				)
+					.chain(),
 			)
 			.add_event::<CreateWorldEvent>()
-			.add_systems(FixedUpdate, Self::handle_world_creation_events);
+			.add_systems(FixedUpdate, Self::handle_world_creation_events)
+			.add_systems(WorldCreation, apply_deferred.in_set(WCS::ApplyBlueprints));
 
 		let system_id = app.world.register_system(WorldCreation::run_schedule);
 		app.world.insert_resource(WorldCreationRunSystem(system_id));
@@ -28,6 +34,9 @@ pub struct WorldCreation;
 pub enum WorldCreationSet {
 	Asteroids,
 	SpawnPoints,
+
+	/// runs [apply_deferred] so that the bundles are actually spawned in
+	ApplyBlueprints,
 
 	/// Must be done after spawn points
 	InitialPlayer,

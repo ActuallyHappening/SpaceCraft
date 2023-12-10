@@ -145,13 +145,14 @@ mod traits {
 		) {
 			for (e, blueprint) in instances.iter() {
 				trace!(
-					"Expanding blueprint {:?}: {:?}",
-					std::any::type_name::<Self::NetworkedBlueprintComponent>(),
+					"Expanding blueprint: {:?}",
+					// std::any::type_name::<Self::NetworkedBlueprintComponent>(),
 					blueprint
 				);
 				commands
 					.entity(e)
-					.insert(blueprint.stamp(&mut expand_system_param));
+					.insert(blueprint.stamp(&mut expand_system_param))
+					.insert(BlueprintUpdated);
 			}
 		}
 	}
