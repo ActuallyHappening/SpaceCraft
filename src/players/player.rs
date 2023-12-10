@@ -32,16 +32,21 @@ mod api {
 
 mod systems {
 	use crate::{
-		cameras::ChangeCameraConfig, players::spawn_points::AvailableSpawnPoints, prelude::*,
+		cameras::{BlockEntity, ChangeCameraConfig, CameraBlockMarker},
+		players::spawn_points::AvailableSpawnPoints,
+		prelude::*,
 	};
 
-	use super::{player_blueprint::PlayerBlueprintComponent, PlayerBlueprintBundle, PlayerPlugin};
+	use super::{
+		player_blueprint::PlayerBlueprintComponent, ControllablePlayer, PlayerBlueprintBundle,
+		PlayerPlugin,
+	};
 
 	impl PlayerPlugin {
 		pub(super) fn handle_spawn_player_blueprints(
 			player_blueprints: Query<
 				(Entity, &PlayerBlueprintComponent),
-				Added<PlayerBlueprintComponent>,
+				Changed<PlayerBlueprintComponent>,
 			>,
 			mut commands: Commands,
 			mut mma: MMA,
@@ -55,6 +60,7 @@ mod systems {
 				);
 				commands
 					.entity(player)
+					.despawn_descendants()
 					.insert(player_blueprint.stamp())
 					.with_children(|parent| {
 						for blueprint in &player_blueprint.structure_children {
@@ -65,19 +71,28 @@ mod systems {
 							parent.spawn(blueprint.stamp(&mut mma));
 						}
 
-						let camera_entity = parent
-							.spawn(player_blueprint.primary_camera.stamp(&mut mma))
-							.id();
-						if local_id.get() == Some(player_blueprint.get_network_id()) {
-							set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
-								follow_camera_block: camera_entity,
-							});
-							debug!(
-								"Using player's {} primary camera block as the primary camera",
-								local_id.assert_client_id()
-							);
-						}
+						parent.spawn(player_blueprint.primary_camera.stamp(&mut mma));
 					});
+			}
+		}
+
+		/// When new [CameraBlockMarker]s are spawned,
+		/// check if they are the child of the local player.
+		/// If so, set the primary camera to it.
+		pub(super) fn manage_primary_camera(
+			players: Query<&ControllablePlayer>,
+			camera_blocks: Query<(Entity, &Parent), Changed<CameraBlockMarker>>,
+			mut set_primary_camera: EventWriter<ChangeCameraConfig>,
+			local_id: ClientID,
+		) {
+			for (e, parent) in camera_blocks.iter() {
+				if let Ok(player) = players.get(parent.get()) {
+					if local_id.get() == Some(player.get_network_id()) {
+						set_primary_camera.send(ChangeCameraConfig::SetPrimaryCamera {
+							follow_camera_block: BlockEntity(e),
+						});
+					}
+				}
 			}
 		}
 
@@ -190,12 +205,12 @@ mod player_bundle {
 
 	use crate::{players::player_movement::PlayerBundleMovementExt, prelude::*};
 
-	use super::{ControllablePlayer, PlayerBlueprintComponent, PlayerBlueprintBundle};
+	use super::{ControllablePlayer, PlayerBlueprintBundle, PlayerBlueprintComponent};
 
 	/// Parent entity of a player.
 	/// Doesn't actually have its own [Mesh] / [Collider],
 	/// because its children provide that for it.
-	/// 
+	///
 	/// Also, doesn't have a transform because [PlayerBlueprintBundle] provides
 	/// that for it through [bevy_replicon].
 	#[derive(Bundle)]
@@ -241,5 +256,7 @@ mod player_bundle {
 
 	impl NetworkedBlueprintBundle for PlayerBlueprintBundle {
 		type NetworkedBlueprintComponent = PlayerBlueprintComponent;
+
+		type SpawnSystemParam = ();
 	}
 }

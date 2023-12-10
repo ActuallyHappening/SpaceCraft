@@ -11,9 +11,8 @@ impl Plugin for WorldCreationPlugin {
 		app
 			.configure_sets(
 				WorldCreation,
-				(WCS::SpawnPoints, WCS::FlushSpawnPoints, WCS::InitialPlayer).chain(),
+				(WCS::SpawnPoints, WCS::InitialPlayer).chain(),
 			)
-			.add_systems(WorldCreation, apply_deferred.in_set(WCS::FlushSpawnPoints))
 			.add_event::<CreateWorldEvent>()
 			.add_systems(FixedUpdate, Self::handle_world_creation_events);
 
@@ -27,10 +26,9 @@ pub struct WorldCreation;
 
 #[derive(SystemSet, Hash, Debug, Clone, Eq, PartialEq)]
 pub enum WorldCreationSet {
-	SpawnPoints,
 	Asteroids,
+	SpawnPoints,
 
-	FlushSpawnPoints,
 	/// Must be done after spawn points
 	InitialPlayer,
 }

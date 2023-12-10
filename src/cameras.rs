@@ -1,7 +1,8 @@
 use crate::prelude::*;
 
 use bevy_dolly::system::Dolly;
-pub use events::ChangeCameraConfig;
+
+pub use api::*;
 
 pub struct CameraPlugin;
 
@@ -10,16 +11,16 @@ impl Plugin for CameraPlugin {
 		// app.add_systems(Startup, spawn_default_cameras);
 		app
 			.register_type::<resources::CamerasConfig>()
-			.register_type::<CameraEntity>()
+			.register_type::<api::CameraEntity>()
 			.init_resource::<resources::CamerasConfig>()
-			.add_event::<ChangeCameraConfig>()
+			.add_event::<events::ChangeCameraConfig>()
 			.add_systems(
 				Update,
 				(
 					Self::handle_fallback_cam,
 					Self::handle_change_camera_events,
 					Self::update_cameras,
-					Dolly::<CameraMarker>::update_active,
+					Dolly::<camera_bundle::CameraMarker>::update_active,
 				)
 					.chain()
 					.in_set(Client),
@@ -27,17 +28,26 @@ impl Plugin for CameraPlugin {
 	}
 }
 
-/// Marker for a [camera_bundle::CameraBundle].
-#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq, Hash)]
-struct CameraEntity(Entity);
+mod api {
+	use crate::prelude::*;
 
-#[derive(Debug, Reflect)]
-pub struct SecondaryCameraConfig {
-	anchor: global::UiCameras,
-	width: f32,
-	height: f32,
+	pub use super::camera_block::{CameraBlockBlueprint, CameraBlockBundle, CameraBlockMarker};
+	pub use super::events::ChangeCameraConfig;
+
+	#[derive(Debug, Clone, Copy, Reflect)]
+	pub struct BlockEntity(pub Entity);
+
+	/// Marker for a [camera_bundle::CameraBundle].
+	#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+	pub struct CameraEntity(pub Entity);
+
+	#[derive(Debug, Reflect)]
+	pub struct SecondaryCameraConfig {
+		anchor: global::UiCameras,
+		width: f32,
+		height: f32,
+	}
 }
-
 mod camera_bundle {
 	use crate::prelude::*;
 	use bevy::core_pipeline::bloom::{BloomCompositeMode, BloomPrefilterSettings, BloomSettings};
@@ -115,8 +125,8 @@ mod systems {
 	use super::{
 		camera_bundle::{CameraBundle, CameraMarker},
 		events::ChangeCameraConfig,
-		resources::{self, BlockEntity, CamerasConfig},
-		CameraBlockMarker, CameraEntity, CameraPlugin,
+		resources::{self, CamerasConfig},
+		CameraEntity, CameraPlugin, CameraBlockMarker,
 	};
 	use crate::prelude::*;
 
@@ -157,7 +167,7 @@ mod systems {
 						// spawns new camera
 						let camera_entity = commands.spawn(CameraBundle::default()).id();
 						res.set_primary_cam(
-							BlockEntity(*follow_camera_block),
+							*follow_camera_block,
 							CameraEntity(camera_entity),
 							&mut commands,
 						);
@@ -198,10 +208,7 @@ mod systems {
 mod resources {
 	use crate::prelude::*;
 
-	use super::CameraEntity;
-
-	#[derive(Debug, Clone, Copy, Reflect)]
-	pub(super) struct BlockEntity(pub Entity);
+	use super::{BlockEntity, CameraEntity};
 
 	/// Holds state about the cameras of the game.
 	///
@@ -329,15 +336,14 @@ mod resources {
 mod events {
 	use crate::prelude::*;
 
+	use super::BlockEntity;
+
 	#[derive(Debug, Event)]
 	pub enum ChangeCameraConfig {
-		SetPrimaryCamera { follow_camera_block: Entity },
+		SetPrimaryCamera { follow_camera_block: BlockEntity },
 	}
 }
 
-pub use camera_block::*;
-
-use self::camera_bundle::CameraMarker;
 mod camera_block {
 	use crate::prelude::*;
 
@@ -359,7 +365,7 @@ mod camera_block {
 	/// Marker for [BlockBlueprint]s that are [CameraBlockBlueprint]s,
 	/// which spawn [CameraBlockBundle]s.
 	#[derive(Component)]
-	pub(super) struct CameraBlockMarker;
+	pub struct CameraBlockMarker;
 
 	impl BlockBlueprint<CameraBlockBlueprint> {
 		pub fn new_camera(

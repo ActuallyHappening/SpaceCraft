@@ -11,11 +11,23 @@ impl Plugin for SpawnPointsPlugin {
 		app
 			// .replicate_marked::<blueprint::SpawnPointBlueprintComponent>()
 			.register_type::<components::SpawnPoint>()
+			.register_type::<blueprint::SpawnPointBlueprintComponent>()
 			.add_systems(Startup, Self::load_default_materials)
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
 			.add_systems(
 				WorldCreation,
-				Self::creation_spawn_points.in_set(WorldCreationSet::SpawnPoints),
+				(
+					Self::creation_spawn_points,
+					// |spawn_points: Query<&SpawnPointBlueprintComponent>| {
+					// 	let dbg = spawn_points.iter().collect::<Vec<_>>();
+					// 	debug!("Found spawn points: {:?}", dbg);
+					// },
+					apply_deferred,
+					blueprint::SpawnPointBlueprintBundle::expand_system,
+					apply_deferred,
+				)
+					.chain()
+					.in_set(WorldCreationSet::SpawnPoints),
 			)
 			.add_systems(Update, Self::activate_local_spawn_points);
 	}
@@ -122,6 +134,8 @@ mod systems {
 		}
 
 		pub(super) fn creation_spawn_points(mut commands: Commands) {
+			debug!("Spawning initial spawn points");
+
 			const CIRCLE_RADIUS: f32 = SpawnPointBlueprintBundle::DEFAULT_SIZE * 4.0;
 			const NUM_STRIPS_MAGNITUDE: isize = 2; // 5 total layers
 
@@ -162,12 +176,9 @@ mod systems {
 			for strip_height_n in -NUM_STRIPS_MAGNITUDE..=NUM_STRIPS_MAGNITUDE {
 				let phi = phi_per_strip_n(strip_height_n);
 				for theta in thetas_per_strip_n(strip_height_n) {
-					// trace!("Adding vector with theta: {}, phi: {}", theta, phi);
 					starting_positions.push(vec3_polar(theta, phi) * CIRCLE_RADIUS);
 				}
 			}
-
-			// trace!("Starting positions: {:?}", starting_positions);
 
 			let spawn_points: Vec<SpawnPointBlueprintBundle> = starting_positions
 				.iter()
@@ -221,7 +232,7 @@ mod blueprint {
 	pub struct SpawnPointBlueprintBundle {
 		/// synced
 		transform: Transform,
-		
+
 		/// synced
 		#[deref]
 		blueprint: SpawnPointBlueprintComponent,
@@ -338,6 +349,8 @@ mod bundle {
 
 	impl NetworkedBlueprintBundle for SpawnPointBlueprintBundle {
 		type NetworkedBlueprintComponent = SpawnPointBlueprintComponent;
+
+		type SpawnSystemParam = ();
 	}
 }
 

@@ -41,6 +41,51 @@ mod api {
 
 	#[derive(Event, Debug)]
 	pub struct PlayerLeave(pub ClientId);
+
+	#[derive(Component, Reflect, Debug, Serialize, Deserialize)]
+	pub struct NetworkId(u64);
+
+	impl GetNetworkId for NetworkId {
+		fn get_network_id(&self) -> ClientId {
+			ClientId::from_raw(self.0)
+		}
+	}
+
+	/// Useful for finding the local player's renet id.
+	#[derive(SystemParam)]
+	pub struct ClientID<'w> {
+		res: Option<Res<'w, NetcodeClientTransport>>,
+		is_headless: Res<'w, NetcodeConfig>,
+	}
+
+	impl ClientID<'_> {
+		/// Returns the client_id of the local player, or
+		/// [None] if [NetcodeConfig] is configured to be
+		/// [NetcodeConfig::is_headless]
+		pub fn get(&self) -> Option<ClientId> {
+			if self.is_headless.get_headless() {
+				None
+			} else {
+				Some(
+					self
+						.res
+						.as_ref()
+						.map(|client| ClientId::from_raw(client.client_id()))
+						.unwrap_or(SERVER_ID),
+				)
+			}
+		}
+
+		/// See [Self::client_id], [Option::unwrap]s for you.
+		/// Only use in systems that are already gated by
+		/// `.run_if`
+		// #[allow(dead_code)]
+		pub fn assert_client_id(&self) -> ClientId {
+			self
+				.get()
+				.expect("ClientID is None, place the system that uses this parameter in a .run_if")
+		}
+	}
 }
 
 impl Plugin for NetcodePlugin {
@@ -53,6 +98,8 @@ impl Plugin for NetcodePlugin {
 			.configure_sets(FixedUpdate, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(FixedUpdate, Server.run_if(NetcodeConfig::has_authority()))
+			.add_event::<PlayerJoin>()
+			.add_event::<PlayerLeave>()
 			.add_plugins(self::world_creation::WorldCreationPlugin);
 	}
 }
@@ -67,41 +114,6 @@ impl NetcodePlugin {
 		game_clock.advance(1);
 		let delta = game_clock.frame().saturating_sub(replicon_tick.get());
 		replicon_tick.increment_by(delta);
-	}
-}
-
-/// Useful for finding the local player's renet id.
-#[derive(SystemParam)]
-pub struct ClientID<'w> {
-	res: Option<Res<'w, NetcodeClientTransport>>,
-	is_headless: Res<'w, NetcodeConfig>,
-}
-
-impl ClientID<'_> {
-	/// Returns the client_id of the local player, or
-	/// [None] if [NetcodeConfig] is configured to be
-	/// [NetcodeConfig::is_headless]
-	pub fn get(&self) -> Option<ClientId> {
-		if self.is_headless.get_headless() {
-			None
-		} else {
-			Some(
-				self
-					.res
-					.as_ref()
-					.map(|client| ClientId::from_raw(client.client_id()))
-					.unwrap_or(SERVER_ID),
-			)
-		}
-	}
-
-	/// See [Self::client_id], [Option::unwrap]s for you.
-	/// Only use in systems that are already gated by
-	/// `.run_if`
-	pub fn assert_client_id(&self) -> ClientId {
-		self
-			.get()
-			.expect("ClientID is None, place the system that uses this parameter in a .run_if")
 	}
 }
 
