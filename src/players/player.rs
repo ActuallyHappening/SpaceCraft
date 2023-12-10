@@ -117,7 +117,7 @@ mod systems {
 					.try_get_spawn_location(id.0)
 					.expect("No more spawn points left!");
 
-				commands.spawn(PlayerBlueprintBundle::new(SERVER_ID, transform));
+				commands.spawn(PlayerBlueprintBundle::new(id.0, transform));
 			}
 		}
 

@@ -49,6 +49,7 @@ impl WorldCreationPlugin {
 				world.run_schedule(WorldCreation);
 				info!("Running Blueprints schedule after WorldCreation");
 				world.run_schedule(Blueprints);
+				info!("WorldCreation cycle ended");
 			}
 			events.clear();
 		});

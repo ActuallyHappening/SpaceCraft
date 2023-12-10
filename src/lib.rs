@@ -167,6 +167,7 @@ impl Plugin for MainPlugin {
 
 		// game logic plugins
 		app.add_plugins((
+			global::blueprints::BlueprintsPlugin,
 			self::netcode::NetcodePlugin,
 			self::cameras::CameraPlugin,
 			self::ui::UiPlugins,

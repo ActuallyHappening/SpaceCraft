@@ -98,6 +98,7 @@ mod systems {
 		}
 
 		pub(super) fn run_blueprints_schedule(world: &mut World) {
+			// trace!("Running Blueprints schedule normally");
 			world.try_run_schedule(Blueprints).ok();
 		}
 	}
