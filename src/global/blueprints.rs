@@ -1,4 +1,4 @@
-use bevy::ecs::schedule::ScheduleLabel;
+use bevy::ecs::schedule::{ScheduleBuildSettings, ScheduleLabel};
 
 use crate::prelude::*;
 
@@ -16,7 +16,7 @@ impl Plugin for BlueprintsPlugin {
 					BE::ClearJustExpandedMarker,
 					(BE::Player, BE::SpawnPoints, BE::Terrain),
 					BE::Expand1, // expands player children like structure blueprints
-					(BE::ThrusterBlocks, BE::CameraBlocks, BE::StructureBlocks),
+					(BE::ThrusterBlocks,),
 					BE::Expand2,
 				)
 					.chain(),
@@ -24,14 +24,24 @@ impl Plugin for BlueprintsPlugin {
 			.register_type::<BlueprintUpdated>()
 			.add_systems(
 				Blueprints,
-				((Self::clear_blueprint_updated_markers, apply_deferred)
+				((
+					apply_deferred,
+					Self::clear_blueprint_updated_markers,
+					apply_deferred,
+				)
 					.chain()
 					.in_set(BE::ClearJustExpandedMarker),),
 			)
 			.add_systems(
 				FixedUpdate,
 				Self::run_blueprints_schedule.in_set(GlobalSystemSet::BlueprintExpansion),
-			);
+			)
+			.edit_schedule(Blueprints, |schedule| {
+				schedule.set_build_settings(ScheduleBuildSettings {
+					ambiguity_detection: bevy::ecs::schedule::LogLevel::Error,
+					..default()
+				});
+			});
 	}
 }
 
@@ -52,7 +62,7 @@ pub struct BlueprintUpdated;
 /// expanded before, so that thruster visuals can be spawned on time.
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BlueprintExpansion {
-	/// Removes the [JustExpanded] marker components and calls [apply_deferred]
+	/// Removes the [JustExpanded] marker components and calls [apply_deferred] (twice)
 	ClearJustExpandedMarker,
 
 	/// Expands player's blueprint,
@@ -66,8 +76,6 @@ pub enum BlueprintExpansion {
 	Expand1,
 
 	ThrusterBlocks,
-	CameraBlocks,
-	StructureBlocks,
 
 	/// Runs [apply_deferred]
 	Expand2,

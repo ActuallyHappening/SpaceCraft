@@ -1,6 +1,7 @@
 //! Types and functionality that affect the project globally
 //! Like constants
 
+use bevy::ecs::schedule::ScheduleLabel;
 use strum::IntoEnumIterator;
 
 use crate::prelude::*;
@@ -12,6 +13,10 @@ pub const DEFAULT_PORT: u16 = 5069;
 pub const PROTOCOL_ID: u64 = 0;
 pub const PIXEL_SIZE: f32 = 1.; // how many pixels per block
 
+/// For all systems that are order-specific
+#[derive(ScheduleLabel, Hash, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GameLogic;
+
 /// Configured for [FixedUpdate] ONLY!
 #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GlobalSystemSet {
@@ -22,8 +27,9 @@ pub enum GlobalSystemSet {
 	/// Note: Thrusters sync their data with external force just before this
 	RawPhysics,
 
-	/// Runs after physics simulation
-	GameLogic,
+	/// Runs after physics simulation,
+	/// executes [GameLogic]
+	ExecuteGameLogic,
 
 	/// Runs the [Blueprints] [Schedule].
 	BlueprintExpansion,

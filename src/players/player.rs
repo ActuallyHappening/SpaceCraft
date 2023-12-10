@@ -19,16 +19,12 @@ impl Plugin for PlayerPlugin {
 				Self::handle_spawn_player_blueprints.in_set(BlueprintExpansion::Player),
 			)
 			.add_systems(
-				FixedUpdate,
+				GameLogic,
 				(
 					Self::manage_primary_camera.run_if(NetcodeConfig::not_headless()),
 					Self::name_player,
-				)
-					.in_set(GlobalSystemSet::GameLogic),
-			)
-			.add_systems(
-				WorldCreation,
-				Self::creation_spawn_initial.in_set(WorldCreationSet::InitialPlayer),
+					Self::handle_player_join,
+				),
 			);
 	}
 }
@@ -108,16 +104,20 @@ mod systems {
 			}
 		}
 
-		pub(super) fn creation_spawn_initial(
+		/// Spawns [PlayerBlueprintBundle]s when [PlayerJoin] events are received
+		pub(super) fn handle_player_join(
 			mut commands: Commands,
-			spawn_point: AvailableSpawnPoints,
+			mut spawn_point: AvailableSpawnPoints,
+			mut player_joins: EventReader<PlayerJoin>,
 		) {
-			// commands.spawn(PlayerBlueprint::new(SERVER_ID, Transform::IDENTITY));
-			let transform = spawn_point
-				.try_get_spawn_location(SERVER_ID)
-				.expect("No more spawn points left!");
+			for id in player_joins.read() {
+				// commands.spawn(PlayerBlueprint::new(SERVER_ID, Transform::IDENTITY));
+				let transform = spawn_point
+					.try_get_spawn_location(id.0)
+					.expect("No more spawn points left!");
 
-			commands.spawn(PlayerBlueprintBundle::new(SERVER_ID, transform));
+				commands.spawn(PlayerBlueprintBundle::new(SERVER_ID, transform));
+			}
 		}
 
 		pub(super) fn name_player(

@@ -54,7 +54,7 @@ impl Plugin for MainPlugin {
 				(
 					GlobalSystemSet::PlayerMovement,
 					GlobalSystemSet::RawPhysics,
-					GlobalSystemSet::GameLogic,
+					GlobalSystemSet::ExecuteGameLogic,
 					GlobalSystemSet::BlueprintExpansion,
 					GlobalSystemSet::WorldCreation,
 				)
@@ -65,17 +65,20 @@ impl Plugin for MainPlugin {
 					PhysicsSet::Sync,
 				)
 					.in_set(GlobalSystemSet::RawPhysics),
-				ServerSet::Send.after(GlobalSystemSet::GameLogic),
+				ServerSet::Send.after(GlobalSystemSet::ExecuteGameLogic),
 			),
 		);
 		// Set up the physics schedule, the schedule that advances the physics simulation
-		app.edit_schedule(FixedUpdate, |schedule| {
+		app.edit_schedule(GameLogic, |schedule| {
 			schedule
 				// .set_executor_kind(ExecutorKind::SingleThreaded)
 				.set_build_settings(ScheduleBuildSettings {
 					ambiguity_detection: LogLevel::Error,
 					..default()
 				});
+		});
+		app.add_systems(FixedUpdate, |world: &mut World| {
+			world.try_run_schedule(GameLogic).ok();
 		});
 
 		// spawn initial light
@@ -137,10 +140,10 @@ impl Plugin for MainPlugin {
 			ReplicationPlugins
 				.build()
 				.set(ServerPlugin::new(TickPolicy::Manual)),
-			TimewarpPlugin::new(TimewarpConfig::new(
-				GlobalSystemSet::GameLogic,
-				GlobalSystemSet::GameLogic,
-			)),
+			// TimewarpPlugin::new(TimewarpConfig::new(
+			// 	GlobalSystemSet::ExecuteGameLogic,
+			// 	GlobalSystemSet::ExecuteGameLogic,
+			// )),
 			// crate::utils::scenes::HelperScene,
 		));
 

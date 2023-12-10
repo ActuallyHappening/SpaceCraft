@@ -102,8 +102,11 @@ impl Plugin for NetcodePlugin {
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
 			.add_systems(Update, Self::server_event_system.in_set(Server))
-			.add_systems(FixedUpdate, Self::frame_inc_and_replicon_tick_sync)
-			.configure_sets(FixedUpdate, Client.run_if(NetcodeConfig::not_headless()))
+			// .add_systems(
+			// 	FixedUpdate,
+			// 	Self::frame_inc_and_replicon_tick_sync.in_set(GlobalSystemSet::GameLogic),
+			// )
+			.configure_sets(GameLogic, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(FixedUpdate, Server.run_if(NetcodeConfig::has_authority()))
 			.add_event::<PlayerJoin>()
@@ -137,6 +140,7 @@ mod systems {
 			network_channels: Res<NetworkChannels>,
 			config: Res<NetcodeConfig>,
 			mut creation_event: EventWriter<CreateWorldEvent>,
+			mut server_non_headless_join: EventWriter<PlayerJoin>,
 		) {
 			match config.into_inner() {
 				NetcodeConfig::Server { ip, port, headless } => {
@@ -171,6 +175,7 @@ mod systems {
 
 					if !headless {
 						creation_event.send(CreateWorldEvent);
+						server_non_headless_join.send(PlayerJoin(SERVER_ID));
 					}
 				}
 				NetcodeConfig::Client { ip, port } => {

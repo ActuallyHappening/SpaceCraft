@@ -16,7 +16,7 @@ impl Plugin for SpawnPointsPlugin {
 			.add_systems(PostProcessCollisions, Self::filter_non_occupied_collisions)
 			.add_systems(
 				Blueprints,
-				blueprint::SpawnPointBlueprintBundle::expand_system,
+				blueprint::SpawnPointBlueprintBundle::expand_system.in_set(BlueprintExpansion::SpawnPoints),
 			)
 			.add_systems(
 				WorldCreation,
@@ -49,7 +49,7 @@ mod api {
 		/// Returns a valid spawn location, handling side effects.
 		///
 		/// Maybe: Handle spawning a new spawn location in the future?
-		pub fn try_get_spawn_location(mut self, player_occupying: ClientId) -> Option<Transform> {
+		pub fn try_get_spawn_location(&mut self, player_occupying: ClientId) -> Option<Transform> {
 			if !self.state.is_authoritative() {
 				error!(
 					"Cannot assign spawn points from a non-authoritative state: {:?}",
