@@ -77,6 +77,15 @@ impl Plugin for MainPlugin {
 					..default()
 				});
 		});
+		// todo: make deterministic
+		// app.edit_schedule(FixedUpdate, |schedule| {
+		// 	schedule
+		// 		// .set_executor_kind(ExecutorKind::SingleThreaded)
+		// 		.set_build_settings(ScheduleBuildSettings {
+		// 			ambiguity_detection: LogLevel::Error,
+		// 			..default()
+		// 		});
+		// });
 		app.add_systems(
 			FixedUpdate,
 			run_game_logic.in_set(GlobalSystemSet::ExecuteGameLogic),
@@ -147,10 +156,10 @@ impl Plugin for MainPlugin {
 			ReplicationPlugins
 				.build()
 				.set(ServerPlugin::new(TickPolicy::Manual)),
-			// TimewarpPlugin::new(TimewarpConfig::new(
-			// 	GlobalSystemSet::ExecuteGameLogic,
-			// 	GlobalSystemSet::ExecuteGameLogic,
-			// )),
+			TimewarpPlugin::new(TimewarpConfig::new(
+				GlobalSystemSet::ExecuteGameLogic,
+				GlobalSystemSet::ExecuteGameLogic,
+			)),
 			// crate::utils::scenes::HelperScene,
 		));
 

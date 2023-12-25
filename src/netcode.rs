@@ -27,10 +27,10 @@ impl Plugin for NetcodePlugin {
 			.add_systems(OnEnter(GlobalGameStates::InGame), Self::add_netcode)
 			.add_systems(OnExit(GlobalGameStates::InGame), Self::disconnect_netcode)
 			.add_systems(Update, Self::server_event_system.in_set(Server))
-			// .add_systems(
-			// 	FixedUpdate,
-			// 	Self::frame_inc_and_replicon_tick_sync.in_set(GlobalSystemSet::GameLogic),
-			// )
+			.add_systems(
+				FixedUpdate,
+				Self::frame_inc_and_replicon_tick_sync,
+			)
 			.configure_sets(GameLogic, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(Update, Client.run_if(NetcodeConfig::not_headless()))
 			.configure_sets(GameLogic, Server.run_if(NetcodeConfig::has_authority()))
@@ -118,7 +118,6 @@ mod api {
 
 impl NetcodePlugin {
 	// todo add tests
-	#[allow(dead_code)]
 	fn frame_inc_and_replicon_tick_sync(
 		mut game_clock: ResMut<GameClock>, // your own tick counter
 		mut replicon_tick: ResMut<RepliconTick>,

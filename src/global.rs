@@ -30,13 +30,21 @@ pub enum GlobalSystemSet {
 	/// Note: Thrusters sync their data with external force just before this
 	RawPhysics,
 
-	/// Runs after physics simulation,
-	/// executes [GameLogic]
+	/// Runs after physics simulation, executes [GameLogic],
+	/// used in config of [bevy_timewarp].
 	ExecuteGameLogic,
 
 	/// Runs the [Blueprints] [Schedule].
 	BlueprintExpansion,
 }
+
+// /// Used inside [GameLogic] [Schedule],
+// /// 
+// /// Currently **Un ordered**
+// #[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
+// pub enum GameLogicSet {
+// 	TickClocks,
+// }
 
 /// Naming of all render layers used within the project
 pub enum GlobalRenderLayers {
