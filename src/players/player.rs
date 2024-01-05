@@ -176,8 +176,14 @@ mod player_blueprint {
 				network_id: NetworkId::from_raw(network_id.raw()),
 				blueprint: PlayerBlueprintComponent {
 					structure_children: vec![
-						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::ZERO),
-						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, -1)),
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::ZERO), // center
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, -1)), // front
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, 1)), // front
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, 2)),
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(1, 0, 2)),
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(-1, 0, 2)),
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(1, 0, 3)),
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(-1, 0, 3)),
 					],
 					thruster_children: vec![
 						BlockBlueprint::new_thruster(IVec3::new(-1, 0, 0), Facing::Left),

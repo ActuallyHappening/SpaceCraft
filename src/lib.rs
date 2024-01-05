@@ -21,6 +21,7 @@ mod blocks;
 mod cameras;
 mod global;
 mod netcode;
+mod physics;
 mod players;
 mod prelude;
 mod states;
@@ -92,9 +93,7 @@ impl Plugin for MainPlugin {
 		);
 		fn run_game_logic(world: &mut World) {
 			// trace!("Running Game Logic");
-			world
-				.try_run_schedule(GameLogic)
-				.ok();
+			world.try_run_schedule(GameLogic).ok();
 		}
 
 		// spawn initial light
@@ -149,9 +148,7 @@ impl Plugin for MainPlugin {
 			ScreenDiagnosticsPlugin::default(),
 			ScreenFrameDiagnosticsPlugin,
 			picking_plugins,
-			PhysicsPlugins::new(FixedUpdate),
-			#[cfg(feature = "debug")]
-			PhysicsDebugPlugin::default(),
+			physics::PhysicsPlugin,
 			HanabiPlugin,
 			ReplicationPlugins
 				.build()
@@ -164,13 +161,9 @@ impl Plugin for MainPlugin {
 		));
 
 		// personally built projects
-		app.add_plugins((
-			bevy_xpbd3d_parenting::PhysicsParentingPlugin,
-			bevy_starfield::StarfieldPlugin::default(),
-		));
+		app.add_plugins(bevy_starfield::StarfieldPlugin::default());
 
 		// dep configuration
-		app.insert_resource(Gravity(Vec3::ZERO));
 		#[cfg(feature = "editor")]
 		app.insert_resource(editor_controls());
 
