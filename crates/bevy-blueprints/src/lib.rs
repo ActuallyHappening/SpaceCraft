@@ -1,173 +1,97 @@
-use bevy::ecs::schedule::{ScheduleBuildSettings, ScheduleLabel};
+mod prelude {
+	pub use crate::plugin::*;
+	pub use crate::sets::*;
+	pub use crate::components::*;
 
-use crate::prelude::*;
-
-pub use traits::*;
-
-pub struct BlueprintsPlugin;
-
-impl Plugin for BlueprintsPlugin {
-	fn build(&self, app: &mut App) {
-		type BE = BlueprintExpansion;
-		app
-			.configure_sets(
-				Blueprints,
-				(
-					BE::ClearJustExpandedMarker,
-					(BE::Player, BE::SpawnPoints, BE::Terrain),
-					BE::Expand1, // expands player children like structure blueprints
-					(BE::ThrusterBlocks,),
-					BE::Expand2,
-				)
-					.chain(),
-			)
-			.register_type::<FreshlyExpanded>()
-			.add_systems(
-				Blueprints,
-				(
-					(
-						apply_deferred,
-						Self::clear_blueprint_updated_markers,
-						apply_deferred,
-					)
-						.chain()
-						.in_set(BE::ClearJustExpandedMarker),
-					apply_deferred.in_set(BE::Expand1),
-					apply_deferred.in_set(BE::Expand2),
-				),
-			)
-			.add_systems(
-				FixedUpdate,
-				Self::run_blueprints_schedule.in_set(GlobalSystemSet::BlueprintExpansion),
-			)
-			.edit_schedule(Blueprints, |schedule| {
-				schedule.set_build_settings(ScheduleBuildSettings {
-					ambiguity_detection: bevy::ecs::schedule::LogLevel::Error,
-					..default()
-				});
-			});
-	}
+	// bevy
+	pub use bevy::prelude::*;
+	pub use bevy::ecs::schedule::{ScheduleLabel, InternedScheduleLabel};
 }
 
-/// Schedule that runs to fully expand blueprints
-#[derive(ScheduleLabel, Hash, Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Blueprints;
-
-/// If an entity has this component, it means that it was just spawned
-/// / its blueprint was just expanded.
-#[derive(Component, Debug, Default, Reflect)]
-#[component(storage = "SparseSet")]
-pub struct FreshlyExpanded;
-
-/// Makes sure that the blueprints that the player creates are
-/// expanded before, so that thruster visuals can be spawned on time.
-#[derive(SystemSet, Hash, Debug, PartialEq, Eq, Clone, Copy)]
-pub enum BlueprintExpansion {
-	/// Removes the [JustExpanded] marker components and calls [apply_deferred] (twice)
-	ClearJustExpandedMarker,
-
-	/// Expands player's blueprint,
-	/// which also spawns a few children.
-	Player,
-	SpawnPoints,
-	/// Asteroids
-	Terrain,
-
-	/// Runs [apply_deferred]
-	Expand1,
-
-	ThrusterBlocks,
-
-	/// Runs [apply_deferred]
-	Expand2,
-}
-
-// (BlueprintExpansionClass::Player, BlueprintExpansionClass::Thruster)
-// 	.chain()
-// 	.in_set(GlobalSystemSet::BlueprintExpansion),
-
-mod systems {
+mod plugin {
 	use crate::prelude::*;
 
-	use super::{BlueprintsPlugin, FreshlyExpanded};
+	#[derive(Debug)]
+	pub struct BlueprintsPlugin {
+		schedule: InternedScheduleLabel,
+	}
+
+	impl Plugin for BlueprintsPlugin {
+		fn build(&self, app: &mut App) {
+			type BS = BlueprintsSet;
+			app
+				.register_type::<BlueprintNeedsUpdating>()
+				.configure_sets(
+					self.schedule,
+					(
+						BS::ApplyDeferred1,
+						BS::MarkChanged,
+						BS::ApplyDeferred2,
+						BS::ExpandBlueprints,
+						BS::ApplyDeferred3,
+					)
+						.chain(),
+				);
+		}
+	}
 
 	impl BlueprintsPlugin {
-		pub(super) fn clear_blueprint_updated_markers(
-			markers: Query<(Entity, Option<&Name>), With<FreshlyExpanded>>,
-			mut commands: Commands,
-		) {
-			for (entity, name) in markers.iter() {
-				trace!("Removing JustExpanded marker from {:?}", name);
-				commands.entity(entity).remove::<FreshlyExpanded>();
+		pub fn new(schedule: impl ScheduleLabel) -> Self {
+			Self {
+				schedule: schedule.intern(),
 			}
-		}
-
-		pub(super) fn run_blueprints_schedule(world: &mut World) {
-			// trace!("Running Blueprints schedule normally");
-			world.try_run_schedule(Blueprints).ok();
 		}
 	}
 }
 
-mod traits {
+mod sets {
 	use crate::prelude::*;
 
-	/// Represents a type [Blueprint] that can be [Blueprint::stamp]ed into
-	/// a bundle that can be spawned, i.e., a [Bundle] that is specifically
-	/// [Blueprint::For]
-	pub trait Blueprint: std::fmt::Debug {
-		/// The bundle type that this blueprint can be stamped into.
-		type Bundle: Bundle;
-		/// A way to access the world when stamping, typically [MMA],
-		/// for things like [AssetServer] or [ResMut<Assets<Mesh>>].
-		type StampSystemParam<'w, 's>: SystemParam;
+	/// Set that is initialized by the [BlueprintsPlugin].
+	#[derive(SystemSet, Hash, Clone, Eq, PartialEq, Debug)]
+	pub enum BlueprintsSet {
+		ApplyDeferred1,
 
-		/// Stamps this blueprint into a bundle that can be spawned.
-		fn stamp(&self, system_param: &mut Self::StampSystemParam<'_, '_>) -> Self::Bundle;
+		/// Adds the [BlueprintNeedsUpdating] marker component to
+		/// relevant [Entity]s.
+		MarkChanged,
+
+		ApplyDeferred2,
+
+		/// Expands blueprints that have the [BlueprintNeedsUpdating] marker component.
+		ExpandBlueprints,
+
+		ApplyDeferred3,
+	}
+}
+
+mod components {
+	use crate::prelude::*;
+
+	/// Marker [Component] that communicates an [Entity] is still in the
+	/// process of being expanded.
+	/// Added in the [BlueprintsSet] [BlueprintsSet::MarkChanged],
+	/// and maybe removed in the [BlueprintsSet::ExpandBlueprints] depending
+	/// on implementation details per blueprint type.
+	#[derive(Component, Reflect, Debug, Default)]
+	pub struct BlueprintNeedsUpdating;
+}
+
+#[cfg(test)]
+mod tests {
+	use crate::prelude::*;
+
+	fn test_app() -> App {
+		App::new()
 	}
 
-	/// A blueprint that is synced over the network.
-	/// Hence, it must be serializable and deserializable,
-	/// and contain at least a [bevy_replicon] serializable component.
-	pub trait NetworkedBlueprintBundle:
-		Bundle + std::ops::Deref<Target = Self::NetworkedBlueprintComponent>
-	{
-		type NetworkedBlueprintComponent: Component
-			+ Serialize
-			+ DeserializeOwned
-			+ Blueprint
-			+ ReplicationMarker;
+	#[derive(ScheduleLabel, Hash, Clone, Copy, PartialEq, Eq, Debug)]
+	struct BlueprintSchedule;
 
-		/// What access is needed when expanding this blueprint.
-		type SpawnSystemParam: SystemParam;
+	#[test]
+	fn plugin_initializes() {
+		let mut app = test_app();
 
-		/// The system that expands this blueprint on both server and client side.
-		/// Runs whenever a new instance of this blueprint is spawned.
-		/// By default, immediately stamps the blueprint bundle on top of the entity.
-		fn expand_system(
-			instances: Query<
-				(Entity, &Self::NetworkedBlueprintComponent),
-				Changed<Self::NetworkedBlueprintComponent>,
-			>,
-			mut commands: Commands,
-			mut expand_system_param: <Self::NetworkedBlueprintComponent as Blueprint>::StampSystemParam<
-				'_,
-				'_,
-			>,
-			_spawn_system_param: Self::SpawnSystemParam,
-		) {
-			for (e, blueprint) in instances.iter() {
-				trace!(
-					"Expanding blueprint: {:?}",
-					// std::any::type_name::<Self::NetworkedBlueprintComponent>(),
-					blueprint
-				);
-				commands
-					.entity(e)
-					.despawn_descendants()
-					.insert(blueprint.stamp(&mut expand_system_param))
-					.insert(FreshlyExpanded);
-			}
-		}
+		app.add_plugins((MinimalPlugins, BlueprintsPlugin::new(BlueprintSchedule)));
 	}
 }

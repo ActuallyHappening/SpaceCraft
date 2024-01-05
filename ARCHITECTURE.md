@@ -1,3 +1,7 @@
+## Syncing and offline mode
+1. 2 modes: offline does not connect to internet and continually polls to switch to online mode. online mode syncs
+
+
 ## blueprints
 Blueprints are bevy_replicon sync-able components that encode serializable information about
 children / interactions.
