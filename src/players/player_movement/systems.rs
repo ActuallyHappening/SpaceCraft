@@ -93,7 +93,7 @@ impl PlayerMovementPlugin {
 			let desired_delta = &intended.sub(*actual);
 			let strengths = ThrusterStrengths::new(axis.get_blocks().map(|(id, force_axis)| {
 				let mut dot = force_axis.dot(*desired_delta);
-				const CUTOFF: f32 = 0.1;
+				const CUTOFF: f32 = 0.3;
 				if dot.abs() < CUTOFF {
 					dot = 0.;
 				}

@@ -178,7 +178,7 @@ mod player_blueprint {
 					structure_children: vec![
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::ZERO), // center
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, -1)), // front
-						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, 1)), // front
+						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, 1)),
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(0, 0, 2)),
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(1, 0, 2)),
 						BlockBlueprint::new_structure(StructureBlockBlueprint::Aluminum, IVec3::new(-1, 0, 2)),
@@ -188,6 +188,16 @@ mod player_blueprint {
 					thruster_children: vec![
 						BlockBlueprint::new_thruster(IVec3::new(-1, 0, 0), Facing::Left),
 						BlockBlueprint::new_thruster(IVec3::new(1, 0, 0), Facing::Right),
+						BlockBlueprint::new_thruster(IVec3::new(-1, 0, 1), Facing::Left),
+						BlockBlueprint::new_thruster(IVec3::new(1, 0, 1), Facing::Right),
+						BlockBlueprint::new_thruster(IVec3::new(-2, 0, 2), Facing::Left),
+						BlockBlueprint::new_thruster(IVec3::new(2, 0, 2), Facing::Right),
+						BlockBlueprint::new_thruster(IVec3::new(-2, 0, 3), Facing::Left),
+						BlockBlueprint::new_thruster(IVec3::new(2, 0, 3), Facing::Right),
+						// BlockBlueprint::new_thruster(IVec3::new(1, 1, 3), Facing::Up),
+						// BlockBlueprint::new_thruster(IVec3::new(1, -1, 3), Facing::Down),
+						// BlockBlueprint::new_thruster(IVec3::new(-1, 1, 3), Facing::Up),
+						// BlockBlueprint::new_thruster(IVec3::new(-1, -1, 3), Facing::Down),
 					],
 					primary_camera: BlockBlueprint::new_camera(IVec3::new(0, 1, 0), Facing::Forwards),
 				},
