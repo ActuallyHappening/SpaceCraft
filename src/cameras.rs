@@ -34,11 +34,12 @@ mod api {
 	pub use super::camera_block::{CameraBlockBlueprint, CameraBlockBundle, CameraBlockMarker};
 	pub use super::events::ChangeCameraConfig;
 
-	#[derive(Debug, Clone, Copy, Reflect)]
+	/// Entity that is a camera block.
+	#[derive(Debug, Clone, Copy, Reflect, Deref)]
 	pub struct BlockEntity(pub Entity);
 
-	/// Marker for a [camera_bundle::CameraBundle].
-	#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+	/// Entity that is a [super::camera_bundle::CameraBundle].
+	#[derive(Component, Reflect, Clone, Copy, Debug, PartialEq, Eq, Hash, Deref)]
 	pub struct CameraEntity(pub Entity);
 
 	#[derive(Debug, Reflect)]
@@ -134,35 +135,28 @@ mod systems {
 		/// Spawns the fallback camera if needed
 		pub(super) fn handle_fallback_cam(
 			mut commands: Commands,
-			config: ResMut<resources::CamerasConfig>,
+			mut config: ResMut<resources::CamerasConfig>,
 		) {
-			let config = config.into_inner();
-			match config.get_fallback_cam() {
-				Some(None) => {
-					// spawn a fallback camera
-					let entity = commands
-						.spawn(Camera3dBundle {
-							camera: Camera {
-								hdr: true,
-								..default()
-							},
-							camera_3d: Camera3d {
-								clear_color: ClearColorConfig::Custom(Color::BLUE),
-								..default()
-							},
+			if config.requires_fallback() {
+				// there is no cameras already spawned
+				// spawn a fallback camera
+				let entity = commands
+					.spawn(Camera3dBundle {
+						camera: Camera {
+							hdr: true,
 							..default()
-						})
-						.id();
-					debug!("Spawned a fallback camera");
-					config.set_fallback_cam(entity, &mut commands);
-				}
-				Some(Some(_)) => {
-					// a fallback camera has already been spawned
-					// and should stay there
-				}
-				None => {
-					// there is already a primary camera
-				}
+						},
+						camera_3d: Camera3d {
+							clear_color: ClearColorConfig::Custom(Color::BLUE),
+							..default()
+						},
+						..default()
+					})
+					.id();
+				debug!("Spawned a fallback camera");
+				*config = CamerasConfig::Fallback {
+					cam: CameraEntity(entity),
+				};
 			}
 		}
 
@@ -178,39 +172,53 @@ mod systems {
 					} => {
 						// spawns new camera
 						let camera_entity = commands.spawn(CameraBundle::default()).id();
-						res.set_primary_cam(
-							*follow_camera_block,
-							CameraEntity(camera_entity),
-							&mut commands,
-						);
+						res.clean_any_fallback_cam(&mut commands);
+						*res = CamerasConfig::PrimaryCamera {
+							block: *follow_camera_block,
+							cam: CameraEntity(camera_entity),
+							config: Default::default(),
+						};
 					}
 				}
 			}
 		}
 
 		pub(super) fn update_cameras(
-			mut cams: Query<(Entity, &mut Rig), With<CameraMarker>>,
+			mut cams: Query<&mut Rig, With<CameraMarker>>,
 			blocks: Query<&GlobalTransform, With<CameraBlockMarker>>,
 			config: Res<CamerasConfig>,
 		) {
-			for (camera_entity, mut rig) in cams.iter_mut() {
-				let camera_entity = CameraEntity(camera_entity);
-				if let Some(block_entity) = config.get_cam_from_id(camera_entity) {
-					if let Ok(block_global_transform) = blocks.get(block_entity.0) {
-						let block_transform = block_global_transform.reparented_to(&GlobalTransform::IDENTITY);
-						// sets position to same as the block it is following
-						rig.driver_mut::<bevy_dolly::prelude::Position>().position =
-							block_transform.translation;
-						// sets rotation to same as the parent block it is following is
-						rig.driver_mut::<bevy_dolly::prelude::Rotation>().rotation = block_transform.rotation;
+			match config.into_inner() {
+				CamerasConfig::None => {
+					// no cameras spawned
+				}
+				CamerasConfig::Fallback { .. } => {
+					// only a fallback camera spawned, no need to update
+				}
+				CamerasConfig::PrimaryCamera { block, cam, config } => {
+					// primary camera spawned already, lets update it
+					if let Ok(mut rig) = cams.get_mut(**cam) {
+						if let Ok(block_global_transform) = blocks.get(**block) {
+							// translating block to global scope
+							let block_transform = block_global_transform
+								.reparented_to(&GlobalTransform::IDENTITY);
+
+							// sets position to same as the block it is following
+							rig.driver_mut::<bevy_dolly::prelude::Position>().position =
+								block_transform.translation;
+							// sets rotation to same as the parent block it is following
+							rig.driver_mut::<bevy_dolly::prelude::Rotation>().rotation =
+								block_transform.rotation;
+							
+							if config.can_orbit() {
+
+							}
+						} else {
+							error!("Cannot find block {:?} in query", block);
+						}
 					} else {
-						error!("Camera {:?} has no global transform", camera_entity);
+						error!("Cannot find camera {:?} in query", cam);
 					}
-				} else {
-					warn!(
-						"Camera {:?} has no block entity assigned in CamerasConfig resource",
-						camera_entity
-					);
 				}
 			}
 		}

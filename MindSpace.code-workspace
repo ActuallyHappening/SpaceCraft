@@ -12,6 +12,9 @@
 		{
 			"path": "../creativity-game-0.11"
 		},
+		{
+			"path": "./crates/bevy_xpbd3d_thrusters"
+		},
 		// {
 		// 	"path": "../bevy_hanabi"
 		// },
@@ -54,9 +57,9 @@
 		// {
 		// 	"path": "../bevy_game_template"
 		// },
-		// {
-		// 	"path": "../bevy_xpbd3d_parenting"
-		// },
+		{
+			"path": "../bevy_xpbd3d_parenting"
+		},
 		// {
 		// 	"path": "../rust-mac-app-examples/3-packaging-a-mac-app"
 		// }

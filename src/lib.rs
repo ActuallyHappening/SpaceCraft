@@ -149,9 +149,10 @@ impl Plugin for MainPlugin {
 			picking_plugins,
 			physics::PhysicsPlugin,
 			HanabiPlugin,
-			ReplicationPlugins
-				.build()
-				.set(ServerPlugin::new(TickPolicy::Manual)),
+			ReplicationPlugins.build().set(ServerPlugin {
+				tick_policy: TickPolicy::Manual,
+				update_timeout: Duration::from_secs(5),
+			}),
 			TimewarpPlugin::new(TimewarpConfig::new(
 				GlobalSystemSet::ExecuteGameLogic,
 				GlobalSystemSet::ExecuteGameLogic,
