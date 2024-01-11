@@ -3,7 +3,7 @@ pub mod prelude {
 	pub use crate::shared_types::ForceAxis;
 	pub(crate) use bevy::{prelude::*, utils::HashMap};
 	pub(crate) use bevy_inspector_egui::prelude::*;
-	pub(crate) use bevy_xpbd3d_parenting::prelude::*;
+	pub use bevy_xpbd3d_parenting::prelude::*;
 }
 
 mod plugins {
@@ -11,8 +11,9 @@ mod plugins {
 
 	use bevy::ecs::schedule::{InternedScheduleLabel, ScheduleLabel};
 
-use crate::prelude::*;
+	use crate::prelude::*;
 
+	#[derive(SystemSet, Debug)]
 	pub enum ThrusterSystemSet {
 		PrepareThrusters,
 
@@ -44,7 +45,21 @@ use crate::prelude::*;
 
 	impl Plugin for ThrusterPlugin {
 		fn build(&self, app: &mut App) {
-			app.register_type::<ForceAxis>().register_type::<Thruster>().configure_sets();
+			type TSS = ThrusterSystemSet;
+			app
+				.register_type::<ForceAxis>()
+				.register_type::<Thruster>()
+				.configure_sets(
+					self.schedule,
+					(TSS::PrepareThrusters, TSS::SyncInternalForces).chain(),
+				)
+				.add_systems(
+					self.schedule,
+					(
+						Self::prepare_thrusters.in_set(TSS::PrepareThrusters),
+						Self::sync_thrusters_with_internal_forces.in_set(TSS::SyncInternalForces),
+					),
+				);
 		}
 	}
 }
