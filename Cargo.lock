@@ -1832,8 +1832,10 @@ name = "bevy_xpbd3d_thrusters"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy-inspector-egui 0.22.1",
  "bevy_xpbd_3d",
  "serde",
+ "static_assertions",
 ]
 
 [[package]]
