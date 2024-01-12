@@ -1,6 +1,8 @@
+#![allow(dead_code)]
+
 pub use bevy::prelude::*;
-pub use bevy_xpbd3d_parenting::{prelude::PhysicsParentingPlugin, InternalForce};
-pub use bevy_xpbd3d_thrusters::prelude::ThrusterPlugin;
+pub use bevy_xpbd3d_parenting::{prelude::*, InternalForce};
+pub use bevy_xpbd3d_thrusters::prelude::*;
 pub use rand::random;
 
 pub fn test_app() -> App {

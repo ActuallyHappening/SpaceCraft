@@ -168,19 +168,20 @@ mod shared_types {
 				self.strength_factor.max(0.0)
 			}
 
-			pub fn set_strength_factor(&mut self, strength_factor: f32) {
+			pub fn set_strength_factor(&mut self, strength_factor: f32) -> &mut Self {
 				#[cfg(feature = "debug")]
 				if strength_factor < 0.0 {
 					warn!("Strength factor {} must be >= 0.0", strength_factor);
 				}
 				self.strength_factor = strength_factor.max(0.0);
+				self
 			}
 
 			pub fn get_current_status(&self) -> f32 {
 				self.current_status.clamp(0.0, 1.0)
 			}
 
-			pub fn set_current_status(&mut self, current_status: f32) {
+			pub fn set_current_status(&mut self, current_status: f32) -> &mut Self {
 				#[cfg(feature = "debug")]
 				if !(0.0..=1.0).contains(&current_status) {
 					warn!(
@@ -189,6 +190,7 @@ mod shared_types {
 					);
 				}
 				self.current_status = current_status.clamp(0.0, 1.0);
+				self
 			}
 		}
 	}
@@ -206,7 +208,7 @@ mod strategies {
 	fn assert_obj_safe() {
 		#[derive(Debug, Reflect, Clone, Copy, PartialEq, Eq, Hash)]
 		struct ID(u64);
-		
+
 		#[allow(dead_code)]
 		fn assert_obj_safe(_: &dyn Strategy<ID>) {}
 	}

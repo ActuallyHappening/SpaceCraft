@@ -1,6 +1,3 @@
-use bevy::prelude::*;
-use bevy_xpbd3d_thrusters::prelude::*;
-
 mod utils;
 use utils::*;
 
