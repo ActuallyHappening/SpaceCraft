@@ -1,9 +1,14 @@
+#![doc = include_str!("../README.md")]
+#![allow(clippy::type_complexity)]
+
 pub mod prelude {
-	pub use crate::shared_types::components::Thruster;
-	pub use crate::shared_types::ForceAxis;
+	pub use crate::plugins::{ThrusterPlugin, ThrusterSystemSet};
+	pub use crate::shared_types::{components::Thruster, ForceAxis};
+
+	pub use bevy_xpbd3d_parenting::prelude::*;
+
 	pub(crate) use bevy::{prelude::*, utils::HashMap};
 	pub(crate) use bevy_inspector_egui::prelude::*;
-	pub use bevy_xpbd3d_parenting::prelude::*;
 }
 
 mod plugins {
@@ -13,7 +18,7 @@ mod plugins {
 
 	use crate::prelude::*;
 
-	#[derive(SystemSet, Debug)]
+	#[derive(SystemSet, Debug, Hash, PartialEq, Eq, Clone, Copy)]
 	pub enum ThrusterSystemSet {
 		PrepareThrusters,
 
@@ -39,13 +44,15 @@ mod plugins {
 
 	impl Default for ThrusterPlugin {
 		fn default() -> Self {
-			ThrusterPlugin::new(Update);
+			ThrusterPlugin::new(Update)
 		}
 	}
 
 	impl Plugin for ThrusterPlugin {
 		fn build(&self, app: &mut App) {
+			#[allow(clippy::upper_case_acronyms)]
 			type TSS = ThrusterSystemSet;
+
 			app
 				.register_type::<ForceAxis>()
 				.register_type::<Thruster>()
@@ -73,16 +80,30 @@ mod systems {
 			mut thrusters: Query<(&Thruster, &mut InternalForce)>,
 		) {
 			for (thruster, mut internal_force) in thrusters.iter_mut() {
-				internal_force.set(Vec3::Z * thruster.get_status() * thruster.strength_factor);
+				internal_force
+					.set(Vec3::Z * thruster.get_current_status() * thruster.get_strength_factor());
 			}
 		}
 
 		pub(super) fn prepare_thrusters(
-			unprepared_thrusters: Query<Entity, (With<Thruster, Without<InternalForce>>)>,
+			unprepared_thrusters: Query<
+				(Entity, Option<&Name>),
+				(With<Thruster>, Without<InternalForce>),
+			>,
 			mut commands: Commands,
 		) {
-			for thruster in unprepared_thrusters.iter() {
-				commands.entity(thruster).insert(InternalForce::default());
+			for (thruster, name) in unprepared_thrusters.iter() {
+				let _e = commands.entity(thruster).insert(InternalForce::default());
+
+				#[cfg(feature = "debug")]
+				debug!(
+					"Added `InternalForce` to an entity {:?} with the `Thruster` component {:?}",
+					thruster,
+					match name {
+						Some(name) => format!("named {}", name.as_str()),
+						None => "and no name".into(),
+					}
+				);
 			}
 		}
 	}
@@ -123,7 +144,25 @@ mod shared_types {
 			current_status: f32,
 		}
 
+		impl Default for Thruster {
+			fn default() -> Self {
+				Self::new_with_strength_factor(1.0)
+			}
+		}
+
 		impl Thruster {
+			pub fn new_with_strength_factor(strength_factor: f32) -> Self {
+				Self {
+					strength_factor,
+					current_status: 0.0,
+				}
+			}
+
+			/// Creates a [Thruster] using the [Default] values.
+			pub fn new() -> Self {
+				Self::default()
+			}
+
 			pub fn get_strength_factor(&self) -> f32 {
 				self.strength_factor.max(0.0)
 			}
@@ -164,7 +203,11 @@ mod strategies {
 
 	#[test]
 	fn assert_obj_safe() {
-		fn assert_obj_safe(_: &dyn Strategy<u32>) {}
+		#[derive(Debug, Reflect, Clone, Copy, PartialEq, Eq, Hash)]
+		struct ID(u64);
+		
+		#[allow(dead_code)]
+		fn assert_obj_safe(_: &dyn Strategy<ID>) {}
 	}
 }
 
