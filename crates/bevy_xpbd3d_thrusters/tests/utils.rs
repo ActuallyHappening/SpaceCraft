@@ -1,6 +1,7 @@
-use bevy::prelude::*;
-use bevy_xpbd3d_parenting::{prelude::PhysicsParentingPlugin, InternalForce};
-use bevy_xpbd3d_thrusters::prelude::ThrusterPlugin;
+pub use bevy::prelude::*;
+pub use bevy_xpbd3d_parenting::{prelude::PhysicsParentingPlugin, InternalForce};
+pub use bevy_xpbd3d_thrusters::prelude::ThrusterPlugin;
+pub use rand::random;
 
 pub fn test_app() -> App {
 	let mut app = App::new();
