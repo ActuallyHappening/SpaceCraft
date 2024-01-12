@@ -28,6 +28,7 @@ mod plugins {
 
 	/// Minimal plugin for syncing the [Thruster] component with
 	/// [InternalForce]s.
+	/// Require the [PhysicsParentingPlugin] to be initialized already.
 	pub struct ThrusterPlugin {
 		schedule: InternedScheduleLabel,
 		_ph: PhantomData<()>,
