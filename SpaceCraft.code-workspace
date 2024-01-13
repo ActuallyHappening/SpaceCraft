@@ -1,0 +1,110 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "src"
+		},
+		// {
+		// 	"path": "xtask/src"
+		// },
+		{
+			"path": "../creativity-game-0.11"
+		},
+		{
+			"path": "./crates/bevy_xpbd3d_thrusters"
+		},
+		// {
+		// 	"path": "../bevy_hanabi"
+		// },
+		// {
+		// 	"path": "../bevy_blueprints"
+		// },
+		// {
+		// 	"path": "../bevy_starfield2"
+		// },
+		// {
+		// 	"path": "../testing-bug"
+		// },
+		// {
+		// 	"path": "../bevy_timewarp"
+		// },
+		// {
+		// 	"path": "../bevy_xpbd"
+		// },
+		// {
+		// 	"path": "../bevy_replicon"
+		// },
+		// {
+		// 	"path": "../bevy_replicon2"
+		// },
+		// {
+		// 	"path": "../bevy-inspector-egui"
+		// },
+		// {
+		// 	"path": "../bevy_editor_pls",
+		// },
+		// {
+		// 	"path": "../bevy_xpbd"
+		// },
+		// {
+		// 	"path": "../space_editor"
+		// }
+		// {
+		// 	"path": "../cargo-bundle"
+		// },
+		// {
+		// 	"path": "../bevy_game_template"
+		// },
+		{
+			"path": "../bevy_xpbd_3d_parenting"
+		},
+		// {
+		// 	"path": "../rust-mac-app-examples/3-packaging-a-mac-app"
+		// }
+		// {
+		// 	"path": "../renet"
+		// },
+		// {
+		// 	"path": "../primitive-engineering"
+		// }
+		// {
+		// 	"path": "../bevy_dolly"
+		// }
+		// {
+		// 	"path": "../bevy"
+		// },
+		// {
+		// 	"path": "../bevy/examples/shader"
+		// },
+		// {
+		// 	"path": "../bevy/assets/shaders"
+		// },
+	],
+	"settings": {
+		"cSpell.words": [
+			"AABB",
+			"angvel",
+			"bevycheck",
+			"cooldown",
+			"Despawning",
+			"hanabi",
+			"linvel",
+			"picka ble",
+			"Pickable",
+			"prefilter",
+			"Raycast",
+			"raycasting",
+			"renet",
+			"reparented",
+			"replicon",
+			"shapecasting",
+			"Substep",
+			"Substeps",
+			"Timewarp",
+			"worldgen",
+			"xpbd"
+		]
+	}
+}

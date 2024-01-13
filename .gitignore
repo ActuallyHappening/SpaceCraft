@@ -8,7 +8,7 @@
 !.rustfmt.toml
 !Cargo.lock
 !Cargo.toml
-!MindSpace.code-workspace
+!SpaceCraft.code-workspace
 !README.md
 !ARCHITECTURE.md
 !CHANGELOG.md
