@@ -20,8 +20,8 @@ bevy-inspector-egui = "0.22.1"
 serde = { version = "1.0.192", features = ["derive"] }
 static_assertions = "1.1.0"
 
-[dependencies.bevy_xpbd3d_parenting]
-git = "https://github.com/ActuallyHappening/bevy_xpbd3d_parenting.git"
+[dependencies.bevy_xpbd_3d_parenting]
+git = "https://github.com/ActuallyHappening/bevy_xpbd_3d_parenting.git"
 default-features = false
 
 # also

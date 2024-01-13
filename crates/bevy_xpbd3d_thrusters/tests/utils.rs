@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 pub use bevy::prelude::*;
-pub use bevy_xpbd3d_parenting::{prelude::*, InternalForce};
+pub use bevy_xpbd_3d_parenting::{prelude::*, InternalForce};
 pub use bevy_xpbd3d_thrusters::prelude::*;
 pub use rand::random;
 

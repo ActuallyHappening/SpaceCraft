@@ -15,7 +15,7 @@
 !rust-toolchain.toml
 !Trunk.toml
 !xtask
-!bevy_xpbd3d_parenting
+!bevy_xpbd_3d_parenting
 !build
 !.github
 !.pre-commit-config.yaml

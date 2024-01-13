@@ -1818,9 +1818,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_xpbd3d_parenting"
+name = "bevy_xpbd_3d_parenting"
 version = "0.1.0"
-source = "git+https://github.com/ActuallyHappening/bevy_xpbd3d_parenting.git#92854de1017d4d80d741ccb930dc5482dcae6acb"
+source = "git+https://github.com/ActuallyHappening/bevy_xpbd_3d_parenting.git#92854de1017d4d80d741ccb930dc5482dcae6acb"
 dependencies = [
  "bevy",
  "bevy_xpbd_3d",
@@ -1833,7 +1833,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui 0.22.1",
- "bevy_xpbd3d_parenting",
+ "bevy_xpbd_3d_parenting",
  "bevy_xpbd_3d",
  "rand 0.8.5",
  "serde",
@@ -7008,7 +7008,7 @@ dependencies = [
  "bevy_starfield",
  "bevy_timewarp",
  "bevy_web_asset",
- "bevy_xpbd3d_parenting",
+ "bevy_xpbd_3d_parenting",
  "bevy_xpbd_3d",
  "bevycheck",
  "clap",

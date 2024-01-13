@@ -30,9 +30,9 @@
 		// {
 		// 	"path": "../bevy_timewarp"
 		// },
-		// {
-		// 	"path": "../bevy_xpbd"
-		// },
+		{
+			"path": "../bevy_xpbd"
+		},
 		// {
 		// 	"path": "../bevy_replicon"
 		// },
@@ -58,7 +58,7 @@
 		// 	"path": "../bevy_game_template"
 		// },
 		{
-			"path": "../bevy_xpbd3d_parenting"
+			"path": "../bevy_xpbd_3d_parenting"
 		},
 		// {
 		// 	"path": "../rust-mac-app-examples/3-packaging-a-mac-app"
@@ -84,6 +84,7 @@
 	],
 	"settings": {
 		"cSpell.words": [
+			"AABB",
 			"angvel",
 			"bevycheck",
 			"cooldown",
@@ -94,10 +95,13 @@
 			"Pickable",
 			"prefilter",
 			"Raycast",
+			"raycasting",
 			"renet",
 			"reparented",
 			"replicon",
+			"shapecasting",
 			"Substep",
+			"Substeps",
 			"Timewarp",
 			"worldgen",
 			"xpbd"

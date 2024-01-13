@@ -61,7 +61,7 @@ impl GetBlockId for Thruster {
 
 mod bundle {
 
-	use bevy_xpbd3d_parenting::InternalForce;
+	use bevy_xpbd_3d_parenting::InternalForce;
 
 	use crate::prelude::*;
 
@@ -107,7 +107,7 @@ mod bundle {
 }
 
 mod systems {
-	use bevy_xpbd3d_parenting::InternalForce;
+	use bevy_xpbd_3d_parenting::InternalForce;
 
 	use crate::{players::player_movement::GetThrusterData, prelude::*};
 

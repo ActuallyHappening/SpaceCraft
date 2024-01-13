@@ -5,7 +5,7 @@ pub mod prelude {
 	pub use crate::plugins::{ThrusterPlugin, ThrusterSystemSet};
 	pub use crate::shared_types::{components::Thruster, ForceAxis};
 
-	pub use bevy_xpbd3d_parenting::prelude::*;
+	pub use bevy_xpbd_3d_parenting::prelude::*;
 
 	pub(crate) use bevy::{prelude::*, utils::HashMap};
 	pub(crate) use bevy_inspector_egui::prelude::*;
