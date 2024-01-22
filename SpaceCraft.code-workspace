@@ -30,9 +30,9 @@
 		// {
 		// 	"path": "../bevy_timewarp"
 		// },
-		// {
-		// 	"path": "../bevy_xpbd"
-		// },
+		{
+			"path": "../bevy_xpbd"
+		},
 		// {
 		// 	"path": "../bevy_replicon"
 		// },
@@ -90,6 +90,7 @@
 			"cooldown",
 			"Despawning",
 			"hanabi",
+			"hierachy",
 			"linvel",
 			"picka ble",
 			"Pickable",

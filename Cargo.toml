@@ -91,7 +91,7 @@ git = "https://github.com/Jondolf/bevy_xpbd.git"
 # git = "https://github.com/ActuallyHappening/bevy_xpbd.git"
 
 [dependencies.bevy_xpbd_3d_parenting]
-git = "https://github.com/ActuallyHappening/bevy_xpbd_3d_parenting.git"
+version = "0.1.0"
 
 [dependencies.bevy_timewarp]
 git = "https://github.com/ActuallyHappening/bevy_timewarp.git"

@@ -17,6 +17,7 @@ debug = []
 
 [dependencies]
 bevy-inspector-egui = "0.22.1"
+derive_more = "0.99.17"
 serde = { version = "1.0.192", features = ["derive"] }
 static_assertions = "1.1.0"
 
@@ -30,6 +31,10 @@ version = "0.3.3"
 
 [dependencies.bevy]
 version = "0.12"
+default-features = false
 
 [dev-dependencies]
 rand = "0.8.5"
+
+[dev-dependencies.bevy]
+version = "0.12"

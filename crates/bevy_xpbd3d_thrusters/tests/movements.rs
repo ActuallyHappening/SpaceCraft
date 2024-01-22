@@ -12,17 +12,29 @@ fn thruster_moves_parent() {
 
 	// random parameters
 	let strength_factor = random::<f32>().abs() + 1.0;
+	assert!(strength_factor > 0.0);
 	let parent_transform = Transform::from_xyz(random(), random(), random());
 	let child_transform =
 		Transform::from_xyz(random(), random(), random()).with_rotation(thruster_direction);
 
 	// spawn parent
-	let mut parent = app.world.spawn((parent_transform,));
+	let mut parent = app.world.spawn((
+		TransformBundle {
+			local: parent_transform,
+			..default()
+		},
+		RigidBody::Dynamic,
+		ExternalForce::ZERO.with_persistence(false),
+		Collider::capsule(1.0, 1.0),
+	));
 
 	// spawn child
 	parent.with_children(|parent| {
 		parent.spawn((
-			child_transform,
+			TransformBundle {
+				local: child_transform,
+				..default()
+			},
 			Thruster::new_with_strength_factor(strength_factor)
 				.set_current_status(1.0)
 				.clone(),
@@ -45,5 +57,13 @@ fn thruster_moves_parent() {
 		child_transform
 	);
 	// assert parent was pushed 'forward' into the screen
-	assert!(*app.world.entity_mut(parent).get::<Transform>().unwrap().translation.z > 0.0);
+	assert!(
+		app
+			.world
+			.entity_mut(parent)
+			.get::<Transform>()
+			.unwrap()
+			.translation
+			.z > 0.0
+	);
 }
